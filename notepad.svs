@@ -1,0 +1,364 @@
+function init {
+  verze = "1.6";
+	sys print("Notepad v." + verze);
+	sys checkSVSVer(101);
+
+	if (typeof (arg0) == TYPE_STR) {
+		openFile = arg0;
+		exitOnStore = 1;
+	} else {
+		openFile = "";
+		exitOnStore = 0;
+	}
+
+	scr = sys pAddScreen();
+	sys pSetMainScr(scr);
+
+	sys pSetXcell(scr, 16);
+
+	sys pAddText(1, 0, 18, 1,"Poznámky "+verze, scr);
+
+	selP = sys arrayNew(60);
+	namP = sys arrayNew(60);
+
+	load_scr2(); #nahraje scr2
+
+	inText = "";
+
+	txt = sys pAddText(2,6,16,7,inText,scr);
+	txt_p = sys pAddText(16,6,20,7,".txt",scr);
+	btn_save = sys pAddButton(10,7,16,8, "Vytvořit", scr);
+
+	btn_storno = sys pAddButton(2,7,8,8, "Storno", scr);
+
+	sys pSetVisible(txt, 0);
+	sys pSetVisible(txt_p, 0);
+	sys pSetVisible(btn_save, 0);
+	sys pSetVisible(btn_storno, 0);
+
+	btn_new = sys pAddButton(2, 12, 8, 13, "Nový", scr);
+	btn_del = sys pAddButton(12, 12, 18, 13, "Smazat", scr);
+
+	sys pSetVisible(btn_del, 0);
+
+	sys pSetTexEd(txt,1);
+
+	sld = sys pAddSliderV(18,1,20,11,100, 1,scr);
+
+	sldold = 0;
+
+	sys pClrScrEv(scr);
+
+	filename = "";
+
+	edit_mode = 0;
+
+	editScr = sys pAddScreen();
+
+	sys pSetXcell(editScr, 16);
+	sys pSetYcell(editScr, 16);
+
+	EStxtN = sys pAddText(1, 1, 18, 3,"",editScr); #název
+	ESfname = "";
+
+	EStxtScr = sys pAddScreen();
+	EStxtScroll = sys pAddSliderV(18, 4, 20, 16, 256, 0, editScr);
+
+	EStxt = sys pAddText(0, 0, 9, 17, "", EStxtScr); #textové pole
+
+	sys pSetScreen(EStxtScr, editScr);
+	sys pSetXYXY(EStxtScr, 1, 3, 18, 22);
+
+	EStext = "";
+
+	btn_store = sys pAddButton(1, 24, 8, 26, "Uložit", editScr);
+	btn_back = sys pAddButton(12, 24, 18, 26, "Zpět", editScr);
+
+	#editscr musíme přihodit na hlavní screen,
+	#aby jí to po sobě smazalo při uzavření aplikace
+	#problém je, když se aplikace zavře v editscreenu
+	#sys pSetScreen(editScr, scr);
+	#sys pSetXYXY(editScr,20,20,21,21);
+
+	sys pSetTexEd(EStxtN,1);
+	sys pSetTexEd(EStxt,1);
+
+}
+
+function load_scr2{
+  scr2 = sys pAddScreen();
+
+	sys pSetScreen(scr2, scr);
+	sys pSetXYXY(scr2, 1, 1, 18, 11);
+	sys pSetXcell(scr2, 16);
+
+  findfil = sys fFind("txt", ".");
+  local x;
+	x = 0;
+	while ((x < 60) * (findfil != "")) {
+
+	  sys arraySet(selP, x, sys pAddButton(1, 1+x, 3, 2+x, "-", scr2));
+
+	  sys arraySet(namP, x, sys pAddButton(4, 1+x, 14, 2+x, findfil, scr2));
+
+	  findfil = sys fFindNext();
+    x = x + 1;
+  }
+  fileCnt=x; #počet souborů
+
+  sys pClrScrEv(scr2);
+}
+
+
+function update_scr2{
+  local x;
+  x=0;
+	while (x<fileCnt){
+	  if(sys pGetEvent(sys arrayGet(selP, x))==3){
+	    if(select==0){
+        selected=x;
+        select=1;
+        sys pSetStr(sys arrayGet(selP, x),">");
+      }else{
+         if(selected==x){
+          select=0;
+          sys pSetStr(sys arrayGet(selP, x),"-");
+        }else{
+          sys pSetStr(sys arrayGet(selP, selected),"-");
+          selected=x;
+          sys pSetStr(sys arrayGet(selP, x),">");
+        }
+      }
+
+      if(select==1){
+        #sys print("selected: "+x);
+      }
+      sys pSetVisible(btn_del, select);
+
+    }
+
+    if(sys pGetEvent(sys arrayGet(namP, x))==3){
+    	open_file(sys pGetStr(sys arrayGet(namP, x)));
+    }
+
+    sys pSetEvent(sys arrayGet(selP, x), 0);
+
+    sys pSetEvent(sys arrayGet(namP, x), 0);
+
+    x=x+1;
+  }
+}
+
+function open_file{
+	ESfname = arg0;
+  #vrátíme hejblátka kde byla
+  sys pSetXYXY(scr2,1,1,18,11);
+  sys pSetXYXY(sld, 18,1,20,11);
+  sys pSetVisible(txt, 0);
+  sys pSetVisible(txt_p, 0);
+  sys pSetVisible(btn_save, 0);
+  sys pSetVisible(btn_storno, 0);
+  sys pSetStr(txt, "");
+  sys pSetValue(txt,0);
+  #nastavíme edit scr jako main
+  sys pSetMainScr(editScr);
+  sys keybHide();
+  filename = ESfname;
+  edit_mode = 1;
+  sys pSetValue(EStxtScroll,0);
+
+  EStext = sys fReadStr(ESfname);
+}
+
+function update_editScr{
+
+  if(sys pGetValue(EStxt)==0){
+    if (sys pGetEvent(btn_back)==3){
+      sys pDestroyScr(scr2);
+      load_scr2();
+      sys pSetMainScr(scr);
+      sys pSetVisible(btn_del, 0);
+      edit_mode=0;
+      if (exitOnStore) {
+      	sys exit();
+      	return;
+      }
+    }
+    sys pSetEvent(btn_back,0);
+
+    ESfname=sys pHandleText(EStxtN, ESfname);
+
+ }
+
+ EStext=sys pHandleText(EStxt, EStext);
+
+ sys pSetYscroll(EStxtScr, sys pGetValue(EStxtScroll));
+
+ if((oldval==0)*(sys pGetValue(EStxt))){
+    sys pSetXYXY(btn_store, 1,1,8,3);
+    sys pSetVisible(EStxtN, 0);
+  }
+
+  if((oldval)*(sys pGetValue(EStxt)==0)){
+    sys pSetXYXY(btn_store, 1,24,8,26);
+    sys pSetVisible(EStxtN, 1);
+  }
+
+  oldval=sys pGetValue(EStxt);
+
+  if(sys pGetEvent(btn_store)==3){
+    #uložit
+    sys fWriteStr(EStext, ESfname);
+    # zpět
+    sys pDestroyScr(scr2);
+    load_scr2();
+    sys pSetMainScr(scr);
+    edit_mode=0;
+    sys keybHide();
+    sys pSetVisible(btn_del, 0);
+    sys pSetXYXY(btn_store, 1,24,8,26);
+    sys pSetVisible(EStxtN, 1);
+    if (exitOnStore) {
+    	sys exit();
+    	return;
+    }
+  }
+  sys pSetEvent(btn_store,0);
+
+}
+
+function update {
+
+  if(edit_mode==1){
+	  update_editScr();
+	}else{
+
+		if (openFile != "") {
+			open_file(openFile);
+			openFile = "";
+			return;
+		}
+
+    if (sys pGetEvent(btn_new)==3){
+      sys pSetXYXY(scr2,1,1,18,5);
+      sys pSetXYXY(sld, 18,1,20,5);
+      sys pSetVisible(txt, 1);
+      sys pSetVisible(txt_p, 1);
+      sys pSetVisible(btn_save, 1);
+      sys pSetVisible(btn_storno, 1);
+      inText = get_new_name();
+      sys pSetParam(txt, 0); #sets cursor to begining
+      inTextDN = 1;
+      sys pSetValue(txt, 1);
+      sys pSetGrayout(scr2, 1);
+      sys keybShow();
+    }
+    sys pSetEvent(btn_new,0);
+
+    if (sys pGetEvent(btn_storno)==3){
+      sys pSetXYXY(scr2,1,1,18,11);
+      sys pSetXYXY(sld, 18,1,20,11);
+      sys pSetVisible(txt, 0);
+      sys pSetVisible(txt_p, 0);
+      sys pSetVisible(btn_save, 0);
+      sys pSetVisible(btn_storno, 0);
+      sys pSetValue(txt,0);
+      inText = "";
+      sys keybHide();
+      sys pSetGrayout(scr2, 0);
+    }
+    sys pSetEvent(btn_storno,0);
+
+    if (inTextDN){
+    	if (sys pGetEvent(txt)){
+    		inText = "";
+    		inTextDN = 0;
+    	}
+    	sys pSetEvent(txt, EV_NONE);
+    }
+
+    if (sys pGetEvent(btn_save)==3){
+      #vrátíme hejblátka kde byla
+      sys pSetXYXY(scr2,1,1,18,11);
+      sys pSetXYXY(sld, 18,1,20,11);
+      sys pSetVisible(txt, 0);
+      sys pSetVisible(txt_p, 0);
+      sys pSetVisible(btn_save, 0);
+      sys pSetVisible(btn_storno, 0);
+      sys pSetValue(txt,O);
+      sys pSetGrayout(scr2, 0);
+      #nastavíme edit scr jako main
+      sys pSetMainScr(editScr);
+      sys keybHide();
+      ESfname=inText+".txt";
+      edit_mode=1;
+      inText="";
+      EStext="";
+
+    }
+    sys pSetEvent(btn_save,0);
+
+    if (sys pGetValue(txt)==0){
+      if (sys pGetEvent(btn_del)==3){
+        sys fDelete(sys pGetStr(sys arrayGet(namP, selected)));
+        sys pDestroyScr(scr2);
+        load_scr2();
+        sys pSetXYXY(sld, 18,1,20,11);
+        sys pSetVisible(txt, 0);
+        sys pSetVisible(txt_p, 0);
+        sys pSetVisible(btn_save, 0);
+        sys pSetVisible(btn_storno, 0);
+        sys pSetValue(txt,0);
+        sys pSetVisible(btn_del, 0);
+        select=0;
+
+      }
+      sys pSetEvent(btn_del,0);
+
+      update_scr2();
+    }else{
+      sys pClrScrEv(scr2);
+      sys pSetEvent(btn_del,0);
+    }
+
+    inText=sys pHandleText(txt, inText);
+
+    if(sys btnGetEv(BTN_UP)==1){
+	    if (sys pGetValue(sld)>10){
+	      sys pSetValue(sld,sys pGetValue(sld)-10);
+	    }else{
+	      sys pSetValue(sld,0);
+	    }
+	  }
+	  sys btnClrEv(BTN_UP);
+
+	  if(sys btnGetEv(BTN_DOWN)==1){
+	    if (sys pGetValue(sld)<90){
+	      sys pSetValue(sld,sys pGetValue(sld)+10);
+	    }else{
+	      sys pSetValue(sld,100);
+	    }
+	  }
+	  sys btnClrEv(BTN_DOWN);
+
+    sys pSetYscroll(scr2, sys pGetValue(sld)*5);
+	}
+
+}
+
+function exit{
+  sys print("exit");
+  sys pDestroyScr(scr2);
+  sys pDestroyScr(editScr);
+}
+
+function get_new_name{
+	local fname;
+	local x;
+	for (x = 1; x < 200; x = x + 1;) {
+		fname  = "poznamka"+x;
+		if (sys pFrExists(fname+".txt") == 0) {
+			return fname;
+		}
+	}
+}
