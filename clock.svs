@@ -1,6 +1,6 @@
 function init {
-	sys print("init: clock v 2.1");
-	sys checkSVSVer(660);
+	sys print("init: clock v 3.0");
+	sys checkSVSVer(700);
 
 	scr = sys pAddScreen();
 	s_budik = sys pAddScreen();
@@ -9,9 +9,15 @@ function init {
 
 	sys pSetMainScr(scr);
 
-	btn_budik = sys pAddButton(1, 1, 3, 2, "Budík", scr);
-	btn_stop = sys pAddButton(3, 1, 6, 2, "Stopky", scr);
-	btn_min = sys pAddButton(6, 1, 9, 2, "Minutka", scr);
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+	  btn_budik = sys pAddButton(1, 1, 3, 2, "Budík", scr);
+	  btn_stop = sys pAddButton(3, 1, 6, 2, "Stopky", scr);
+	  btn_min = sys pAddButton(6, 1, 9, 2, "Minutka", scr);
+	} else {
+	  btn_budik = sys pAddButton(1, 1, 3, 2, "Alarm", scr);
+	  btn_stop = sys pAddButton(3, 1, 7, 2, "Stopwatch", scr);
+	  btn_min = sys pAddButton(7, 1, 9, 2, "Timer", scr);
+	}
 
 	sys pSetSelect(btn_budik, 1);
 	frame = sys pAddFrame(0, 2, 10, 14, s_budik, scr);
@@ -139,29 +145,41 @@ function init_budik {
 
   bud_txt = sys pAddText(2, 1, 9, 4, "00:00", s_budik);
 
-  sys pAddText(1, 0, 6, 1, "Budík:", s_budik);
+
 
   sys pSetTxtSize(bud_txt, 70);
 
-  bud_set = sys pAddButton(2, 3, 7, 4, "Nastavit čas", s_budik);
-
-  bud_act = sys pAddCheckBox(1, 5, 5, 6, "Budit", s_budik);
-
-  btn_act_ar= sys arrayNew(7);
-
-	sys arraySet(btn_act_ar, 0, sys pAddCheckBox(6, 5, 10, 6, "Pondělí", s_budik));
-	sys arraySet(btn_act_ar, 1, sys pAddCheckBox(6, 6, 10, 7, "Úterý", s_budik));
-	sys arraySet(btn_act_ar, 2, sys pAddCheckBox(6, 7, 10, 8, "Středa", s_budik));
-	sys arraySet(btn_act_ar, 3, sys pAddCheckBox(6, 8, 10, 9, "Čtvrtek", s_budik));
-	sys arraySet(btn_act_ar, 4, sys pAddCheckBox(6, 9, 10, 10, "Pátek", s_budik));
-	sys arraySet(btn_act_ar, 5, sys pAddCheckBox(6, 10, 10, 11, "Sobota", s_budik));
-	sys arraySet(btn_act_ar, 6, sys pAddCheckBox(6, 11, 10, 12, "Neděle", s_budik));
+  array btn_act_ar[7];
 
   sys pSetScreen(bud_dscr, s_budik);
 
-  bud_ok = sys pAddButton(1, 8, 4, 10, "OK", s_budik);
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+    sys pAddText(1, 0, 6, 1, "Budík:", s_budik);
+    bud_set = sys pAddButton(2, 3, 7, 4, "Nastavit čas", s_budik);
+    bud_act = sys pAddCheckBox(1, 5, 5, 6, "Budit", s_budik);
+	  btn_act_ar[0] = sys pAddCheckBox(6, 5, 10, 6, "Pondělí", s_budik);
+	  btn_act_ar[1] = sys pAddCheckBox(6, 6, 10, 7, "Úterý", s_budik);
+	  btn_act_ar[2] = sys pAddCheckBox(6, 7, 10, 8, "Středa", s_budik);
+	  btn_act_ar[3] = sys pAddCheckBox(6, 8, 10, 9, "Čtvrtek", s_budik);
+	  btn_act_ar[4] = sys pAddCheckBox(6, 9, 10, 10, "Pátek", s_budik);
+	  btn_act_ar[5] = sys pAddCheckBox(6, 10, 10, 11, "Sobota", s_budik);
+	  btn_act_ar[6] = sys pAddCheckBox(6, 11, 10, 12, "Neděle", s_budik);
+	  bud_snooze = sys pAddButton(5, 8, 9, 10, "Odložit\no 10 minut", s_budik);
+	} else {
+	  sys pAddText(1, 0, 6, 1, "Alarm:", s_budik);
+	  bud_set = sys pAddButton(2, 3, 7, 4, "Set alarm", s_budik);
+    bud_act = sys pAddCheckBox(1, 5, 5, 6, "Active", s_budik);
+	  btn_act_ar[0] = sys pAddCheckBox(6, 5, 10, 6, "Monday", s_budik);
+	  btn_act_ar[1] = sys pAddCheckBox(6, 6, 10, 7, "Tuesday", s_budik);
+	  btn_act_ar[2] = sys pAddCheckBox(6, 7, 10, 8, "Wednesday", s_budik);
+	  btn_act_ar[3] = sys pAddCheckBox(6, 8, 10, 9, "Thursday", s_budik);
+	  btn_act_ar[4] = sys pAddCheckBox(6, 9, 10, 10, "Friday", s_budik);
+	  btn_act_ar[5] = sys pAddCheckBox(6, 10, 10, 11, "Saturday", s_budik);
+	  btn_act_ar[6] = sys pAddCheckBox(6, 11, 10, 12, "Sunday", s_budik);
+	  bud_snooze = sys pAddButton(5, 8, 9, 10, "Snooze\n10 min", s_budik);
+	}
 
-  bud_snooze = sys pAddButton(5, 8, 9, 10, "Odložit\no 10 minut", s_budik);
+  bud_ok = sys pAddButton(1, 8, 4, 10, "OK", s_budik);
 
   sys pSetTxtSize(bud_ok, 32);
 
@@ -176,7 +194,7 @@ function init_budik {
   bud_active = sys cKeyReadInt("active", 0);
 
 	for (x = 0; x < 7; x++;) {
-		sys pSetValue(sys arrayGet(btn_act_ar, x), sys cKeyReadInt("act_"+ x + 1, 0));
+		sys pSetValue(btn_act_ar[x], sys cKeyReadInt("act_"+ x + 1, 0));
 	}
 
   if (bud_active == 0) {
@@ -213,7 +231,7 @@ function resetAlarm {
 function showDays {
 	local x;
 	for (x = 0; x < 7; x++;) {
-		sys pSetVisible(sys arrayGet(btn_act_ar, x), arg0);
+		sys pSetVisible(btn_act_ar[x], arg0);
 	}
 }
 
@@ -224,7 +242,7 @@ function upd_bud {
 	  if (bud_active) {
 			showDays(1);
 	    for (x = 0; x < 7; x++;) {
-				resetAlarm(x, sys pGetValue(sys arrayGet(btn_act_ar, x)));
+				resetAlarm(x, sys pGetValue(btn_act_ar[x]));
 			}
 	  } else {
 	  	showDays(0);
@@ -241,8 +259,8 @@ function upd_bud {
 	}
 
 	for (x = 0; x < 7; x++;) {
-		if (sys pGetEventC(sys arrayGet(btn_act_ar, x)) == EV_RELEASED) {
-			resetAlarm(x, sys pGetValue(sys arrayGet(btn_act_ar, x)));
+		if (sys pGetEventC(btn_act_ar[x]) == EV_RELEASED) {
+			resetAlarm(x, sys pGetValue(btn_act_ar[x]));
 		}
 	}
 
@@ -279,7 +297,7 @@ function upd_bud {
 
 		if (sys pGetValue(bud_act)) {
 			for (x = 0; x < 7; x++;) {
-				resetAlarm(x, sys pGetValue(sys arrayGet(btn_act_ar, x)));
+				resetAlarm(x, sys pGetValue(btn_act_ar[x]));
 			}
 		}
 
@@ -311,8 +329,11 @@ function bud_setstr {
 
 function init_stop {
 
-  sys pAddText(1, 0, 6, 1, "Stopky:", s_stop);
-
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+    sys pAddText(1, 0, 6, 1, "Stopky:", s_stop);
+  } else {
+    sys pAddText(1, 0, 6, 1, "Stopwatch:", s_stop);
+  }
   stop_txt = sys pAddText(1, 1, 9, 4, "00:00:00", s_stop);
 
   sys pSetTxtSize(stop_txt, 70);
@@ -387,7 +408,7 @@ function upd_stop {
 }
 
 function init_min {
-  sys pAddText(1, 0, 6, 1, "Minutka:", s_min);
+
   min_txt = sys pAddText(1, 1, 9, 3, "00:00:00", s_min);
 
   sys pSetTxtSize(min_txt, 70);
@@ -400,16 +421,21 @@ function init_min {
   m_bp4 = sys pAddButton(6, 3, 7, 4, "+", s_min);
   m_bp5 = sys pAddButton(7, 3, 8, 4, "+", s_min);
 
-  m_b_start = sys pAddButton(5, 5, 8, 6, "Start", s_min);
-
-  m_b_del = sys pAddButton(1, 5, 4, 6, "Vymazat", s_min);
-
-  m_txt = sys pAddText(2, 7, 8, 8,"Čas vypršel!", s_min);
-  m_b_ok = sys pAddButton(3, 8, 5, 9, "Ok", s_min);
-
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+    sys pAddText(1, 0, 6, 1, "Minutka:", s_min);
+    m_b_start = sys pAddButton(5, 5, 8, 6, "Start", s_min);
+    m_b_del = sys pAddButton(1, 5, 4, 6, "Vymazat", s_min);
+    m_txt = sys pAddText(2, 7, 8, 8,"Čas vypršel!", s_min);
+    m_b_ok = sys pAddButton(3, 8, 5, 9, "Ok", s_min);
+  } else {
+    sys pAddText(1, 0, 6, 1, "Timer:", s_min);
+    m_b_start = sys pAddButton(5, 5, 8, 6, "Start", s_min);
+    m_b_del = sys pAddButton(1, 5, 4, 6, "Clear", s_min);
+    m_txt = sys pAddText(2, 7, 8, 8,"Time out!", s_min);
+    m_b_ok = sys pAddButton(3, 8, 5, 9, "Ok", s_min);
+  }
   sys pSetVisible(m_txt, 0);
   sys pSetVisible(m_b_ok, 0);
-
   sys pSetVisible(m_b_del, 0);
 
   m_run = 0;
