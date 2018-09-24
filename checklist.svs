@@ -1,6 +1,6 @@
 function init {
-  verze = "v. 2.1";
-  sys checkSVSVer(109);
+  verze = "v. 3.0";
+  sys checkSVSVer(700);
   sys setSingular();
 	sys print("Cecklist " + verze);
 	scr = sys pAddScreen();
@@ -12,20 +12,22 @@ function init {
 	sys pSetXYXY(scr2, 0, 2, 9, 12);
 	sys pSetXcell(scr2, 16);
 
+	array textP [60];
+	array checkP [60];
+	array btnP [60];
+	array tfP [60];
 
-	textP = sys arrayNew(60);
-	checkP = sys arrayNew(60);
-	btnP = sys arrayNew(60);
-	tfP = sys arrayNew(60);
-
-	sys pAddText(2, 0, 7, 1, "Zadejte úkol:", scr);
-
-	sys pAddText(7, 13, 10, 14, verze, scr);
-
-	remMode = sys pAddCheckBox(1, 13, 6, 14, "Mazací mód", scr);
-
-	showComplete = sys pAddCheckBox(1, 12, 10, 13, "Skrýt dokončené", scr);
-
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+	  sys pAddText(2, 0, 7, 1, "Zadejte úkol:", scr);
+	  sys pAddText(7, 13, 10, 14, verze, scr);
+	  remMode = sys pAddCheckBox(1, 13, 6, 14, "Mazací mód", scr);
+	  showComplete = sys pAddCheckBox(1, 12, 10, 13, "Skrýt dokončené", scr);
+  } else {
+    sys pAddText(2, 0, 7, 1, "Add task:", scr);
+	  sys pAddText(7, 13, 10, 14, verze, scr);
+	  remMode = sys pAddCheckBox(1, 13, 8, 14, "Delete on check", scr);
+	  showComplete = sys pAddCheckBox(1, 12, 10, 13, "Hide done", scr);
+  }
 	sys cOpen("check.dat");
 
 	hide_done = sys cKeyReadInt("hideDone", 0);
@@ -56,9 +58,7 @@ function init {
 
 function load_scr2 {
 	checkCnt = 0;
-
 	checkCnt = sys cKeyReadInt("CheckCnt", 0);
-
 	y = 0;
 
 	for(x = 0; x < checkCnt; x = x + 1;) {
@@ -67,24 +67,24 @@ function load_scr2 {
 	  checked = sys cKeyReadInt("done" + x, 0);
 
 		# we make it all the times
-	  sys arraySet(btnP, x, sys pAddCheckBox(1, 1 + y, 4, 2 + y, "" + check, scr2));
+	  btnP[x] = sys pAddCheckBox(1, 1 + y, 4, 2 + y, "" + check, scr2);
 	  if (check == " ") {
-	  	sys arraySet(tfP, x, sys pAddText(3, 1 + y, 18, 2 + y, "" + text, scr2));
+	  	tfP[x] = sys pAddText(3, 1 + y, 18, 2 + y, "" + text, scr2);
 	  } else {
-	  	sys arraySet(tfP, x, sys pAddText(4, 1 + y, 18, 2 + y, "" + text, scr2));
+	  	tfP[x] = sys pAddText(4, 1 + y, 18, 2 + y, "" + text, scr2);
 	  }
 	  y = y + 1;
 
 	  if ((hide_done == 1) * (checked == 1)) {
 	  	y = y - 1;
-	  	sys pSetVisible(sys arrayGet(tfP, x), 0);
-	  	sys pSetVisible(sys arrayGet(btnP, x), 0);
+	  	sys pSetVisible(tfP[x], 0);
+	  	sys pSetVisible(btnP[x], 0);
 	  }
 
-	  sys pSetValue(sys arrayGet(btnP, x), checked);
+	  sys pSetValue(btnP[x], checked);
 
-	  sys arraySet(textP, x, text);
-	  sys arraySet(checkP, x, check);
+	  textP[x] = text;
+	  checkP[x] = check;
   }
 }
 
@@ -103,9 +103,9 @@ function store {
 	sys cKeyWrite("CheckCnt", "" + checkCnt);
 
 	for(x = 0; x < checkCnt; x = x + 1;) {
-		sys cKeyWrite("text" + x, sys arrayGet(textP, x));
-		sys cKeyWrite("check" + x, sys arrayGet(checkP, x));
-		sys cKeyWrite("done" + x, "" + sys pGetValue(sys arrayGet(btnP, x)));
+		sys cKeyWrite("text" + x, textP[x]);
+		sys cKeyWrite("check" + x, checkP[x]);
+		sys cKeyWrite("done" + x, "" + sys pGetValue(btnP[x]));
 	}
 
 	sys cKeyWrite("hideDone", "" + hide_done);
@@ -115,20 +115,18 @@ function store {
 }
 
 function add {
-	sys arraySet(btnP, x, sys pAddCheckBox(1, 1 + y, 4, 2 + y, "" + arg1, scr2));
+	btnP[x] = sys pAddCheckBox(1, 1 + y, 4, 2 + y, "" + arg1, scr2);
 	if (arg1 == " ") {
-		sys arraySet(tfP, x, sys pAddText(3, 1 + y, 18, 2 + y, "" + arg0, scr2));
+		tfP[x] = sys pAddText(3, 1 + y, 18, 2 + y, "" + arg0, scr2);
 	} else {
-		sys arraySet(tfP, x, sys pAddText(4, 1 + y, 18, 2 + y, "" + arg0, scr2));
+		tfP[x] = sys pAddText(4, 1 + y, 18, 2 + y, "" + arg0, scr2);
 	}
-  sys arraySet(textP, checkCnt, "" + arg0);
-  sys arraySet(checkP, checkCnt, bttnStr);
+  textP[checkCnt] = "" + arg0;
+  checkP[checkCnt] = bttnStr;
 
   checkCnt = checkCnt + 1;
   reload_scr2();
 }
-
-
 
 function update {
 
@@ -150,7 +148,6 @@ function update {
 	      }
 	    }
 	  }
-
 	  sys pSetStr(btn_select, bttnStr);
 	}
 
@@ -170,7 +167,7 @@ function update {
 
   for (x = 0; x < checkCnt; x = x + 1;) {
     # select item to remove
-    if(sys pGetEvent(sys arrayGet(btnP, x)) == EV_RELEASED) {
+    if(sys pGetEvent(btnP[x]) == EV_RELEASED) {
     	if (sys pGetValue(remMode)) {
       	rme = 1;
       	rm = x;
@@ -178,64 +175,61 @@ function update {
       	reload_scr2();
       }
     }
-    sys pSetEvent(sys arrayGet(btnP, x), 0);
+    sys pSetEvent(btnP[x], 0);
   }
 
   if(rme == 1) {
     rme = 0;
-    sys pDestroy(sys arrayGet(tfP, rm));
-    sys pDestroy(sys arrayGet(btnP, rm));
+    sys pDestroy(tfP[rm]);
+    sys pDestroy(btnP[rm]);
 
     sys print("rm: " + rm + "cnt:" + checkCnt);
-    if(rm != (checkCnt + 1)) {
+    if(rm != checkCnt + 1) {
       x = rm + 1;
-      while (x<(checkCnt)){
-        sys pSetXYXY(sys arrayGet(btnP, x),1, 1+x-1, 2, 2+x-1 );
-        sys pSetXYXY(sys arrayGet(tfP, x), 2, 1+x-1, 9, 2+x-1 );
-        x=x+1;
+      while (x < checkCnt) {
+        sys pSetXYXY(btnP[x], 1, 1 + x - 1, 2, 2 + x - 1);
+        sys pSetXYXY(tfP[x], 2, 1 + x - 1, 9, 2 + x - 1);
+        x = x + 1;
       }
+      x = rm;
+      while (x < checkCnt - 1) {
+        btnP[x] = btnP[x + 1];
+        tfP[x] = tfP[x + 1];
 
-      x=rm;
-      while (x<checkCnt-1){
-        sys arraySet(btnP, x, sys arrayGet(btnP, x+1));
-        sys arraySet(tfP, x, sys arrayGet(tfP, x+1));
-
-        sys arraySet(textP, x, ""+sys arrayGet(textP, x+1));
-        sys arraySet(checkP, x, ""+sys arrayGet(checkP, x+1));
-        x=x+1;
+        textP[x] = "" + textP[x + 1];
+        checkP[x] = "" + checkP[x + 1];
+        x = x + 1;
       }
-      checkCnt=checkCnt-1;
-    }else{
-      checkCnt=0;
+      checkCnt = checkCnt - 1;
+    } else {
+      checkCnt = 0;
     }
-
-    #sys pSetModif(scr2);
     reload_scr2();
   }
 
-	if(sys btnGetEv(BTN_UP) == EV_PRESSED){
-    if (sys pGetValue(sld)>10){
-      sys pSetValue(sld,sys pGetValue(sld)-10);
-    }else{
-      sys pSetValue(sld,0);
+	if(sys btnGetEv(BTN_UP) == EV_PRESSED) {
+    if (sys pGetValue(sld) > 10) {
+      sys pSetValue(sld, sys pGetValue(sld) - 10);
+    } else {
+      sys pSetValue(sld, 0);
     }
   }
   sys btnClrEv(BTN_UP);
 
-  if(sys btnGetEv(BTN_DOWN) == EV_PRESSED){
-    if (sys pGetValue(sld)<90){
-      sys pSetValue(sld,sys pGetValue(sld)+10);
-    }else{
-      sys pSetValue(sld,100);
+  if(sys btnGetEv(BTN_DOWN) == EV_PRESSED) {
+    if (sys pGetValue(sld) < 90) {
+      sys pSetValue(sld, sys pGetValue(sld) + 10);
+    } else {
+      sys pSetValue(sld, 100);
     }
   }
   sys btnClrEv(BTN_DOWN);
 
-  sys pSetYscroll(scr2, sys pGetValue(sld)*5);
+  sys pSetYscroll(scr2, sys pGetValue(sld) * 5);
 
 }
 
-function exit{
+function exit {
 	store();
   sys cClose();
 }
