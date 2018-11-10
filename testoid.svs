@@ -12,6 +12,7 @@ function init {
 	}
 	scr = sys pAddScreen();
 	sys pSetMainScr(scr);
+	sys pSetSpacing(scr, 2, 5, 2, 2);
 
   sys pAddText(0, 0, 8, 1, "Příliš žluťoučký kůň", scr);
 	btn1 = sys pAddButton(1, 1, 5, 2, "Count!", scr);

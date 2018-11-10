@@ -17,6 +17,8 @@ function init {
 	  btn_budik = sys pAddButton(1, 1, 3, 2, "Alarm", scr);
 	  btn_stop = sys pAddButton(3, 1, 7, 2, "Stopwatch", scr);
 	  btn_min = sys pAddButton(7, 1, 9, 2, "Timer", scr);
+	  sys pSetParam(btn_budik, 7);
+	  sys pSetParam(btn_min, 5);
 	}
 
 	sys pSetSelect(btn_budik, 1);
@@ -145,13 +147,11 @@ function init_budik {
 
   bud_txt = sys pAddText(2, 1, 9, 4, "00:00", s_budik);
 
-
-
   sys pSetTxtSize(bud_txt, 70);
 
   array btn_act_ar[7];
 
-  sys pSetScreen(bud_dscr, s_budik);
+  #sys pSetScreen(bud_dscr, s_budik);
 
   if (sys sdaGetLang() == SVP_LANG_CZ) {
     sys pAddText(1, 0, 6, 1, "Budík:", s_budik);
@@ -169,13 +169,13 @@ function init_budik {
 	  sys pAddText(1, 0, 6, 1, "Alarm:", s_budik);
 	  bud_set = sys pAddButton(2, 3, 7, 4, "Set alarm", s_budik);
     bud_act = sys pAddCheckBox(1, 5, 5, 6, "Active", s_budik);
-	  btn_act_ar[0] = sys pAddCheckBox(6, 5, 10, 6, "Monday", s_budik);
-	  btn_act_ar[1] = sys pAddCheckBox(6, 6, 10, 7, "Tuesday", s_budik);
-	  btn_act_ar[2] = sys pAddCheckBox(6, 7, 10, 8, "Wednesday", s_budik);
-	  btn_act_ar[3] = sys pAddCheckBox(6, 8, 10, 9, "Thursday", s_budik);
-	  btn_act_ar[4] = sys pAddCheckBox(6, 9, 10, 10, "Friday", s_budik);
-	  btn_act_ar[5] = sys pAddCheckBox(6, 10, 10, 11, "Saturday", s_budik);
-	  btn_act_ar[6] = sys pAddCheckBox(6, 11, 10, 12, "Sunday", s_budik);
+	  btn_act_ar[0] = sys pAddCheckBox(5, 5, 10, 6, "Monday", s_budik);
+	  btn_act_ar[1] = sys pAddCheckBox(5, 6, 10, 7, "Tuesday", s_budik);
+	  btn_act_ar[2] = sys pAddCheckBox(5, 7, 10, 8, "Wednesday", s_budik);
+	  btn_act_ar[3] = sys pAddCheckBox(5, 8, 10, 9, "Thursday", s_budik);
+	  btn_act_ar[4] = sys pAddCheckBox(5, 9, 10, 10, "Friday", s_budik);
+	  btn_act_ar[5] = sys pAddCheckBox(5, 10, 10, 11, "Saturday", s_budik);
+	  btn_act_ar[6] = sys pAddCheckBox(5, 11, 10, 12, "Sunday", s_budik);
 	  bud_snooze = sys pAddButton(5, 8, 9, 10, "Snooze\n10 min", s_budik);
 	}
 
@@ -199,10 +199,12 @@ function init_budik {
 
   if (bud_active == 0) {
     sys pSetValue(bud_act, 0);
-    sys pSetVisible(bud_dscr, 0);
+    showDays(0);
+    #sys pSetVisible(bud_dscr, 0);
   } else {
   	sys pSetValue(bud_act, 1);
-  	sys pSetVisible(bud_dscr, 1);
+  	showDays(1);
+  	#sys pSetVisible(bud_dscr, 1);
   }
 
   bud_setstr();
