@@ -43,8 +43,11 @@ function init_main {
 	sys pSetXYXY(scrS, 0, 3, 9, 12);
 	sys pSetYcell(scrS, 16);
 
-	sys pAddText(1, 1, 9, 2, "Čtečka knih", scr);
-
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+	  sys pAddText(1, 1, 9, 2, "Čtečka knih", scr);
+  } else {
+    sys pAddText(1, 1, 9, 2, "Book reader", scr);
+  }
 	btnP = sys arrayNew(60);
 
 	x = 0;
@@ -58,20 +61,32 @@ function init_main {
 function init_sel {
   scr1 = sys pAddScreen();
   sel_txt = sys pAddText(1, 1, 9, 2, "None", scr1);
-  sel_back = sys pAddButton(1, 11, 4, 12, "Zpět", scr1);
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+    sel_back = sys pAddButton(1, 11, 4, 12, "Zpět", scr1);
+    sel_ok = sys pAddButton(6, 11, 9, 12, "Číst", scr1);
+    sel_bgn = sys pAddButton(5, 13, 10, 14, "Číst od začátku", scr1);
+    sel_pos = sys pAddButton(1, 13, 4, 14, "Pozice", scr1);
+  } else {
+    sel_back = sys pAddButton(1, 11, 4, 12, "Back", scr1);
+    sel_ok = sys pAddButton(6, 11, 9, 12, "Read", scr1);
+    sel_bgn = sys pAddButton(5, 13, 10, 14, "Reset position", scr1);
+    sel_pos = sys pAddButton(1, 13, 4, 14, "Position", scr1);
+  }
   sel_sld = sys pAddSliderH(1, 4, 9, 5, 100, 0, scr1);
-  sel_pos = sys pAddButton(1, 13, 4, 14, "Pozice", scr1);
   sys pSetVisible(sel_sld, 0);
   sel_image = sys pAddImage(2, 2, 9, 11, "", scr1);
-  sel_ok = sys pAddButton(6, 11, 9, 12, "Číst", scr1);
-  sel_bgn = sys pAddButton(5, 13, 10, 14, "Číst od začátku", scr1);
+
   sel_id = 0;
 }
 
 function init_read {
   scr2 = sys pAddScreen();
   txt = sys pAddText(0, 0, 10, 12, "Empty", scr2);
-  rd_back = sys pAddButton(1, 12, 3, 14, "Zpět", scr2);
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+    rd_back = sys pAddButton(1, 12, 3, 14, "Zpět", scr2);
+  } else {
+    rd_back = sys pAddButton(1, 12, 3, 14, "Back", scr2);
+  }
   rd_up = sys pAddButton(5, 12, 7, 14, "/\\", scr2);
   rd_dn = sys pAddButton(8, 12, 10, 14, "\\/", scr2);
 }
