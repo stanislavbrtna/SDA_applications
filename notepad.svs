@@ -16,34 +16,45 @@ function init {
 
 	sys pSetXcell(scr, 16);
 
-	sys pAddText(1, 0, 18, 1,"Poznámky "+verze, scr);
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+	  sys pAddText(1, 0, 18, 1,"Poznámky "+verze, scr);
+  } else {
+    sys pAddText(1, 0, 18, 1,"Notes "+verze, scr);
+  }
 
-	selP = sys arrayNew(60);
-	namP = sys arrayNew(60);
+	array selP[60];
+	array namP[60];
 
 	load_scr2(); #nahraje scr2
 
 	inText = "";
 
-	txt = sys pAddText(2,6,16,7,inText,scr);
-	txt_p = sys pAddText(16,6,20,7,".txt",scr);
-	btn_save = sys pAddButton(10,7,16,8, "Vytvořit", scr);
+	txt = sys pAddText(2, 6, 16, 7, inText, scr);
+	txt_p = sys pAddText(16, 6, 20, 7, ".txt", scr);
 
-	btn_storno = sys pAddButton(2,7,8,8, "Storno", scr);
+	if (sys sdaGetLang() == SVP_LANG_CZ) {
+	  btn_save = sys pAddButton(10, 7, 16, 8, "Vytvořit", scr);
+	  btn_storno = sys pAddButton(2, 7, 8, 8, "Storno", scr);
+	  btn_new = sys pAddButton(2, 12, 8, 13, "Nový", scr);
+	  btn_del = sys pAddButton(12, 12, 18, 13, "Smazat", scr);
+	  fname_default = "poznamka";
+  } else {
+    btn_save = sys pAddButton(10, 7, 16, 8, "Create", scr);
+	  btn_storno = sys pAddButton(2, 7, 8, 8, "Cancel", scr);
+	  btn_new = sys pAddButton(2, 12, 8, 13, "New", scr);
+	  btn_del = sys pAddButton(12, 12, 18, 13, "Delete", scr);
+	  fname_default = "note";
+  }
 
 	sys pSetVisible(txt, 0);
 	sys pSetVisible(txt_p, 0);
 	sys pSetVisible(btn_save, 0);
 	sys pSetVisible(btn_storno, 0);
-
-	btn_new = sys pAddButton(2, 12, 8, 13, "Nový", scr);
-	btn_del = sys pAddButton(12, 12, 18, 13, "Smazat", scr);
-
 	sys pSetVisible(btn_del, 0);
 
-	sys pSetTexEd(txt,1);
+	sys pSetTexEd(txt, 1);
 
-	sld = sys pAddSliderV(18,1,20,11,100, 1,scr);
+	sld = sys pAddSliderV(18, 1, 20, 11, 100, 1,scr);
 
 	sldold = 0;
 
@@ -58,7 +69,7 @@ function init {
 	sys pSetXcell(editScr, 16);
 	sys pSetYcell(editScr, 16);
 
-	EStxtN = sys pAddText(1, 1, 18, 3,"",editScr); #název
+	EStxtN = sys pAddText(1, 1, 18, 3,"", editScr); #název
 	ESfname = "";
 
 	EStxtScr = sys pAddScreen();
@@ -71,21 +82,19 @@ function init {
 
 	EStext = "";
 
-	btn_store = sys pAddButton(1, 24, 8, 26, "Uložit", editScr);
-	btn_back = sys pAddButton(12, 24, 18, 26, "Zpět", editScr);
+  if (sys sdaGetLang() == SVP_LANG_CZ) {
+	  btn_store = sys pAddButton(1, 24, 8, 26, "Uložit", editScr);
+	  btn_back = sys pAddButton(12, 24, 18, 26, "Zpět", editScr);
+  } else {
+    btn_store = sys pAddButton(1, 24, 8, 26, "Save", editScr);
+	  btn_back = sys pAddButton(12, 24, 18, 26, "Back", editScr);
+  }
 
-	#editscr musíme přihodit na hlavní screen,
-	#aby jí to po sobě smazalo při uzavření aplikace
-	#problém je, když se aplikace zavře v editscreenu
-	#sys pSetScreen(editScr, scr);
-	#sys pSetXYXY(editScr,20,20,21,21);
-
-	sys pSetTexEd(EStxtN,1);
-	sys pSetTexEd(EStxt,1);
-
+	sys pSetTexEd(EStxtN, 1);
+	sys pSetTexEd(EStxt, 1);
 }
 
-function load_scr2{
+function load_scr2 {
   scr2 = sys pAddScreen();
 
 	sys pSetScreen(scr2, scr);
@@ -96,37 +105,34 @@ function load_scr2{
   local x;
 	x = 0;
 	while ((x < 60) * (findfil != "")) {
-
-	  sys arraySet(selP, x, sys pAddButton(1, 1+x, 3, 2+x, "-", scr2));
-
-	  sys arraySet(namP, x, sys pAddButton(4, 1+x, 14, 2+x, findfil, scr2));
-
+	  selP[x] = sys pAddButton(1, 1 + x, 3, 2 + x, "-", scr2);
+	  namP[x] = sys pAddButton(4, 1 + x, 14, 2 + x, findfil, scr2);
 	  findfil = sys fFindNext();
     x = x + 1;
   }
-  fileCnt=x; #počet souborů
+  fileCnt = x; #počet souborů
 
   sys pClrScrEv(scr2);
 }
 
 
-function update_scr2{
+function update_scr2 {
   local x;
-  x=0;
-	while (x<fileCnt){
-	  if(sys pGetEvent(sys arrayGet(selP, x))==3){
-	    if(select==0){
-        selected=x;
-        select=1;
-        sys pSetStr(sys arrayGet(selP, x),">");
+  x = 0;
+	while (x < fileCnt) {
+	  if(sys pGetEvent(selP[x]) == EV_RELEASED) {
+	    if(select == 0) {
+        selected = x;
+        select = 1;
+        sys pSetStr(selP[x],">");
       }else{
          if(selected==x){
           select=0;
-          sys pSetStr(sys arrayGet(selP, x),"-");
+          sys pSetStr(selP[x],"-");
         }else{
-          sys pSetStr(sys arrayGet(selP, selected),"-");
+          sys pSetStr(selP[x],"-");
           selected=x;
-          sys pSetStr(sys arrayGet(selP, x),">");
+          sys pSetStr(selP[x],">");
         }
       }
 
@@ -137,13 +143,13 @@ function update_scr2{
 
     }
 
-    if(sys pGetEvent(sys arrayGet(namP, x))==3){
-    	open_file(sys pGetStr(sys arrayGet(namP, x)));
+    if(sys pGetEvent(namP[x]) == EV_RELEASED){
+    	open_file(sys pGetStr(namP[x]));
     }
 
-    sys pSetEvent(sys arrayGet(selP, x), 0);
+    sys pSetEvent(selP[x], 0);
 
-    sys pSetEvent(sys arrayGet(namP, x), 0);
+    sys pSetEvent(namP[x], 0);
 
     x=x+1;
   }
@@ -300,7 +306,7 @@ function update {
 
     if (sys pGetValue(txt)==0){
       if (sys pGetEvent(btn_del)==3){
-        sys fDelete(sys pGetStr(sys arrayGet(namP, selected)));
+        sys fDelete(sys pGetStr(namP[selected]));
         sys pDestroyScr(scr2);
         load_scr2();
         sys pSetXYXY(sld, 18,1,20,11);
@@ -356,7 +362,7 @@ function get_new_name{
 	local fname;
 	local x;
 	for (x = 1; x < 200; x = x + 1;) {
-		fname  = "poznamka"+x;
+		fname  = fname_default+x;
 		if (sys pFrExists(fname+".txt") == 0) {
 			return fname;
 		}
