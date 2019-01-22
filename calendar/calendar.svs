@@ -263,7 +263,7 @@ function load_days {
   cfg_first = sys cKeyReadInt("first", 0);
   day_cnt = 0;
 
-  if (cfg_first == -1){
+  if (cfg_first == -1) {
     return;
   }
 

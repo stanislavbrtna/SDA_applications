@@ -1,9 +1,9 @@
-calendar.svs|calendar.ppm|Calendar
-checklist.svs|checklist.ppm|Tasks
-utl.mnu|testoid.ppm|Utils
-notepad.svs|notepad.ppm|Notes
-clock.svs|clock.ppm|Clock
-Calc3.svs|Calc2.ppm|Calc
-hry.mnu|pong.ppm|Games
-reader.svs|reader.ppm|Reader
+calendar/calendar.svs|calendar/calendar.ppm|Calendar
+checklist/checklist.svs|checklist/checklist.ppm|Tasks
+utl.mnu|Icons/testoid.ppm|Utils
+notepad/notepad.svs|notepad/notepad.ppm|Notes
+clock/clock.svs|clock/clock.ppm|Clock
+calc/Calc.svs|calc/Calc.ppm|Calc
+hry.mnu|pong/pong.ppm|Games
+reader/reader.svs|reader/reader.ppm|Reader
 
