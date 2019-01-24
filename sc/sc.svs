@@ -1,10 +1,11 @@
  #sda commander
  # todo: move, view
 function init {
+  sys checkSVSVer(720);
 	sys pSetRelInit(1);
 	scr = sys pAddScreen();
 	sys pSetMainScr(scr);
-	sys pAddText(1, 0, 8, 1, "SDA Commander 1.1", scr);
+	sys pAddText(1, 0, 8, 1, "SDA Commander 1.2", scr);
 	file_scr = sys pAddScreen();
 	scrollbar = sys pAddSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -107,11 +108,13 @@ function tryOpen {
 	extension = getcp(arg0, len(arg0) - 2) + getcp(arg0, len(arg0) -1) + getcp(arg0, len(arg0));
 	print(extension);
 	if (extension == "svs") {
+	  sys subProcCWD(1);
 		sys subProcess(arg0, "", 0, 0, 0);
 	}
 
 	if (extension == "txt") {
-		sys subProcess("notepad.svs", "", arg0, 0, 0);
+	  sys subProcCWD(0);
+		sys subProcess("notepad/notepad.svs", "", arg0, 0, 0);
 	}
 
 	if (extension == "ppm") {
