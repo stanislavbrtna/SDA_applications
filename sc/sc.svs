@@ -5,7 +5,7 @@ function init {
 	sys pSetRelInit(1);
 	scr = sys pAddScreen();
 	sys pSetMainScr(scr);
-	sys pAddText(1, 0, 8, 1, "SDA Commander 1.2", scr);
+	sys pAddText(1, 0, 8, 1, "SDA Commander 1.2.1", scr);
 	file_scr = sys pAddScreen();
 	scrollbar = sys pAddSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -117,7 +117,7 @@ function tryOpen {
 		sys subProcess("notepad/notepad.svs", "", arg0, 0, 0);
 	}
 
-	if (extension == "ppm") {
+	if (extension == "ppm" or extension == "p16") {
 		showPpm(arg0);
 	}
 }

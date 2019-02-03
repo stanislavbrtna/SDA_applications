@@ -1,0 +1,11 @@
+function init {
+  print("autoexec.svs executing!");
+}
+
+function update {
+  sys exit();
+}
+
+function exit {
+  print("exit called!");
+}
