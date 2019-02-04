@@ -1,5 +1,5 @@
 function init {
-  verze = "v. 3.0";
+  verze = "v. 3.1";
   sys checkSVSVer(700);
   sys setSingular();
 	sys print("Cecklist " + verze);
@@ -43,6 +43,8 @@ function init {
 	btn_select = sys pAddButton(0, 1, 1, 2, " ", scr);
 
 	bttnStr = " ";
+
+	sys pSetGrayout(btn1, 1);
 
 	#btn_save = sys pAddButton(7, 13, 10, 14, "Uložit", scr);
 
@@ -132,6 +134,11 @@ function update {
 
   inText = sys pHandleText(txt, inText);
 
+  if(inText != "" and newMark == 0) {
+    sys pSetGrayout(btn1, 0);
+    newMark = 1;
+  }
+
 	if (sys pGetEvent(btn_select) == EV_RELEASED) {
 	  if (bttnStr == " ") {
 	    bttnStr = "-";
@@ -162,6 +169,8 @@ function update {
 	if (sys pGetEvent(btn1) == EV_RELEASED) {
 		add(inText, bttnStr);
 	  inText = "";
+	  sys pSetGrayout(btn1, 1);
+	  newMark = 0;
 	}
 	sys pSetEvent(btn1, EV_NONE);
 
