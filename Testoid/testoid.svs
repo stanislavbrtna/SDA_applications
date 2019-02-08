@@ -318,12 +318,12 @@ function update {
 	sys pSetEvent(btn_ledstat, EV_NONE);
 
 	if(sys pGetEventC(btn_gosub) == EV_RELEASED) {
-		sys subProcess("Calc2.svs", &callRet, 123, 0, 0);
+		sys subProcess("calc/Calc.svs", &callRet, 123, 0, 0);
 		return;
 	}
 
 	if(sys pGetEventC(btn_gosub2) == EV_RELEASED) {
-		sys subProcess("notepad.svs", "", "test.txt", 0, 0);
+		sys subProcess("notepad/notepad.svs", "", "test.txt", 0, 0);
 		return;
 	}
 
