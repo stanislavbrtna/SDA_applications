@@ -6,4 +6,5 @@ clock/clock.svs|clock/clock.p16|Clock
 calc/Calc.svs|calc/Calc.p16|Calc
 hry.mnu|pong/pong.p16|Games
 reader/reader.svs|reader/reader.p16|Reader
+dev.mnu|Icons/testoid.p16|Dev
 

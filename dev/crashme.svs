@@ -1,0 +1,27 @@
+ # this is for testing the things that are going to crash the SVS machine of SDA_OS
+
+function init{
+	scr = sys pAddScreen();
+	btn = sys pAddButton(3, 1, 7, 2, "CrashMe!", scr);
+	btn2 = sys pAddButton(3, 3, 7, 4, "CrashMe! (2)", scr);
+	sys pSetMainScr(scr);
+}
+
+function update{
+	if(sys pGetEvent(btn) == EV_RELEASED){
+		a = "abcd123456";
+		while(1){
+			# overflows the string memory
+			# produces error handled in the SVS
+			a = a + a;
+		}
+	}
+	if(sys pGetEvent(btn2) == EV_RELEASED){
+		while(1){
+		  # creates too much screens
+		  # produces error handled by the UI stack.
+			sys pAddScreen();
+		}
+	}
+}
+
