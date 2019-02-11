@@ -1,5 +1,5 @@
 function init {
-  verze = "v. 3.1";
+  verze = "v. 3.2";
   sys checkSVSVer(700);
   sys setSingular();
 	sys print("Cecklist " + verze);
@@ -134,12 +134,20 @@ function update {
 
   inText = sys pHandleText(txt, inText);
 
+  if (getcp(inText, len(inText)) == "\n") {
+    if (len(inText) == 1) {
+      inText = "";
+    } else {
+      sys pSetEvent(btn1, EV_RELEASED);
+    }
+  }
+
   if(inText != "" and newMark == 0) {
     sys pSetGrayout(btn1, 0);
     newMark = 1;
   }
 
-	if (sys pGetEvent(btn_select) == EV_RELEASED) {
+	if (sys pGetEventC(btn_select)) {
 	  if (bttnStr == " ") {
 	    bttnStr = "-";
 	  } else {
@@ -157,8 +165,6 @@ function update {
 	  }
 	  sys pSetStr(btn_select, bttnStr);
 	}
-
-	sys pSetEvent(btn_select, EV_NONE);
 
 	if (sys pGetEvent(showComplete) == EV_RELEASED) {
 		hide_done = sys pGetValue(showComplete);
