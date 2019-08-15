@@ -14,7 +14,7 @@
 *#
 
 function init {
-	sys print("init: cal v.3");
+	sys print("init: cal v.3.1");
 	sys checkSVSVer(700);
 	sys setSingular();
 	#sys profiler(1);
@@ -82,6 +82,8 @@ function HS_init {
 	hs_year = sys getTimeYear();
 	hs_month = sys getTimeMonth();
 	hs_day = sys getTimeDay();
+
+	hs_date_ov = 0;
 
 	HS_new(0);
 }
@@ -410,6 +412,11 @@ function day_update{
 
 function edit_init{
   edit_scr = sys pAddScreen();
+  e_ts = 0;
+  e_t_stop = 0;
+  edit_date_ov = 0;
+  edit_des_p = 0;
+
 
   if (sys sdaGetLang() == SVP_LANG_CZ) {
     sys pAddText(1, 0, 9, 1, "Název:", edit_scr);
@@ -502,7 +509,7 @@ function edit_existing{
 
   sys pSetStr(edit_name, "");
 
-	p_timestamp = sys cKeyReadInt(file_store_id + "_timestamp", 0);
+  p_timestamp = sys cKeyReadInt(file_store_id + "_timestamp", 0);
   hs_day = sys getTsDay(p_timestamp);
   hs_month = sys getTsMonth(p_timestamp);
   hs_year = sys getTsYear(p_timestamp);
