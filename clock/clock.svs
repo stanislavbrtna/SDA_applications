@@ -9,6 +9,9 @@ function init {
 
 	sys pSetMainScr(scr);
 
+	tim_ov = 0;
+	alarm_siren = 0;
+
   if (sys sdaGetLang() == SVP_LANG_CZ) {
 	  btn_budik = sys pAddButton(1, 1, 3, 2, "Budík", scr);
 	  btn_stop = sys pAddButton(3, 1, 6, 2, "Stopky", scr);
@@ -24,6 +27,7 @@ function init {
 	sys pSetSelect(btn_budik, 1);
 	frame = sys pAddFrame(0, 2, 10, 14, s_budik, scr);
 	mode = 1; #1-budík 2-stopky 3-minutka
+	modeprev = 1;
 
 	init_budik();
 	init_stop();
@@ -353,6 +357,7 @@ function init_stop {
   s_time = 0;
   s_tim_prev = 0;
   s_start_tim = 0;
+  s_time_upd = 0;
 }
 
 function upd_stop {
@@ -444,6 +449,7 @@ function init_min {
   beeptimer = 0;
   m_time = 0;
   m_time_orig = 0;
+  m_time_upd = 0;
 }
 
 function upd_min {
