@@ -102,7 +102,7 @@ function init {
 
   if (sys cKeyExists("volume")) {
     sys pSetValue(vol_sld, num(sys cKeyRead("volume")));
-    setInitVolumeFlag = 10;
+    setInitVolFlag = 40;
   }
 }
 
@@ -183,9 +183,9 @@ function play_next {
 function update {
 
   # wait few cycles before setting the initial volume to let the DFPlayer boot
-  if (setInitVolumeFlag != 0) {
-    setInitVolumeFlag--;
-    if (setInitVolumeFlag == 0) {
+  if (setInitVolFlag != 0) {
+    setInitVolFlag--;
+    if (setInitVolFlag == 0) {
       ds_vol(sys pGetValue(vol_sld));
     }
   }
@@ -217,6 +217,7 @@ function update {
 	if (sys pGetEventC(btn) == EV_RELEASED) {
 		if (play == 0) {
 			sys pSetStr(btn, "Stop");
+			ds_vol(sys pGetValue(vol_sld));
 			play_next();
 		} else {
 			sys pSetStr(btn, "Play");
@@ -226,6 +227,7 @@ function update {
 	}
 
 	if (sys pGetEventC(btn_n) == EV_RELEASED) {
+	  ds_vol(sys pGetValue(vol_sld));
 		play_next();
 	}
 
@@ -240,6 +242,7 @@ function update {
 	}
 
 	if (sys pGetEventC(btn_p) == EV_RELEASED) {
+	  ds_vol(sys pGetValue(vol_sld));
 	  if (sys getTime() - startTime > 3) {
 	    if (currentSong != 0) {
 		    play_no(currentSong);
