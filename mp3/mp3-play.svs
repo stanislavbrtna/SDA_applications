@@ -77,7 +77,7 @@ function init {
   btn_rnd = sys.gui.addCheckBox(1,8,4,1, "Random", scr);
   fnameText = sys.gui.addText(1,1,7,1, "Current: None", scr);
   sys.gui.addText(1,9,3,1, "Vol:", scr);
-  vol_sld = sys.gui.addSliderVH(4,9,5,1, 30, 15, scr);
+  vol_sld = sys.gui.addSliderH(4,9,5,1, 30, 15, scr);
   timeBar = sys.gui.addBar(1, 7, 8, 1, 0, 10, scr);
   sys.os.gui.setMainScr(scr);
   sys.btnStdbyEn(1);

@@ -43,9 +43,9 @@ function init {
 
   btn_bp = sys.gui.addButton(6, 4, 10, 5, "beep", scr);
 
-  sldT = sys.gui.addSliderVV(6, 5, 7, 11, 1200, 250, scr);
+  sldT = sys.gui.addSliderV(6, 5, 7, 11, 1200, 250, scr);
 
-  sldF = sys.gui.addSliderVV(8, 5, 9, 11, 130, 10, scr);
+  sldF = sys.gui.addSliderV(8, 5, 9, 11, 130, 10, scr);
 
   if (sys.snd.getMute()) {
     sys.gui.setGrayout(sldT, 1);
@@ -251,12 +251,12 @@ function update {
   sys.gui.setEvent(btn_bp,0);
 
   if (sys.gui.getEvent(sldT)){
-    sys.snd.beepT(sys.gui.getValue(sldT));
+    sys.snd.beepTime(sys.gui.getValue(sldT));
   }
   sys.gui.setEvent(sldT,0);
 
   if (sys.gui.getEvent(sldF)){
-    sys.snd.beepF(sys.gui.getValue(sldF));
+    sys.snd.beepFreq(sys.gui.getValue(sldF));
   }
   sys.gui.setEvent(sldF,0);
 

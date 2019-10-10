@@ -35,7 +35,7 @@ function init_main {
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
 
-  mainBar = sys.gui.addSliderVV(9, 3, 10, 12, (48) * bkCnt, 0, scr);
+  mainBar = sys.gui.addSliderV(9, 3, 10, 12, (48) * bkCnt, 0, scr);
 
   scrS = sys.gui.addScreen();
 
@@ -72,7 +72,7 @@ function init_sel {
     sel_bgn = sys.gui.addButton(5, 13, 10, 14, "Reset position", scr1);
     sel_pos = sys.gui.addButton(1, 13, 4, 14, "Position", scr1);
   }
-  sel_sld = sys.gui.addSliderVH(1, 4, 9, 5, 100, 0, scr1);
+  sel_sld = sys.gui.addSliderH(1, 4, 9, 5, 100, 0, scr1);
   sys.gui.setVisible(sel_sld, 0);
   sel_image = sys.gui.addImage(2, 2, 9, 11, "", scr1);
 

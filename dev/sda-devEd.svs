@@ -21,8 +21,8 @@ function init {
 
   txt = sys.gui.addText(0, 0, 20, 400, "", scrollscr);
 
-  sld = sys.gui.addSliderVV(9, 0, 1, 9, 11000, 1, scr);
-  sld2 = sys.gui.addSliderVH(0, 9, 9, 1, 320, 1, scr);
+  sld = sys.gui.addSliderV(9, 0, 1, 9, 11000, 1, scr);
+  sld2 = sys.gui.addSliderH(0, 9, 9, 1, 320, 1, scr);
 
   sys.gui.setTexEd(txt, 1);
 

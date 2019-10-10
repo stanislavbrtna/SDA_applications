@@ -5,7 +5,7 @@ function init {
 
   # fill them
   sys.gui.addText(1,5,7,6, "Some Text!", innerScreen);
-  scrollbar = sys.gui.addSliderVV(9, 1, 10, 8, 100, 50, scr);
+  scrollbar = sys.gui.addSliderV(9, 1, 10, 8, 100, 50, scr);
 
   # set innerScreen position inside the scr
   sys.gui.setScreen(innerScreen, scr);
