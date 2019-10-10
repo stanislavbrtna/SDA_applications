@@ -1,0 +1,16 @@
+function init {
+s = sys pAddScreen();
+sys pSetMainScr(s);
+sys pAddText
+  (1, 1, 9, 2, "Hello",s);
+b = sys pAddButton
+  (1, 2, 4, 3, "button",s);
+}
+
+function update {
+ if (sys pGetEventC(b) == EV_RELEASED) {
+  a++;
+  sys pSetStr(b, "Click: "+a);
+ }
+}
+

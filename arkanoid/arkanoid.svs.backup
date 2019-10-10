@@ -1,0 +1,316 @@
+function init {
+	sys print("ArkanoidV1");
+	scr = sys pAddScreen();
+	sys pSetMainScr(scr);
+
+	newgame = sys pAddButton(4,0, 8, 1, "New game!", scr );
+
+  sys pAddText(0, 0, 4, 1, "Arkanoid!", scr);
+
+	red = sys sxMixColor(255, 0, 0);
+
+	blue = sys sxMixColor(0, 0, 255);
+
+	white = sys sxMixColor(255, 255, 255);
+
+	# blocks Array
+	blArr = sys arrayNew(40);
+
+	game_reset();
+}
+
+function game_reset{
+	win = 0;
+
+	sys pSetVisible(newgame, 0);
+
+	paddle_x = 140;
+	paddle_y = 300;
+
+	paddle_x_old = paddle_x;
+	paddle_y_old = paddle_y;
+
+	ball_x = 162;
+	ball_y = 280;
+
+	ball_x_old = ball_x;
+	ball_y_old = ball_y;
+
+	ball_hsp = 1;
+	ball_vsp = 5;
+
+	pspeed = 7;
+
+	for(x = 0; x < 50; x = x + 1;) {
+		sys arraySet(blArr, x, sys sxMixColor(25 + sys rnd()%220, 25 + sys rnd()%220, 25 + sys rnd()%220));
+	}
+
+	redraw = 2;
+
+	redrawAll = 6;
+
+	redraw_score = 1;
+
+	started = 0;
+
+	score = 0;
+
+	lives = 3;
+}
+
+function redraw{
+
+	sys sxSetArea(0, 64, 318, 440);
+
+	if(redrawAll > 2) {
+		sys sxClearArea(0);
+		redrawAll = redrawAll - 1;
+		redraw = 1;
+		redraw_score = 1;
+		redraw_boxes = 1;
+	}
+
+	if (redraw == 0){
+		return;
+	}
+
+	# paddle
+	sys sxFillRect(paddle_x_old, paddle_y_old , paddle_x_old + 50, paddle_y_old + 16, 0);
+	sys sxFillRect(paddle_x, paddle_y, paddle_x + 50, paddle_y + 16, red);
+
+	# ball
+	sys sxFillRect(ball_x_old - 8, ball_y_old - 8, ball_x_old + 8, ball_y_old + 8, 0);
+	sys sxFillCircle( ball_x, ball_y, 8, white);
+
+	# boxes
+	if (redraw_boxes == 1) {
+		for(x = 0; x < 50; x = x + 1;) {
+			if (sys arrayGet(blArr, x) != 0 ) {
+				sys sxFillRect(0 + (x%10) * 32 , 50 + (x/10)*20, 32 + (x%10)*32, 70 + (x/10)*20, sys arrayGet(blArr, x));
+			}
+		}
+		redraw_boxes = 0;
+	}
+
+	if (redraw_score) {
+		redraw_score = 0;
+		sys sxFillRect(0, 336, 320, 376, white);
+		sys sxDrawText(90, 346, "Score:", 0);
+		sys sxDrawText(175, 346, "" + score, red);
+
+		for(x = 0; x < lives; x = x + 1;){
+			sys sxDrawCircle(260 + x*18, 352, 8, 0);
+		}
+	}
+	redraw = 0;
+}
+
+function update {
+	if (sys getRadraw()){
+		redrawAll = 7;
+	}
+	if (win == 0){
+		if (sys btnGetEv(BTN_LEFT)) {
+			paddle_x_old = paddle_x;
+			paddle_x = paddle_x - pspeed;
+			redraw = 1;
+			if (paddle_x < 0) {
+				paddle_x = 0;
+			}
+			started = 1;
+		}
+		sys btnClrEv(BTN_LEFT);
+
+		if (sys btnGetEv(BTN_RIGHT)) {
+			paddle_x_old = paddle_x;
+			paddle_x = paddle_x + pspeed;
+			redraw = 1;
+			if (paddle_x > 269) {
+				paddle_x = 269;
+			}
+			started = 1;
+		}
+		sys btnClrEv(BTN_RIGHT);
+
+#*
+		if (sys btnGetEv(1)) {
+			for(x = 0; x < 50; x = x + 1;) {
+				sys arraySet(blArr, x, 0);
+			}
+			score = 480;
+		}
+		sys btnClrEv(1);
+*#
+	} else {
+		if (sys pGetEvent(newgame) == EV_PRESSED) {
+			game_reset();
+		}
+		sys pSetEvent(newgame, EV_NONE);
+	}
+
+	if (started) {
+
+		# ball logic
+		ball_x_old = ball_x;
+		ball_y_old = ball_y;
+		ball_x = ball_x + ball_hsp;
+		ball_y = ball_y + ball_vsp;
+
+		# boundaries
+		if (ball_x < 8) {
+			ball_hsp = ball_hsp * (-1);
+			#randomize();
+		}
+
+		if (ball_x > 310) {
+			ball_hsp = ball_hsp * (-1);
+			#randomize();
+		}
+
+		if (ball_y < 8) {
+			ball_vsp = ball_vsp * (-1);
+			#randomize();
+		}
+
+		# paddle
+		if ((ball_y + 9) > paddle_y) {
+			if ((ball_x > paddle_x) * ((ball_x < (paddle_x + 50)))) {
+				ball_vsp = ball_vsp * (-1);
+				prac = ball_x - paddle_x - 8;
+
+				if ((prac < 10)+((prac > 40)*(prac < 50))) {
+					if (ball_hsp > 0) {
+						if (ball_hsp < 4)
+						ball_hsp = ball_hsp + 2;
+					} else {
+						if (ball_hsp > (-4))
+						ball_hsp = ball_hsp - 2;
+					}
+					ball_hsp = ball_hsp * (-1);
+				}
+
+				if (((prac > 10)*(prac < 20))+((prac > 30)*(prac < 40))) {
+					if (ball_hsp > 0) {
+						if (ball_hsp < 4)
+						ball_hsp = ball_hsp + 1;
+					} else {
+						if (ball_hsp > (-4))
+						ball_hsp = ball_hsp - 1;
+					}
+				}
+				if ((prac > 20)*(prac < 30)) {
+					if (ball_hsp > 0) {
+						ball_hsp = ball_hsp - 1;
+					} else {
+						ball_hsp = ball_hsp + 1;
+					}
+				}
+				ball_y = paddle_y - 8;
+			}
+			if (ball_y > 328) {
+				lives = lives - 1;
+				score = score - 50;
+				redraw_score = 1;
+				ball_x = paddle_x + 15;
+				ball_y = paddle_y - 8;
+				ball_hsp = 0;
+				ball_vsp = 5;
+				started = 0;
+			}
+		}
+
+		# blocks
+		block_exist = 0;
+		for(x = 0; x < 50; x = x + 1;) {
+			if (sys arrayGet(blArr, x) != 0 ) {
+				block_exist = 1;
+				y1 = 50 + (x/10)*20;
+				y2 = 20 + y1;
+				x1 = ((x%10) * 32);
+				x2 = x1 + 32;
+				if ((ball_y > y1) * (ball_y < y2)) {
+					if ((ball_x > x1) * (ball_x < x2)) {
+						if ((ball_y > y1 + 15) * (ball_y < y2)) {
+							ball_vsp = ball_vsp * (-1);
+						} else {
+							if ((ball_y > y1) * (ball_y < y1 + 5)) {
+								ball_vsp = ball_vsp * (-1);
+							} else {
+								if ((ball_x > x1) * (ball_x < x1 + 5)) {
+									ball_hsp = ball_hsp * (-1);
+								}else {
+									if ((ball_x > (x1 + 27)) * (ball_x < x2)) {
+										ball_hsp = ball_hsp * (-1);
+									}
+								}
+							}
+						}
+						score = score + 10;
+						redraw_score = 1;
+						sys arraySet(blArr, x, 0);
+						sys sxFillRect(x1 , y1, x2, y2, 0);
+						#randomize();
+					}
+				}
+
+			}
+		}
+
+		if ((block_exist != 1) * (win == 0)) {
+			win = 1;
+			ball_vsp = 0;
+			ball_hsp = 0;
+			sys sxFillRect(0, 336, 320, 376, white);
+			sys sxDrawText(35, 346, "You Won! Final score:", 0);
+			sys sxDrawText(255, 346, "" + score, red);
+			sys pSetVisible(newgame, 1);
+		}
+
+		if ((lives == 0) * (win == 0)) {
+			win = 1;
+			redraw_score = 0;
+			ball_vsp = 0;
+			ball_hsp = 0;
+			sys sxFillRect(0, 336, 320, 376, white);
+			sys sxDrawText(35, 346, "You Lost! Final score:", 0);
+			sys sxDrawText(255, 346, "" + score, red);
+			sys pSetVisible(newgame, 1);
+		}
+
+		redraw = 1;
+	}
+
+	redraw();
+}
+#*
+function randomize{
+	sys print ("prev h:" + ball_hsp + " v: "+ ball_vsp);
+	if (ball_hsp > 0){
+		if (ball_hsp < 4) {
+			ball_hsp = ball_hsp + sys rnd() % 2;
+		} else {
+			ball_hsp = ball_hsp - sys rnd() % 2;
+		}
+	}	else {
+		if (ball_hsp > -4) {
+			ball_hsp = ball_hsp - sys rnd() % 2;
+		} else {
+			ball_hsp = ball_hsp + sys rnd() % 2;
+		}
+	}
+	if (ball_vsp > 0){
+		if (ball_vsp < 4) {
+			ball_vsp = ball_vsp + sys rnd() % 2;
+		} else {
+			ball_vsp = ball_vsp - sys rnd() % 2;
+		}
+	}	else {
+		if (ball_vsp > -4) {
+			ball_vsp = ball_vsp - sys rnd() % 2;
+		} else {
+			ball_vsp = ball_vsp + sys rnd() % 2;
+		}
+	}
+	sys print ("after h:" + ball_hsp + " v: "+ ball_vsp);
+}
+*#

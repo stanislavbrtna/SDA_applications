@@ -30,7 +30,7 @@ function init {
 
   sys.gui.setDefFont(scr, 32); # keypad has larger font
 
-  disp = sys.gui.addText(4, 1, 20, 3, "0", scr);
+  disp = sys.gui.addText(4, 1, 20, 2, "0", scr);
 
   btn1 = sys.gui.addButton(7, 10, 4, 4, "1", scr);
   btn2 = sys.gui.addButton(11, 10, 4, 4, "2", scr);

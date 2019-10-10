@@ -1,14 +1,14 @@
 function init {
-  scr = sys pAddScreen();
-  sys pSetMainScr(scr);
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
 
-  sys pAddText(1, 1, 8, 2, "Hello, world!", scr);
+  sys.gui.addText(1, 1, 8, 2, "Hello, world!", scr);
 
-  ok = sys pAddButton(1, 3, 3, 4, "Ok", scr);
+  ok = sys.gui.addButton(1, 3, 3, 4, "Ok", scr);
 }
 
 function update {
-  if (sys pGetEventC(ok) == EV_RELEASED) {
-    sys exit();
+  if (sys.gui.getEventC(ok) == EV_RELEASED) {
+    sys.os.exit();
   }
 }

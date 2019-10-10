@@ -1,64 +1,64 @@
  # this is proof-of-concept that shows the self-programability of the SDA
 
 function init {
-	scr = sys pAddScreen();
+  scr = sys.gui.addScreen();
 
-	sys pSetMainScr(scr);
+  sys.os.gui.setMainScr(scr);
 
-	sys pSetRelInit(1);
+  sys.gui.setRelInit(1);
 
-  sys pAddText(0, 10, 8, 1,"SDA Script edit", scr);
+  sys.gui.addText(0, 10, 8, 1,"SDA Script edit", scr);
 
-	btn_run = sys pAddButton(5, 12, 3, 1, "Run", scr);
+  btn_run = sys.gui.addButton(5, 12, 3, 1, "Run", scr);
 
-	btn_store = sys pAddButton(1, 12, 3, 1, "Save", scr);
+  btn_store = sys.gui.addButton(1, 12, 3, 1, "Save", scr);
 
-	scrollscr = sys pAddScreen();
+  scrollscr = sys.gui.addScreen();
 
-	sys pSetXYXY(scrollscr, 0, 0, 9, 9);
+  sys.gui.setXYXY(scrollscr, 0, 0, 9, 9);
 
-	sys pSetScreen(scrollscr, scr);
+  sys.gui.setScreen(scrollscr, scr);
 
-	txt = sys pAddText(0, 0, 20, 400, "", scrollscr);
+  txt = sys.gui.addText(0, 0, 20, 400, "", scrollscr);
 
-	sld = sys pAddSliderV(9, 0, 1, 9, 11000, 1, scr);
-	sld2 = sys pAddSliderH(0, 9, 9, 1, 320, 1, scr);
+  sld = sys.gui.addSliderVV(9, 0, 1, 9, 11000, 1, scr);
+  sld2 = sys.gui.addSliderVH(0, 9, 9, 1, 320, 1, scr);
 
-	sys pSetTexEd(txt, 1);
+  sys.gui.setTexEd(txt, 1);
 
-	program = "";
+  program = "";
 
-	if (typeof (arg0) == TYPE_STR){
-		if (arg0 != "")
-			filename = arg0;
-		else
-			filename = "sdev.svs";
-	} else {
-		filename = "sdev.svs";
-	}
+  if (typeof (arg0) == TYPE_STR){
+    if (arg0 != "")
+      filename = arg0;
+    else
+      filename = "sdev.svs";
+  } else {
+    filename = "sdev.svs";
+  }
 
-	if (sys pFrExists(filename)) {
-		program = sys fReadStr(filename);
-	}
+  if (sys.fs.exists(filename)) {
+    program = sys.fs.readStr(filename);
+  }
 
-	sys pAddText(0, 11, 8, 1,"Editing: "+filename, scr);
+  sys.gui.addText(0, 11, 8, 1,"Editing: "+filename, scr);
 
 }
 
 function update {
-  program = sys pHandleText(txt, program);
+  program = sys.os.gui.handleText(txt, program);
 
-  if (sys pGetEventC(btn_run) == EV_RELEASED) {
-  	sys fChDir(1); # goto apps
-  	sys fWriteStr(program, "sdev.svs");
-  	sys subProcess("sdev.svs", "", 0, 0, 0);
+  if (sys.gui.getEventC(btn_run) == EV_RELEASED) {
+    sys.fs.chDir(1); # goto apps
+    sys.fs.writeStr(program, "sdev.svs");
+    sys.os.subProcess("sdev.svs", "", 0, 0, 0);
   }
 
-  if (sys pGetEventC(btn_store) == EV_RELEASED) {
-  	sys fWriteStr(program, filename);
+  if (sys.gui.getEventC(btn_store) == EV_RELEASED) {
+    sys.fs.writeStr(program, filename);
   }
 
-  sys pSetYscroll(scrollscr, sys pGetValue(sld));
-  sys pSetXscroll(scrollscr, sys pGetValue(sld2));
+  sys.gui.setYscroll(scrollscr, sys.gui.getValue(sld));
+  sys.gui.setXscroll(scrollscr, sys.gui.getValue(sld2));
 }
 

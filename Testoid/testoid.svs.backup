@@ -1,0 +1,380 @@
+function init {
+	sys print("testoid v.2.1");
+	sys checkSVSVer(700);
+	if(arg0) {
+		print("argument0: " + arg0);
+	}
+	if(arg1) {
+		print("argument1: " + arg1);
+	}
+	if(arg2) {
+		print("argument2: " + arg2);
+	}
+	scr = sys pAddScreen();
+	sys pSetMainScr(scr);
+	sys pSetSpacing(scr, 2, 5, 2, 2);
+
+  sys pAddText(0, 0, 8, 1, "Příliš žluťoučký kůň", scr);
+	btn1 = sys pAddButton(1, 1, 5, 2, "Count!", scr);
+	btn_text = sys pAddText(1,2, 6, 3, "Nothing pressed", scr);
+	ebtn1 = sys pAddButton(1, 3, 5, 4, "Float Error", scr);
+	ebtn2 = sys pAddButton(1, 4, 5, 5, "Sys Error", scr);
+
+	obtn1 = sys pAddButton(1, 6, 5, 7, "Get Time!", scr);
+
+	date_btn = sys pAddButton(1, 7, 5, 8, "Get Date!", scr);
+
+	btn = sys pAddButton(1, 8, 5, 9, "EVTEST", scr);
+	btn_info = sys pAddButton(1, 9, 5, 10, "sysinfo", scr);
+
+	btn_impd = sys pAddButton(1, 10, 5, 11, "InputDemo", scr);
+
+	btn_rnd = sys pAddButton(6, 1, 10, 2, "RND", scr);
+
+	btn_cv = sys pAddButton(6, 2, 10, 3, "Cvik", scr);
+
+	if (sys sdaGetLang() == SVP_LANG_CZ) {
+		sys pAddText(6, 3, 10, 4, "Lang: CZ", scr);
+	}
+
+	if (sys sdaGetLang() == SVP_LANG_ENG) {
+		sys pAddText(6, 3, 10, 4, "Lang: ENG", scr);
+	}
+
+	btn_bp = sys pAddButton(6, 4, 10, 5, "beep", scr);
+
+	sldT = sys pAddSliderV(6, 5, 7, 11, 1200, 250, scr);
+
+	sldF = sys pAddSliderV(8, 5, 9, 11, 130, 10, scr);
+
+	if (sys getMute()) {
+	  sys pSetGrayout(sldT, 1);
+	  sys pSetGrayout(sldF, 1);
+	}
+
+	btn_ledstat = sys pAddButton(1, 11, 5, 12, "Status Led", scr);
+	btn_gosub = sys pAddButton(1, 12, 5, 13, "subProcess", scr);
+	btn_gosub2 = sys pAddButton(6, 12, 9, 13, "about", scr);
+	btn_runner = sys pAddButton(6, 11, 9, 12, "Runner", scr);
+
+	#cvik
+
+	scr2 = sys pAddScreen();
+	sys pSetMainScr(scr);
+
+	btn_cvik = sys pAddButton(3, 0, 7, 1, "Start/Stop", scr2);
+
+	bar1 = sys pAddVBar(0, 2, 10, 4, 10, 0, scr2);
+
+	bar2 = sys pAddVBar(0, 5, 10, 7, 10, 0, scr2);
+
+	bar3 = sys pAddVBar(0, 8, 10, 10, 10, 0, scr2);
+
+	bar4 = sys pAddVBar(0, 11, 10, 13, 10, 0, scr2);
+
+	start = 0;
+	sys pSetEvent(btn1, 0);
+
+	init_inp();
+	init_runner();
+
+	sys btnStdbyEn(1);
+}
+
+function init_runner {
+	runscr = sys pAddScreen();
+
+	rtxt = sys pAddText(1, 1, 9, 2, text, runscr);
+
+	rbtn = sys pAddButton(1, 3, 5, 4, "RUN!", runscr);
+
+	rloop = sys pAddCheckBox(1, 5, 5, 6, "loop it!", runscr);
+
+	sys pSetTexEd(rtxt,1);
+
+	rfname = "";
+}
+
+function upd_runner {
+	rfname = sys pHandleText(rtxt, rfname);
+
+	if(sys pGetEventC(rbtn) == EV_RELEASED) {
+		sys pSetValue(rtxt, 0);
+		sys keybHide();
+		if (sys pGetValue(rloop)) {
+			sys subProcess(rfname, "runloop", 0, 0, 0);
+		} else {
+			sys subProcess(rfname, "", 0, 0, 0);
+		}
+		return;
+	}
+}
+
+function runloop {
+	sys subProcess(rfname, "runloop", 0, 0, 0);
+}
+
+function init_inp {
+  #vytvoření nové obrazovky
+	iscr = sys pAddScreen();
+	sys profiler(1);
+
+	#testovací text
+	text = "Textovy vstup";
+	text2 = "Textovy vstup2";
+
+
+	#nové textové pole
+	txt = sys pAddText(1, 1, 9, 3, text, iscr);
+
+	txt2 = sys pAddText(1, 4, 9, 5, text2, iscr);
+
+	#tlačítko
+	ibtn = sys pAddButton(2, 7, 8, 8, "Vymazat", iscr);
+
+	#nastavení editovatelnosti nového textového pole
+	sys pSetTexEd(txt,1);
+	sys pSetTexEd(txt2,1);
+
+	textold = "";
+}
+
+function update_inp {
+
+	#obsluha propojení promněnné a textového pole
+	text=sys pHandleText(txt, text);
+	text2=sys pHandleText(txt2, text2);
+
+	if (text != textold){
+		print(text);
+	}
+
+	textold = text;
+
+	#obsluha tlačítka "Vymazat"
+	if (sys pGetEvent(ibtn)==3){
+		if (sys pGetTexAct(txt)) {
+	  	text = "";
+	  }
+	  if (sys pGetTexAct(txt2)) {
+	  	text2 = "";
+	  }
+	}
+	sys pSetEvent(ibtn,0);
+}
+
+function update {
+  #counter
+
+	if (sys pGetEvent(btn1)==EV_RELEASED){
+	  sys cntSet(10005 ) ;
+	  sys pSetStr(btn1, "10");
+	  cnt = 10;
+	  rst = 1;
+	}
+	sys pSetEvent(btn1,0);
+
+	if((sys cntGet()/1000) < cnt){
+	  cnt = cnt-1;
+	  sys pSetStr(btn1, "" + cnt);
+	}
+
+	if ((sys cntGet() == 0)*(rst == 1)) {
+	  sys pSetStr(btn1, "Count!");
+	  rst = 0;
+	}
+
+  #errortest
+  if (sys pGetEvent(ebtn1)==3){
+	  sys print("FloatError");
+	  a=1+1.0;
+	}
+	sys pSetEvent(ebtn1,0);
+
+	if (sys pGetEvent(ebtn2)==3){
+	  sys print("sysError");
+	  sys karel();
+	}
+	sys pSetEvent(ebtn2,0);
+
+	#overlay
+
+	if (sys pGetEvent(obtn1)==3){
+	  tim_ov=sys oTimAdd();
+	}
+	sys pSetEvent(obtn1,0);
+
+	sys oTimUpd(tim_ov);
+
+	if(sys oTimGetOk(tim_ov)){
+	  sys pSetStr(obtn1, ""+sys oTimGetHr(tim_ov)+":"+sys oTimGetMin(tim_ov));
+	  sys oTimClrOk(tim_ov);
+	}
+
+	if (sys pGetEvent(date_btn)==3){
+	  date_ov=sys oDateAdd(2017, 1, 28);
+	}
+	sys pSetEvent(date_btn, 0);
+
+	sys oDateUpd(date_ov);
+
+	if (sys oDateGetOk(date_ov)){
+	  sys pSetStr(date_btn, ""+sys oDateGetDay(date_ov)+". "+sys oDateGetMon(date_ov)+". "+sys oDateGetYr(date_ov));
+	  sys oDateClrOk(date_ov);
+	}
+
+	#evtest
+	if (sys pGetEvent(btn)){
+	  sys pSetStr(btn, "EV:"+sys pGetEvent(btn));
+	}
+	sys pSetEvent(btn,0);
+
+	if (sys pGetEvent(btn_info)==3){
+	  sys info();
+	}
+	sys pSetEvent(btn_info,0);
+
+	if (sys pGetEvent(btn_rnd)==3){
+	  sys pSetStr(btn_rnd, ""+sys rnd());
+	}
+	sys pSetEvent(btn_rnd,0);
+
+	if (sys pGetEvent(btn_cv)==3){
+	  sys pSetMainScr(scr2);
+	  cvik=1;
+	}
+	sys pSetEvent(btn_cv,0);
+
+	if (sys pGetEvent(btn_bp)==3){
+	  sys beep();
+	}
+	sys pSetEvent(btn_bp,0);
+
+	if (sys pGetEvent(sldT)){
+	  sys beepT(sys pGetValue(sldT));
+	}
+	sys pSetEvent(sldT,0);
+
+	if (sys pGetEvent(sldF)){
+	  sys beepF(sys pGetValue(sldF));
+	}
+	sys pSetEvent(sldF,0);
+
+
+
+	if(cvik==1){
+	  update_cvik();
+	}
+
+	if (sys pGetEvent(btn_impd)){
+	  impDemo = 1;
+	  sys pSetMainScr(iscr);
+	}
+	sys pSetEvent(btn_impd,0);
+
+	if (impDemo == 1) {
+		update_inp();
+	}
+
+	if (sys btnGetEv(0) == 1){
+		sys pSetStr(btn_text, "A Pressed (0)");
+	}
+	sys btnClrEv(0);
+
+	if (sys btnGetEv(1) == 1){
+		sys pSetStr(btn_text, "Left Pressed (1)");
+	}
+	sys btnClrEv(1);
+
+	if (sys btnGetEv(2) == 1){
+		sys pSetStr(btn_text, "Up Pressed (2)");
+	}
+	sys btnClrEv(2);
+
+
+	if (sys btnGetEv(3) == 1){
+		sys pSetStr(btn_text, "Down Pressed (3)");
+	}
+	sys btnClrEv(3);
+
+	if (sys btnGetEv(4) == 1){
+		sys pSetStr(btn_text, "Right Pressed (4)");
+	}
+	sys btnClrEv(4);
+
+	if (sys btnGetEv(5) == 1){
+		sys pSetStr(btn_text, "B Pressed (5)");
+	}
+	sys btnClrEv(5);
+
+	if (sys pGetEvent(btn_ledstat) == EV_RELEASED) {
+		ledstat = ledstat + 1;
+		sys sdaSetLed(ledstat);
+
+		if (ledstat >= 4) {
+			ledstat = -1;
+		}
+	}
+	sys pSetEvent(btn_ledstat, EV_NONE);
+
+	if(sys pGetEventC(btn_gosub) == EV_RELEASED) {
+		sys subProcess("calc/Calc.svs", &callRet, 123, 0, 0);
+		return;
+	}
+
+	if(sys pGetEventC(btn_gosub2) == EV_RELEASED) {
+		sys subProcess("notepad/notepad.svs", "", "test.txt", 0, 0);
+		return;
+	}
+
+	if(sys pGetEventC(btn_runner) == EV_RELEASED) {
+		sys pSetMainScr(runscr);
+		runnerRunning = 1;
+	}
+
+	if(runnerRunning) {
+		upd_runner();
+	}
+
+}
+
+function callRet{
+	print("callback returned");
+	print("argument0: " + arg0);
+	sys pSetStr(btn_gosub, "-> " + arg0);
+}
+
+function update_cvik {
+
+  if ((val < 10) * start) {
+    val = val + 1;
+    sys pSetValue(bar1, 10 - val);
+    sys pSetValue(bar2, 10 - val);
+    sys pSetValue(bar3, 10 - val);
+    sys pSetValue(bar4, 10 - val);
+
+    a = 0;
+    k = "k";
+    while(a < 10) {
+    	k = k + "k";
+    	a = a + 1;
+    }
+  }else{
+    val = 0;
+  }
+
+	if (sys pGetEvent(btn_cvik)==3){
+	  start = 1 - start;
+
+	  sys sleepLock(start);
+	}
+	sys pSetEvent(btn_cvik,0);
+}
+
+function exit{
+    sys pDestroyScr(scr);
+    sys pDestroyScr(scr2);
+    sys pDestroyScr(iscr);
+
+    sys subRetval("aaaa", 3, "asd");
+}

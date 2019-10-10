@@ -1,128 +1,128 @@
 function init {
   verze = "v. 3.2";
-  sys checkSVSVer(700);
-  sys setSingular();
-	sys print("Cecklist " + verze);
-	scr = sys pAddScreen();
-	sys pSetMainScr(scr);
+  sys.os.checkVer(700);
+  sys.os.setSingular();
+  print("Cecklist " + verze);
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
 
-	scr2 = sys pAddScreen();
+  scr2 = sys.gui.addScreen();
 
-	sys pSetScreen(scr2, scr);
-	sys pSetXYXY(scr2, 0, 2, 9, 12);
-	sys pSetXcell(scr2, 16);
+  sys.gui.setScreen(scr2, scr);
+  sys.gui.setXYXY(scr2, 0, 2, 9, 12);
+  sys.gui.setXcell(scr2, 16);
 
-	array textP [60];
-	array checkP [60];
-	array btnP [60];
-	array tfP [60];
+  array textP [60];
+  array checkP [60];
+  array btnP [60];
+  array tfP [60];
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-	  sys pAddText(2, 0, 7, 1, "Zadejte úkol:", scr);
-	  sys pAddText(7, 13, 10, 14, verze, scr);
-	  remMode = sys pAddCheckBox(1, 13, 6, 14, "Mazací mód", scr);
-	  showComplete = sys pAddCheckBox(1, 12, 10, 13, "Skrýt dokončené", scr);
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.addText(2, 0, 7, 1, "Zadejte úkol:", scr);
+    sys.gui.addText(7, 13, 10, 14, verze, scr);
+    remMode = sys.gui.addCheckBox(1, 13, 6, 14, "Mazací mód", scr);
+    showComplete = sys.gui.addCheckBox(1, 12, 10, 13, "Skrýt dokončené", scr);
   } else {
-    sys pAddText(2, 0, 7, 1, "Add task:", scr);
-	  sys pAddText(7, 13, 10, 14, verze, scr);
-	  remMode = sys pAddCheckBox(1, 13, 8, 14, "Delete on check", scr);
-	  showComplete = sys pAddCheckBox(1, 12, 10, 13, "Hide done", scr);
+    sys.gui.addText(2, 0, 7, 1, "Add task:", scr);
+    sys.gui.addText(7, 13, 10, 14, verze, scr);
+    remMode = sys.gui.addCheckBox(1, 13, 8, 14, "Delete on check", scr);
+    showComplete = sys.gui.addCheckBox(1, 12, 10, 13, "Hide done", scr);
   }
-	sys cOpen("check.dat");
+  sys.fs.conf.open("check.dat");
 
-	hide_done = sys cKeyReadInt("hideDone", 0);
+  hide_done = sys.fs.conf.readInt("hideDone", 0);
 
-	sys pSetValue(showComplete, hide_done);
+  sys.gui.setValue(showComplete, hide_done);
 
-	load_scr2();
+  load_scr2();
 
-	inText = "";
+  inText = "";
 
-	txt = sys pAddText(1, 1, 8, 2, inText, scr);
-	btn1 = sys pAddButton(9, 1, 10, 2, "+", scr);
-	btn_select = sys pAddButton(0, 1, 1, 2, " ", scr);
+  txt = sys.gui.addText(1, 1, 8, 2, inText, scr);
+  btn1 = sys.gui.addButton(9, 1, 10, 2, "+", scr);
+  btn_select = sys.gui.addButton(0, 1, 1, 2, " ", scr);
 
-	bttnStr = " ";
+  bttnStr = " ";
 
-	sys pSetGrayout(btn1, 1);
+  sys.gui.setGrayout(btn1, 1);
 
-	#btn_save = sys pAddButton(7, 13, 10, 14, "Uložit", scr);
+  #btn_save = sys.gui.addButton(7, 13, 10, 14, "Uložit", scr);
 
-	sys pSetTexEd(txt, 1);
+  sys.gui.setTexEd(txt, 1);
 
-	sld = sys pAddSlider(9, 3, 10, 11, 100, 1, scr);
-	sldold = 0;
+  sld = sys.gui.addSliderV(9, 3, 10, 11, 100, 1, scr);
+  sldold = 0;
 
-	sys pClrScrEv(scr);
-	sys pClrScrEv(scr2);
+  sys.gui.clrScrEv(scr);
+  sys.gui.clrScrEv(scr2);
 
 }
 
 function load_scr2 {
-	checkCnt = 0;
-	checkCnt = sys cKeyReadInt("CheckCnt", 0);
-	y = 0;
+  checkCnt = 0;
+  checkCnt = sys.fs.conf.readInt("CheckCnt", 0);
+  y = 0;
 
-	for(x = 0; x < checkCnt; x = x + 1;) {
-	  check = sys cKeyRead("check" + x);
-	  text = sys cKeyRead("text" + x);
-	  checked = sys cKeyReadInt("done" + x, 0);
+  for(x = 0; x < checkCnt; x = x + 1;) {
+    check = sys.fs.conf.read("check" + x);
+    text = sys.fs.conf.read("text" + x);
+    checked = sys.fs.conf.readInt("done" + x, 0);
 
-		# we make it all the times
-	  btnP[x] = sys pAddCheckBox(1, 1 + y, 4, 2 + y, "" + check, scr2);
-	  if (check == " ") {
-	  	tfP[x] = sys pAddText(3, 1 + y, 18, 2 + y, "" + text, scr2);
-	  } else {
-	  	tfP[x] = sys pAddText(4, 1 + y, 18, 2 + y, "" + text, scr2);
-	  }
-	  y = y + 1;
+    # we make it all the times
+    btnP[x] = sys.gui.addCheckBox(1, 1 + y, 4, 2 + y, "" + check, scr2);
+    if (check == " ") {
+      tfP[x] = sys.gui.addText(3, 1 + y, 18, 2 + y, "" + text, scr2);
+    } else {
+      tfP[x] = sys.gui.addText(4, 1 + y, 18, 2 + y, "" + text, scr2);
+    }
+    y = y + 1;
 
-	  if ((hide_done == 1) * (checked == 1)) {
-	  	y = y - 1;
-	  	sys pSetVisible(tfP[x], 0);
-	  	sys pSetVisible(btnP[x], 0);
-	  }
+    if ((hide_done == 1) * (checked == 1)) {
+      y = y - 1;
+      sys.gui.setVisible(tfP[x], 0);
+      sys.gui.setVisible(btnP[x], 0);
+    }
 
-	  sys pSetValue(btnP[x], checked);
+    sys.gui.setValue(btnP[x], checked);
 
-	  textP[x] = text;
-	  checkP[x] = check;
+    textP[x] = text;
+    checkP[x] = check;
   }
 }
 
 function reload_scr2 {
-	store();
-	sys pDestroyScr(scr2);
-	scr2 = sys pAddScreen();
-	sys pSetScreen(scr2, scr);
-	sys pSetXYXY(scr2, 0, 2, 9, 12);
-	sys pSetXcell(scr2, 16);
-	load_scr2();
-	sys pSetModif(scr2);
+  store();
+  sys.gui.destroy(scr2);
+  scr2 = sys.gui.addScreen();
+  sys.gui.setScreen(scr2, scr);
+  sys.gui.setXYXY(scr2, 0, 2, 9, 12);
+  sys.gui.setXcell(scr2, 16);
+  load_scr2();
+  sys.gui.setModif(scr2);
 }
 
 function store {
-	sys cKeyWrite("CheckCnt", "" + checkCnt);
+  sys.fs.conf.write("CheckCnt", "" + checkCnt);
 
-	for(x = 0; x < checkCnt; x = x + 1;) {
-		sys cKeyWrite("text" + x, textP[x]);
-		sys cKeyWrite("check" + x, checkP[x]);
-		sys cKeyWrite("done" + x, "" + sys pGetValue(btnP[x]));
-	}
+  for(x = 0; x < checkCnt; x = x + 1;) {
+    sys.fs.conf.write("text" + x, textP[x]);
+    sys.fs.conf.write("check" + x, checkP[x]);
+    sys.fs.conf.write("done" + x, "" + sys.gui.getValue(btnP[x]));
+  }
 
-	sys cKeyWrite("hideDone", "" + hide_done);
+  sys.fs.conf.write("hideDone", "" + hide_done);
 
-	sys cClose();
-	sys cOpen("check.dat");
+  sys.fs.conf.close();
+  sys.fs.conf.open("check.dat");
 }
 
 function add {
-	btnP[x] = sys pAddCheckBox(1, 1 + y, 4, 2 + y, "" + arg1, scr2);
-	if (arg1 == " ") {
-		tfP[x] = sys pAddText(3, 1 + y, 18, 2 + y, "" + arg0, scr2);
-	} else {
-		tfP[x] = sys pAddText(4, 1 + y, 18, 2 + y, "" + arg0, scr2);
-	}
+  btnP[x] = sys.gui.addCheckBox(1, 1 + y, 4, 2 + y, "" + arg1, scr2);
+  if (arg1 == " ") {
+    tfP[x] = sys.gui.addText(3, 1 + y, 18, 2 + y, "" + arg0, scr2);
+  } else {
+    tfP[x] = sys.gui.addText(4, 1 + y, 18, 2 + y, "" + arg0, scr2);
+  }
   textP[checkCnt] = "" + arg0;
   checkP[checkCnt] = bttnStr;
 
@@ -132,78 +132,78 @@ function add {
 
 function update {
 
-  inText = sys pHandleText(txt, inText);
+  inText = sys.os.gui.handleText(txt, inText);
 
   if (getcp(inText, len(inText)) == "\n") {
     if (len(inText) == 1) {
       inText = "";
     } else {
-      sys pSetEvent(btn1, EV_RELEASED);
+      sys.gui.setEvent(btn1, EV_RELEASED);
     }
   }
 
   if(inText != "" and newMark == 0) {
-    sys pSetGrayout(btn1, 0);
+    sys.gui.setGrayout(btn1, 0);
     newMark = 1;
   }
 
-	if (sys pGetEventC(btn_select)) {
-	  if (bttnStr == " ") {
-	    bttnStr = "-";
-	  } else {
-	    if(bttnStr == "-") {
-	      bttnStr = "*";
-	    } else {
+  if (sys.gui.getEventC(btn_select) == EV_RELEASED) {
+    if (bttnStr == " ") {
+      bttnStr = "-";
+    } else {
+      if(bttnStr == "-") {
+        bttnStr = "*";
+      } else {
         if(bttnStr == "*") {
-  	      bttnStr = "!";
-  	    } else {
-  	      if(bttnStr == "!") {
-	          bttnStr = " ";
-	        }
-	      }
-	    }
-	  }
-	  sys pSetStr(btn_select, bttnStr);
-	}
+          bttnStr = "!";
+        } else {
+          if(bttnStr == "!") {
+            bttnStr = " ";
+          }
+        }
+      }
+    }
+    sys.gui.setStr(btn_select, bttnStr);
+  }
 
-	if (sys pGetEvent(showComplete) == EV_RELEASED) {
-		hide_done = sys pGetValue(showComplete);
-		reload_scr2();
-	}
-	sys pSetEvent(showComplete, EV_NONE);
+  if (sys.gui.getEvent(showComplete) == EV_RELEASED) {
+    hide_done = sys.gui.getValue(showComplete);
+    reload_scr2();
+  }
+  sys.gui.setEvent(showComplete, EV_NONE);
 
-	if (sys pGetEvent(btn1) == EV_RELEASED) {
-		add(inText, bttnStr);
-	  inText = "";
-	  sys pSetGrayout(btn1, 1);
-	  newMark = 0;
-	}
-	sys pSetEvent(btn1, EV_NONE);
+  if (sys.gui.getEvent(btn1) == EV_RELEASED) {
+    add(inText, bttnStr);
+    inText = "";
+    sys.gui.setGrayout(btn1, 1);
+    newMark = 0;
+  }
+  sys.gui.setEvent(btn1, EV_NONE);
 
   for (x = 0; x < checkCnt; x = x + 1;) {
     # select item to remove
-    if(sys pGetEvent(btnP[x]) == EV_RELEASED) {
-    	if (sys pGetValue(remMode)) {
-      	rme = 1;
-      	rm = x;
+    if(sys.gui.getEvent(btnP[x]) == EV_RELEASED) {
+      if (sys.gui.getValue(remMode)) {
+        rme = 1;
+        rm = x;
       } else {
-      	reload_scr2();
+        reload_scr2();
       }
     }
-    sys pSetEvent(btnP[x], 0);
+    sys.gui.setEvent(btnP[x], 0);
   }
 
   if(rme == 1) {
     rme = 0;
-    sys pDestroy(tfP[rm]);
-    sys pDestroy(btnP[rm]);
+    sys.gui.destroy(tfP[rm]);
+    sys.gui.destroy(btnP[rm]);
 
-    sys print("rm: " + rm + "cnt:" + checkCnt);
+    print("rm: " + rm + "cnt:" + checkCnt);
     if(rm != checkCnt + 1) {
       x = rm + 1;
       while (x < checkCnt) {
-        sys pSetXYXY(btnP[x], 1, 1 + x - 1, 2, 2 + x - 1);
-        sys pSetXYXY(tfP[x], 2, 1 + x - 1, 9, 2 + x - 1);
+        sys.gui.setXYXY(btnP[x], 1, 1 + x - 1, 2, 2 + x - 1);
+        sys.gui.setXYXY(tfP[x], 2, 1 + x - 1, 9, 2 + x - 1);
         x = x + 1;
       }
       x = rm;
@@ -222,29 +222,29 @@ function update {
     reload_scr2();
   }
 
-	if(sys btnGetEv(BTN_UP) == EV_PRESSED) {
-    if (sys pGetValue(sld) > 10) {
-      sys pSetValue(sld, sys pGetValue(sld) - 10);
+  if(sys.btnGetEv(BTN_UP) == EV_PRESSED) {
+    if (sys.gui.getValue(sld) > 10) {
+      sys.gui.setValue(sld, sys.gui.getValue(sld) - 10);
     } else {
-      sys pSetValue(sld, 0);
+      sys.gui.setValue(sld, 0);
     }
   }
-  sys btnClrEv(BTN_UP);
+  sys.btnClrEv(BTN_UP);
 
-  if(sys btnGetEv(BTN_DOWN) == EV_PRESSED) {
-    if (sys pGetValue(sld) < 90) {
-      sys pSetValue(sld, sys pGetValue(sld) + 10);
+  if(sys.btnGetEv(BTN_DOWN) == EV_PRESSED) {
+    if (sys.gui.getValue(sld) < 90) {
+      sys.gui.setValue(sld, sys.gui.getValue(sld) + 10);
     } else {
-      sys pSetValue(sld, 100);
+      sys.gui.setValue(sld, 100);
     }
   }
-  sys btnClrEv(BTN_DOWN);
+  sys.btnClrEv(BTN_DOWN);
 
-  sys pSetYscroll(scr2, sys pGetValue(sld) * 5);
+  sys.gui.setYscroll(scr2, sys.gui.getValue(sld) * 5);
 
 }
 
 function exit {
-	store();
-  sys cClose();
+  store();
+  sys.fs.conf.close();
 }

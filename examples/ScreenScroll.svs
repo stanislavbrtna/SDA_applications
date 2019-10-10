@@ -1,21 +1,21 @@
 function init {
   # init screens
-  scr = sys pAddScreen();
-  innerScreen = sys pAddScreen();
+  scr = sys.gui.addScreen();
+  innerScreen = sys.gui.addScreen();
 
   # fill them
-  sys pAddText(1,5,7,6, "Some Text!", innerScreen);
-  scrollbar = sys pAddSliderV(9, 1, 10, 8, 100, 50, scr);
+  sys.gui.addText(1,5,7,6, "Some Text!", innerScreen);
+  scrollbar = sys.gui.addSliderVV(9, 1, 10, 8, 100, 50, scr);
 
   # set innerScreen position inside the scr
-  sys pSetScreen(innerScreen, scr);
-  sys pSetXYXY(innerScreen, 1, 1, 8, 8);
+  sys.gui.setScreen(innerScreen, scr);
+  sys.gui.setXYXY(innerScreen, 1, 1, 8, 8);
 
   # set main application screen
-  sys pSetMainScr(scr);
+  sys.os.gui.setMainScr(scr);
 }
 
 function update {
   # manage the scrollbar
-  sys pSetYscroll(innerScreen, sys pGetValue(scrollbar));
+  sys.gui.setYscroll(innerScreen, sys.gui.getValue(scrollbar));
 }

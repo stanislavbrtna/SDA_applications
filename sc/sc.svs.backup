@@ -1,0 +1,432 @@
+ #sda commander
+ # todo: move, view
+function init {
+  sys checkSVSVer(720);
+	sys pSetRelInit(1);
+	scr = sys pAddScreen();
+	sys pSetMainScr(scr);
+	sys pAddText(1, 0, 8, 1, "SDA Commander 1.2.1", scr);
+	file_scr = sys pAddScreen();
+	scrollbar = sys pAddSliderV(9, 2, 1, 9, 100, 0, scr);
+
+	sys pSetScreen(file_scr, scr);
+	sys pSetXYXY(file_scr, 0, 2, 9, 9);
+
+	bUp = sys pAddButton(0, 1, 1, 1, "/\\", scr);
+	bData = sys pAddButton(2, 1, 2, 1, "Data", scr);
+	bApps = sys pAddButton(4, 1, 2, 1, "Apps", scr);
+
+	# move, mkdir, launch, view, edit
+	bCopy = sys pAddButton(0, 11, 3, 1, "Copy", scr);
+	#bMove = sys pAddButton(3, 11, 3, 1, "Move", scr);
+	bRename = sys pAddButton(3, 11, 4, 1, "Rename", scr);
+	bMkdir = sys pAddButton(0, 12, 3, 1, "MkDir", scr);
+	#bView = sys pAddButton(3, 12, 3, 1, "View", scr);
+	bRemove = sys pAddButton(3, 12, 4, 1, "Remove", scr);
+
+	array fScrBtns[200];
+
+	rldFiles();
+	copyFname = "";
+	renameOp  = -1;
+	mkdirOp   = -1;
+	ppmOvr = -1;
+
+	sys pSetGrayout(bUp, 1);
+}
+
+function getsize {
+	local x;
+	sys pFrOpen(arg0);
+	x = sys pFrSize();
+	sys pFrClose();
+
+	return x;
+}
+
+function rldFiles {
+	sys pDestroy(file_scr);
+	for (x = 0; x < 200; x++;) {
+		fScrBtns[x] = 0;
+	}
+
+	file_scr = sys pAddScreen();
+
+	sys pSetScreen(file_scr, scr);
+	sys pSetXYXY(file_scr, 0, 2, 9, 9);
+
+	i = 0;
+
+	#load directory
+	for(findfil = sys fFind("", "."); findfil != ""; findfil = sys fFindNext();) {
+	  fScrBtns[i] = findfil;
+		i++;
+	}
+
+	numOfFiles = i;
+
+	#sortOutDirs
+	lastdir = 0;
+	for(i = 0; i < numOfFiles; i++;) {
+		if (sys fIsDir(fScrBtns[i])) {
+			prac = fScrBtns[lastdir];
+
+			fScrBtns[lastdir] = fScrBtns[i];
+
+			fScrBtns[i] = prac;
+
+			lastdir++;
+		}
+	}
+
+	sortstring = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+	# alphabetical sort dirs
+  {
+    local sorted;
+    local i;
+    local b;
+    local sortchar;
+    sorted = 0;
+    for(i = 1; i < len(sortstring); i++;) {
+      sortchar = getcp(sortstring, i);
+      for(b = sorted; b < lastdir; b++;){
+        if (getcp(fScrBtns[b], 1) == sortchar) {
+          local prac;
+          prac = fScrBtns[b];
+          fScrBtns[b] = fScrBtns[sorted];
+          fScrBtns[sorted] = prac;
+          sorted++;
+        }
+      }
+    }
+  }
+
+  # alphabetical sort files
+  {
+    local sorted;
+    local i;
+    local b;
+    local sortchar;
+    sorted = lastdir;
+    for(i = 1; i < len(sortstring); i++;) {
+      sortchar = getcp(sortstring, i);
+      for(b = sorted; b < numOfFiles; b++;){
+        if (getcp(fScrBtns[b], 1) == sortchar) {
+          local prac;
+          prac = fScrBtns[b];
+          fScrBtns[b] = fScrBtns[sorted];
+          fScrBtns[sorted] = prac;
+          sorted++;
+        }
+      }
+    }
+  }
+
+	#load sorted buttons
+	for(i = 0; i < numOfFiles; i++;) {
+		findfil =  fScrBtns[i];
+		fScrBtns[i] = sys pAddButton(0, i, 5, 1, findfil, file_scr);
+
+		if (sys fIsDir(findfil)) {
+			sys pAddText(6, i, 2, 1, "(Dir)", file_scr);
+		} else {
+			sys pAddText(6, i, 4, 1, "" + getsize(findfil) + "B", file_scr);
+		}
+	}
+
+	sys pSetValue(scrollbar, 0);
+
+	if (i > 9) {
+		sys pSetParam(scrollbar, 32 * i - 8 * 32);
+		sys pSetGrayout(scrollbar, 0);
+	} else {
+		sys pSetGrayout(scrollbar, 1);
+	}
+
+	selected = -1;
+}
+
+function tryOpen {
+	# arg0 -> fname
+	extension = getcp(arg0, len(arg0) - 2) + getcp(arg0, len(arg0) -1) + getcp(arg0, len(arg0));
+	print(extension);
+	if (extension == "svs") {
+	  sys subProcCWD(1);
+		sys subProcess(arg0, "", 0, 0, 0);
+	}
+
+	if (extension == "txt") {
+	  sys subProcCWD(0);
+		sys subProcess("notepad/notepad.svs", "", arg0, 0, 0);
+	}
+
+	if (extension == "ppm" or extension == "p16") {
+		showPpm(arg0);
+	}
+}
+
+function updFiles {
+	local x;
+	for (x = 0; x < numOfFiles; x++;) {
+		if (sys pGetEventC(fScrBtns[x]) == EV_RELEASED) {
+
+				if (selected == -1) {
+					sys pSetSelect(fScrBtns[x], 1);
+					selected = x;
+				} else {
+				if (selected == x) {
+					if (sys fIsDir(sys pGetStr(fScrBtns[x]))) {
+						sys fChDir(sys pGetStr(fScrBtns[x]));
+						rldFiles();
+						sys pSetGrayout(bUp, 0);
+						upCount++;
+					} else {
+						print ("clicked:" + sys pGetStr(fScrBtns[x]));
+						tryOpen(sys pGetStr(fScrBtns[x]));
+					}
+				} else {
+					sys pSetSelect(fScrBtns[selected], 0);
+					sys pSetSelect(fScrBtns[x], 1);
+					selected = x;
+				}
+			}
+		}
+	}
+}
+
+function update {
+	updFiles();
+	sys pSetYscroll(file_scr, sys pGetValue(scrollbar) - 8);
+
+	if (sys pGetEventC(bUp) == EV_RELEASED) {
+		sys fChDir("..");
+		rldFiles();
+		upCount--;
+		if (upCount == 0){
+			sys pSetGrayout(bUp, 1);
+		}
+	}
+
+	if (sys pGetEventC(bData) == EV_RELEASED) {
+		sys fChDir();
+		sys pSetGrayout(bUp, 1);
+		upCount = 0;
+		rldFiles();
+	}
+
+	if (sys pGetEventC(bApps) == EV_RELEASED) {
+		sys fChDir(1);
+		sys pSetGrayout(bUp, 1);
+		upCount = 0;
+		rldFiles();
+	}
+
+	if (sys pGetEventC(bCopy) == EV_RELEASED) {
+		if (copyFname == "") {
+			if (selected != -1) {
+				copyFname = sys pGetStr(fScrBtns[selected]);
+				sys fCopySource(copyFname);
+				sys pSetStr(bCopy, "Paste");
+			}
+		} else {
+			pasteOvInit();
+		}
+	}
+
+	if (sys pGetEventC(bRemove) == EV_RELEASED) {
+		if (selected != -1) {
+			remName = sys pGetStr(fScrBtns[selected]);
+			remOvrInit();
+		}
+	}
+
+	if (sys pGetEventC(bRename) == EV_RELEASED) {
+		if (selected != -1) {
+			renameFile = sys pGetStr(fScrBtns[selected]);
+			renameOp = textOvInit();
+			renameName = renameFile;
+			sys pSetStr(textLbl, "New name:");
+		}
+	}
+
+	if (sys pGetEventC(bMkdir) == EV_RELEASED) {
+		mkdirOp = textOvInit();
+		mkdirName = "";
+		sys pSetStr(textLbl, "New directory:");
+	}
+
+
+
+	if (sys pGetOvrId() == pasteOvr and sys pGetOvrId() != 0) {
+		pasteOvUpd();
+	}
+
+	remOvrUpdate();
+
+	if (sys pGetOvrId() == renameOp) {
+		handleRename();
+	}
+
+	if (sys pGetOvrId() == mkdirOp) {
+		handleMkdir();
+	}
+
+	if (sys pGetOvrId() == ppmOvr) {
+		if (sys pGetEventC(ppmOk) == EV_RELEASED) {
+			sys pOvrDestroy();
+		}
+	}
+}
+
+function handleRename {
+	renameName = sys pHandleText(textTxt, renameName);
+	if (sys pGetEventC(textOk) == EV_RELEASED) {
+		if (not sys pFrExists(renameName)) {
+			sys fRename(renameFile, renameName);
+			sys pOvrDestroy();
+			sys keybHide();
+			rldFiles();
+			return;
+		}
+	}
+
+	if (sys pGetEventC(textCancel) == EV_RELEASED) {
+		sys pOvrDestroy();
+		sys keybHide();
+		return;
+	}
+}
+
+function handleMkdir {
+	mkdirName = sys pHandleText(textTxt, mkdirName);
+	if (sys pGetEventC(textOk) == EV_RELEASED) {
+		sys fMkDir(mkdirName);
+		sys pOvrDestroy();
+		sys keybHide();
+		rldFiles();
+		return;
+	}
+
+	if (sys pGetEventC(textCancel) == EV_RELEASED) {
+		sys pOvrDestroy();
+		sys keybHide();
+		return;
+	}
+}
+
+function pasteOvInit {
+	pasteScr = sys pAddScreen();
+	pasteTx2 = sys pAddText(1, 0, 8, 1, "New file name:", pasteScr);
+	pasteTxt = sys pAddText(1, 1, 6, 1, "", pasteScr);
+	pasteOk = sys pAddButton(1, 2, 2, 1, "Ok", pasteScr);
+	pasteCancel = sys pAddButton(4, 2, 3, 1, "Cancel", pasteScr);
+	pasteBar = sys pAddBar(1, 1, 6, 1, 100, 0, pasteScr);
+	pasteName = copyFname;
+	pasteReplace = 1;
+	copyRun = 0;
+	sys pSetTexEd(pasteTxt, 1);
+	pasteOvr = sys pSetOvrScr(pasteScr);
+	sys pOvrSetXYXY(32, 64, 278, 190);
+	sys pSetVisible(pasteBar, 0);
+}
+
+function pasteOvUpd {
+	pasteName = sys pHandleText(pasteTxt, pasteName);
+
+	if (sys pGetEventC(pasteOk) == EV_RELEASED) {
+		if (sys pFrExists(pasteName) and pasteReplace) {
+			sys pSetStr(pasteTx2, "File exists! replace?");
+			pasteReplace = 0;
+		} else {
+		sys pSetStr(pasteTx2, "Copy: " + pasteName);
+		sys pSetVisible(pasteTxt, 0);
+		sys pSetVisible(pasteOk, 0);
+		sys keybHide();
+		sys pSetVisible(pasteBar, 1);
+		sys fCopyStart(pasteName, 2048);
+		sys pSetParam(pasteBar, sys fCopyStat(1));
+		print("copy: "+sys fCopyStat(1)+"bytes");
+		copyRun = 1;
+		sys pSetRedraw();
+		sys pSetStr(bCopy, "Copy");
+		copyFname = "";
+		}
+	}
+
+	if (sys pGetEventC(pasteCancel) == EV_RELEASED) {
+		cancelCopy();
+		sys pOvrDestroy();
+		return;
+	}
+
+	if (copyRun == 1) {
+		sys pSetValue(pasteBar, sys fCopyStat(2));
+
+		if (sys fCopyStat(0) == 0) {
+			print("copy: "+sys fCopyStat(2)+"bytes done");
+			rldFiles();
+			sys pOvrDestroy();
+			copyRun = 0;
+			return;
+		}
+	}
+}
+
+function cancelCopy {
+	sys pSetStr(bCopy, "Copy");
+	sys fCopyStop();
+	copyFname = "";
+}
+
+function remOvrInit {
+	rmScr = sys pAddScreen();
+	sys pAddText(1, 1, 6, 1, "Remove "+ remName +" ?", rmScr);
+	rmOk = sys pAddButton(1, 2, 2, 1, "Ok", rmScr);
+	rmCancel = sys pAddButton(4, 2, 3, 1, "Cancel", rmScr);
+	remOvr = sys pSetOvrScr(rmScr);
+	sys pOvrSetXYXY(32, 64, 278, 190);
+}
+
+function remOvrUpdate {
+	if (sys pGetOvrId() != remOvr or sys pGetOvrId() == 0) {
+		return;
+	}
+
+	if (sys pGetEventC(rmOk) == EV_RELEASED) {
+		#sys print("deleting:" + remName);
+		sys fDelete(remName);
+		sys pOvrDestroy();
+		rldFiles();
+		return;
+	}
+
+	if (sys pGetEventC(rmCancel) == EV_RELEASED) {
+		sys pOvrDestroy();
+		return;
+	}
+}
+
+function textOvInit {
+	textScr = sys pAddScreen();
+	textLbl = sys pAddText(1, 0, 8, 1, "Label", textScr);
+	textTxt = sys pAddText(1, 1, 6, 1, "", textScr);
+	textOk = sys pAddButton(1, 2, 2, 1, "Ok", textScr);
+	textCancel = sys pAddButton(4, 2, 3, 1, "Cancel", textScr);
+
+	pasteReplace = 1;
+	copyRun = 0;
+	sys pSetTexEd(textTxt, 1);
+	textOvr = sys pSetOvrScr(textScr);
+	sys pOvrSetXYXY(32, 64, 278, 190);
+	return textOvr;
+}
+
+function showPpm {
+	ppmScr = sys pAddScreen();
+	ppmLbl = sys pAddText(1, 0, 8, 1, arg0, ppmScr);
+	sys pAddImage(1, 1, 8, 9, arg0, ppmScr);
+	ppmOk = sys pAddButton(1, 10, 2, 1, "Ok", ppmScr);
+	ppmOvr = sys pSetOvrScr(ppmScr);
+}
+

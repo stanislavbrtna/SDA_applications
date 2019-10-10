@@ -1,0 +1,43 @@
+function init {
+  scr = sys pAddScreen();
+  sys pSetMainScr(scr);
+
+  btn = sys pAddButton(1, 12, 8, 13, "bench PPM", scr);
+  btn2 = sys pAddButton(1, 13, 8, 14, "bench P16", scr);
+}
+
+function update {
+  # comment
+  if (i < 5) {
+  	i = i + 1;
+  } else {
+  	if (i == 5) {
+  		sys cntSet(10000);
+  		sys pDrawPPM(0,64,1,"HaD.ppm");
+  		cnt  = 10000 - sys cntGet();
+  		sys pSetStr(btn, "time: " + cnt + "s");
+  		i = 8;
+  	}
+  }
+
+  if (b < 5) {
+  	b = b + 1;
+  } else {
+  	if (b == 5) {
+  		sys cntSet(10000);
+  		sys pDrawPPM(0,64,1,"HaD.p16");
+  		cnt  = 10000 - sys cntGet();
+  		sys pSetStr(btn2, "time: " + cnt + "s");
+  		b = 8;
+  	}
+  }
+
+  if (sys pGetEventC(btn) == EV_RELEASED) {
+  	i = 0;
+  }
+
+  if (sys pGetEventC(btn2) == EV_RELEASED) {
+  	b = 0;
+  }
+}
+

@@ -1,272 +1,272 @@
 function init {
-	sys print("snake");
-	scr = sys pAddScreen();
-	sys pSetMainScr(scr);
-  sys pAddText(0, 0, 5, 1, "Snake", scr);
-	retry = sys pAddButton(5, 0, 8, 1, "Retry", scr);
+  print("snake");
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(0, 0, 5, 1, "Snake", scr);
+  retry = sys.gui.addButton(5, 0, 8, 1, "Retry", scr);
 
-	arr_x = sys arrayNew(199);
-	arr_y = sys arrayNew(199);
+  arr_x = sys.arrayNew(199);
+  arr_y = sys.arrayNew(199);
 
-	gray = sys sxMixColor(200, 200, 200);
-	green = sys sxMixColor(24, 240, 20);
+  gray = sys.ds.mixColor(200, 200, 200);
+  green = sys.ds.mixColor(24, 240, 20);
 
-	reset();
+  reset();
 }
 
 function reset{
-	snake_len = 3;
-	sys arraySet(arr_x, 0, 3);
-	sys arraySet(arr_x, 1, 4);
-	sys arraySet(arr_x, 2, 5);
+  snake_len = 3;
+  sys.arraySet(arr_x, 0, 3);
+  sys.arraySet(arr_x, 1, 4);
+  sys.arraySet(arr_x, 2, 5);
 
-	sys arraySet(arr_y, 0, 5);
-	sys arraySet(arr_y, 1, 5);
-	sys arraySet(arr_y, 2, 5);
+  sys.arraySet(arr_y, 0, 5);
+  sys.arraySet(arr_y, 1, 5);
+  sys.arraySet(arr_y, 2, 5);
 
-	food_x = 2;
-	food_y = 2;
+  food_x = 2;
+  food_y = 2;
 
-	redraw_food = 1;
+  redraw_food = 1;
 
-	game_speed = 200;
-	speedCnt = 0;
+  game_speed = 200;
+  speedCnt = 0;
 
-	a = 0;
+  a = 0;
 
-	win = 0;
-	lost = 0;
+  win = 0;
+  lost = 0;
 
-	redraw = 2;
+  redraw = 2;
 
-	redrawAll = 6;
+  redrawAll = 6;
 
-	redraw_score = 2;
+  redraw_score = 2;
 
-	started = 0;
+  started = 0;
 
-	score = 0;
-	sys pSetVisible(retry, 0);
-	sys cntSet(0);
+  score = 0;
+  sys.gui.setVisible(retry, 0);
+  sys.cnt.set(0);
 }
 
 function redraw{
 
-	sys sxSetArea(0, 64, 318, 440);
+  sys.ds.setArea(0, 64, 318, 440);
 
-	if(redrawAll > 2) {
-		sys sxClearArea(0);
-		redrawAll = redrawAll - 1;
-		redraw = 1;
-		redraw_score = 1;
-		redraw_food = 1;
-	}
+  if(redrawAll > 2) {
+    sys.ds.clearArea(0);
+    redrawAll = redrawAll - 1;
+    redraw = 1;
+    redraw_score = 1;
+    redraw_food = 1;
+  }
 
-	if (redraw == 0){
-		return;
-	}
+  if (redraw == 0){
+    return;
+  }
 
-	for(x = 1; x < snake_len; x = x + 1;) {
-		sys sxFillRect(	(sys arrayGet(arr_x, x)) * 16,
-										(sys arrayGet(arr_y, x)) * 16,
-										(sys arrayGet(arr_x, x) + 1) * 16,
-										(sys arrayGet(arr_y, x) + 1) * 16,
-										0xFFFF);
-	}
+  for(x = 1; x < snake_len; x = x + 1;) {
+    sys.ds.fillRect(  (sys.arrayGet(arr_x, x)) * 16,
+                    (sys.arrayGet(arr_y, x)) * 16,
+                    (sys.arrayGet(arr_x, x) + 1) * 16,
+                    (sys.arrayGet(arr_y, x) + 1) * 16,
+                    0xFFFF);
+  }
 
-	sys sxFillRect(	(sys arrayGet(arr_x, 0)) * 16,
-									(sys arrayGet(arr_y, 0)) * 16,
-									(sys arrayGet(arr_x, 0) +1) * 16,
-									(sys arrayGet(arr_y, 0) + 1) * 16,
-									gray);
+  sys.ds.fillRect(  (sys.arrayGet(arr_x, 0)) * 16,
+                  (sys.arrayGet(arr_y, 0)) * 16,
+                  (sys.arrayGet(arr_x, 0) +1) * 16,
+                  (sys.arrayGet(arr_y, 0) + 1) * 16,
+                  gray);
 
-	# remove the last bit
-	sys sxFillRect(	(sys arrayGet(arr_x, x)) * 16,
-									(sys arrayGet(arr_y, x)) * 16,
-									(sys arrayGet(arr_x, x) + 1) * 16,
-									(sys arrayGet(arr_y, x) + 1) * 16,
-									0);
+  # remove the last bit
+  sys.ds.fillRect(  (sys.arrayGet(arr_x, x)) * 16,
+                  (sys.arrayGet(arr_y, x)) * 16,
+                  (sys.arrayGet(arr_x, x) + 1) * 16,
+                  (sys.arrayGet(arr_y, x) + 1) * 16,
+                  0);
 
-	if (redraw_food) {
-		redraw_food = 0;
-		sys sxFillCircle(food_x * 16 + 8, food_y * 16 + 8, 8, green);
-	}
+  if (redraw_food) {
+    redraw_food = 0;
+    sys.ds.fillCircle(food_x * 16 + 8, food_y * 16 + 8, 8, green);
+  }
 
-	if (redraw_score){
-		redraw_score = 0;
-		sys sxFillRect( 0, 336, 319, 376, 0xFFFF);
-		sys sxDrawText(90, 346, "Score:", 0);
-		sys sxDrawText(175, 346, "" + score, 0xF000);
-	}
-	redraw = 0;
+  if (redraw_score){
+    redraw_score = 0;
+    sys.ds.fillRect( 0, 336, 319, 376, 0xFFFF);
+    sys.ds.drawText(90, 346, "Score:", 0);
+    sys.ds.drawText(175, 346, "" + score, 0xF000);
+  }
+  redraw = 0;
 }
 
 function move_snake {
-	# move
-	for(x = snake_len + 1; x > 0; x = x - 1;) {
-		sys arraySet(arr_x, x, sys arrayGet(arr_x, x - 1));
-		sys arraySet(arr_y, x, sys arrayGet(arr_y, x - 1));
-	}
-	# 0 - left
-	# 1 - right
-	# 2 - up
-	# 3 - Down
+  # move
+  for(x = snake_len + 1; x > 0; x = x - 1;) {
+    sys.arraySet(arr_x, x, sys.arrayGet(arr_x, x - 1));
+    sys.arraySet(arr_y, x, sys.arrayGet(arr_y, x - 1));
+  }
+  # 0 - left
+  # 1 - right
+  # 2 - up
+  # 3 - Down
 
-	# set direction
-	if (arg0 == 0) {
-		sys arraySet(arr_x, 0, sys arrayGet(arr_x, 1) - 1);
-		sys arraySet(arr_y, 0, sys arrayGet(arr_y, 1));
-	}
+  # set direction
+  if (arg0 == 0) {
+    sys.arraySet(arr_x, 0, sys.arrayGet(arr_x, 1) - 1);
+    sys.arraySet(arr_y, 0, sys.arrayGet(arr_y, 1));
+  }
 
-	if (arg0 == 1) {
-		sys arraySet(arr_x, 0, sys arrayGet(arr_x, 1) + 1);
-		sys arraySet(arr_y, 0, sys arrayGet(arr_y, 1));
-	}
+  if (arg0 == 1) {
+    sys.arraySet(arr_x, 0, sys.arrayGet(arr_x, 1) + 1);
+    sys.arraySet(arr_y, 0, sys.arrayGet(arr_y, 1));
+  }
 
-	if (arg0 == 2) {
-		sys arraySet(arr_x, 0, sys arrayGet(arr_x, 1));
-		sys arraySet(arr_y, 0, sys arrayGet(arr_y, 1) - 1);
-	}
+  if (arg0 == 2) {
+    sys.arraySet(arr_x, 0, sys.arrayGet(arr_x, 1));
+    sys.arraySet(arr_y, 0, sys.arrayGet(arr_y, 1) - 1);
+  }
 
-	if (arg0 == 3) {
-		sys arraySet(arr_x, 0, sys arrayGet(arr_x, 1));
-		sys arraySet(arr_y, 0, sys arrayGet(arr_y, 1) + 1);
-	}
+  if (arg0 == 3) {
+    sys.arraySet(arr_x, 0, sys.arrayGet(arr_x, 1));
+    sys.arraySet(arr_y, 0, sys.arrayGet(arr_y, 1) + 1);
+  }
 
-	# warp
-	if (sys arrayGet(arr_x, 0) < 0) {
-		sys arraySet(arr_x, 0, 19);
-	}
+  # warp
+  if (sys.arrayGet(arr_x, 0) < 0) {
+    sys.arraySet(arr_x, 0, 19);
+  }
 
-	if (sys arrayGet(arr_x, 0) > 19) {
-		sys arraySet(arr_x, 0, 0);
-	}
+  if (sys.arrayGet(arr_x, 0) > 19) {
+    sys.arraySet(arr_x, 0, 0);
+  }
 
-	if (sys arrayGet(arr_y, 0) < 0) {
-		sys arraySet(arr_y, 0, 19);
-	}
+  if (sys.arrayGet(arr_y, 0) < 0) {
+    sys.arraySet(arr_y, 0, 19);
+  }
 
-	if (sys arrayGet(arr_y, 0) > 19) {
-		sys arraySet(arr_y, 0, 0);
-	}
+  if (sys.arrayGet(arr_y, 0) > 19) {
+    sys.arraySet(arr_y, 0, 0);
+  }
 
-	# check if snake has eaten itself
-	for(x = 1; x < snake_len; x = x + 1;) {
-		if ((sys arrayGet(arr_x, 0) == sys arrayGet(arr_x, x)) *
-				(sys arrayGet(arr_y, 0) == sys arrayGet(arr_y, x))) {
-			lost();
-		}
-	}
+  # check if snake has eaten itself
+  for(x = 1; x < snake_len; x = x + 1;) {
+    if ((sys.arrayGet(arr_x, 0) == sys.arrayGet(arr_x, x)) *
+        (sys.arrayGet(arr_y, 0) == sys.arrayGet(arr_y, x))) {
+      lost();
+    }
+  }
 
-	if ((food_x == sys arrayGet(arr_x, 0)) * (food_y == sys arrayGet(arr_y, 0))) {
-		snake_len = snake_len +1;
-		# check if win
-		if (snake_len == 199) {
-			started = 0;
-			win = 1;
-			return;
-		}
-		# be sure not to spawn food on snake
-		redraw_food = 1;
-		reload = 1;
-		redraw_score = 1;
-		score = score + 1;
+  if ((food_x == sys.arrayGet(arr_x, 0)) * (food_y == sys.arrayGet(arr_y, 0))) {
+    snake_len = snake_len +1;
+    # check if win
+    if (snake_len == 199) {
+      started = 0;
+      win = 1;
+      return;
+    }
+    # be sure not to spawn food on snake
+    redraw_food = 1;
+    reload = 1;
+    redraw_score = 1;
+    score = score + 1;
 
-		if (speedCnt > 3){
-			game_speed = game_speed - 5;
-			if (game_speed < 0){
-				game_speed = 0;
-			}
-			speedCnt = 0;
-		} else {
-			speedCnt = speedCnt + 1;
-		}
-		while(reload) {
-			reload = 0;
-			food_x = sys rnd() % 20;
-			food_y = sys rnd() % 20;
-			for(x = 0; x < snake_len; x = x + 1;) {
-				if ((food_x == sys arrayGet(arr_x, x)) * (food_y == sys arrayGet(arr_y, x))){
-					reload = 1;
-				}
-			}
-		}
-	}
+    if (speedCnt > 3){
+      game_speed = game_speed - 5;
+      if (game_speed < 0){
+        game_speed = 0;
+      }
+      speedCnt = 0;
+    } else {
+      speedCnt = speedCnt + 1;
+    }
+    while(reload) {
+      reload = 0;
+      food_x = sys.os.rnd() % 20;
+      food_y = sys.os.rnd() % 20;
+      for(x = 0; x < snake_len; x = x + 1;) {
+        if ((food_x == sys.arrayGet(arr_x, x)) * (food_y == sys.arrayGet(arr_y, x))){
+          reload = 1;
+        }
+      }
+    }
+  }
 
 }
 
 function update {
-	if (sys getRadraw()){
-		redrawAll = 7;
-	}
+  if (sys.os.getRedraw()){
+    redrawAll = 7;
+  }
 
-	if (dir_set == 0) {
-		if (sys btnGetEv(BTN_UP) * (dir_set == 0)) {
-			if (direction != 3) {
-				direction = 2;
-			}
-			started = 1;
-			dir_set = 1;
-		}
-		sys btnClrEv(BTN_UP);
+  if (dir_set == 0) {
+    if (sys.btnGetEv(BTN_UP) * (dir_set == 0)) {
+      if (direction != 3) {
+        direction = 2;
+      }
+      started = 1;
+      dir_set = 1;
+    }
+    sys.btnClrEv(BTN_UP);
 
-		if (sys btnGetEv(BTN_DOWN) * (dir_set == 0)) {
-			if (direction != 2) {
-				direction = 3;
-			}
-			started = 1;
-			dir_set = 1;
-		}
-		sys btnClrEv(BTN_DOWN);
+    if (sys.btnGetEv(BTN_DOWN) * (dir_set == 0)) {
+      if (direction != 2) {
+        direction = 3;
+      }
+      started = 1;
+      dir_set = 1;
+    }
+    sys.btnClrEv(BTN_DOWN);
 
-		if (sys btnGetEv(BTN_LEFT) * (dir_set == 0)) {
-			if (direction != 1) {
-				direction = 0;
-			}
-			started = 1;
-			dir_set = 1;
-		}
-		sys btnClrEv(BTN_LEFT);
+    if (sys.btnGetEv(BTN_LEFT) * (dir_set == 0)) {
+      if (direction != 1) {
+        direction = 0;
+      }
+      started = 1;
+      dir_set = 1;
+    }
+    sys.btnClrEv(BTN_LEFT);
 
-		if (sys btnGetEv(BTN_RIGHT) * (dir_set == 0)) {
-			if (direction != 0) {
-				direction = 1;
-			}
-			started = 1;
-			dir_set = 1;
-		}
-		sys btnClrEv(BTN_RIGHT);
-	}
+    if (sys.btnGetEv(BTN_RIGHT) * (dir_set == 0)) {
+      if (direction != 0) {
+        direction = 1;
+      }
+      started = 1;
+      dir_set = 1;
+    }
+    sys.btnClrEv(BTN_RIGHT);
+  }
 
-	if((sys cntGet() != 0)) { # framelimiter
-		return;
-	} else {
-		sys cntSet(game_speed);
-	}
-	dir_set = 0;
+  if((sys.cnt.get() != 0)) { # framelimiter
+    return;
+  } else {
+    sys.cnt.set(game_speed);
+  }
+  dir_set = 0;
 
-	if (started * ((lost != 1) * (win != 1))) {
-		move_snake(direction);
-	}
-	redraw = 1;
-	redraw();
+  if (started * ((lost != 1) * (win != 1))) {
+    move_snake(direction);
+  }
+  redraw = 1;
+  redraw();
 
-	if(sys pGetEvent(retry) == EV_RELEASED) {
-		reset();
-	}
-	sys pSetEvent(retry, EV_NONE);
+  if(sys.gui.getEvent(retry) == EV_RELEASED) {
+    reset();
+  }
+  sys.gui.setEvent(retry, EV_NONE);
 
 }
 
 function lost{
-	lost = 1;
-	sys pSetVisible(retry, 1);
-	sys sxFillRect( 0, 336, 319, 376, 0xFFFF);
-	sys sxDrawText(35, 346, "You lost! Final score: " + score, 0);
+  lost = 1;
+  sys.gui.setVisible(retry, 1);
+  sys.ds.fillRect( 0, 336, 319, 376, 0xFFFF);
+  sys.ds.drawText(35, 346, "You lost! Final score: " + score, 0);
 }
 
 function adjust{
-	if (game_speed > 0) {
-		game_speed = game_speed - 1;
-	}
+  if (game_speed > 0) {
+    game_speed = game_speed - 1;
+  }
 }

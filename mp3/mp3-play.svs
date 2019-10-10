@@ -9,106 +9,106 @@ find . -maxdepth 1 -name '*.mp3' | awk 'BEGIN{ a=0 }{ printf "mp3info -p \"%d=%%
 
 *#
 function ds_cmd { # cmd, param1, param2
-	sys srlTrsQAdd(0x7E);
-	sys srlTrsQAdd(0xFF);
-	sys srlTrsQAdd(0x06);
-	sys srlTrsQAdd(arg0);
-	sys srlTrsQAdd(0x00);
-	sys srlTrsQAdd(arg1);
-	sys srlTrsQAdd(arg2);
+  sys.srlTrsQAdd(0x7E);
+  sys.srlTrsQAdd(0xFF);
+  sys.srlTrsQAdd(0x06);
+  sys.srlTrsQAdd(arg0);
+  sys.srlTrsQAdd(0x00);
+  sys.srlTrsQAdd(arg1);
+  sys.srlTrsQAdd(arg2);
 
-	local sum;
+  local sum;
 
-	sum = 65536 - (0xFF + 0x06 + arg0 + arg1 + arg2);
+  sum = 65536 - (0xFF + 0x06 + arg0 + arg1 + arg2);
 
-	sys srlTrsQAdd(sum / 256);
-	sys srlTrsQAdd(sum % 0xFF00);
+  sys.srlTrsQAdd(sum / 256);
+  sys.srlTrsQAdd(sum % 0xFF00);
 
-	sys srlTrsQAdd(0xEF);
-	sys srlTrsQAdd(0x00);
-	sys srlTrsQ();
+  sys.srlTrsQAdd(0xEF);
+  sys.srlTrsQAdd(0x00);
+  sys.srlTrsQ();
 }
 
 function ds_play {
-	ds_cmd(0x0D, 0, 0);
+  ds_cmd(0x0D, 0, 0);
 }
 
 function ds_play_s #* (song no)*# {
-	ds_cmd(0x03, arg0/256, arg0%256);
+  ds_cmd(0x03, arg0/256, arg0%256);
 }
 
 function ds_pause {
-	ds_cmd(0x0E, 0, 0);
+  ds_cmd(0x0E, 0, 0);
 }
 
 function ds_prev {
-	ds_cmd(0x02, 0, 0);
+  ds_cmd(0x02, 0, 0);
 }
 
 function ds_next {
-	ds_cmd(0x01, 0, 0);
+  ds_cmd(0x01, 0, 0);
 }
 
 function ds_vol_incr {
-	ds_cmd(0x04, 0, 0);
+  ds_cmd(0x04, 0, 0);
 }
 
 function ds_vol_decr {
-	ds_cmd(0x05, 0, 0);
+  ds_cmd(0x05, 0, 0);
 }
 
 function ds_rnd {
-	ds_cmd(0x18, 0, 0);
+  ds_cmd(0x18, 0, 0);
 }
 
 function ds_vol {
-	ds_cmd(0x06, 0, arg0);
+  ds_cmd(0x06, 0, arg0);
 }
 
 function init {
-	sys checkSVSVer(710);
-	sys setSingular();
-	scr = sys pAddScreen();
-	sys pSetRelInit(1);
-	sys pAddText(1,0,7,1, "SDA Player", scr);
-	btn = sys pAddButton(4,11,2,2, "Play", scr);
-	btn_n = sys pAddButton(7,11,2,2, ">>", scr);
-	btn_p = sys pAddButton(1,11,2,2, "<<", scr);
-	btn_rnd = sys pAddCheckBox(1,8,4,1, "Random", scr);
-	fnameText = sys pAddText(1,1,7,1, "Current: None", scr);
-	sys pAddText(1,9,3,1, "Vol:", scr);
-	vol_sld = sys pAddSliderH(4,9,5,1, 30, 15, scr);
-	timeBar = sys pAddBar(1, 7, 8, 1, 0, 10, scr);
-	sys pSetMainScr(scr);
-	sys btnStdbyEn(1);
-	# DFPlayer on the internal expansion by default
-	# Pin16 is used to enable power for the player
-	sys iPinDef(15, PIN_ALT, 0);
-	sys iPinDef(16, PIN_OUT, 0);
-	sys iPinSet(16, 1);
+  sys.os.checkVer(710);
+  sys.os.setSingular();
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.gui.addText(1,0,7,1, "SDA Player", scr);
+  btn = sys.gui.addButton(4,11,2,2, "Play", scr);
+  btn_n = sys.gui.addButton(7,11,2,2, ">>", scr);
+  btn_p = sys.gui.addButton(1,11,2,2, "<<", scr);
+  btn_rnd = sys.gui.addCheckBox(1,8,4,1, "Random", scr);
+  fnameText = sys.gui.addText(1,1,7,1, "Current: None", scr);
+  sys.gui.addText(1,9,3,1, "Vol:", scr);
+  vol_sld = sys.gui.addSliderVH(4,9,5,1, 30, 15, scr);
+  timeBar = sys.gui.addBar(1, 7, 8, 1, 0, 10, scr);
+  sys.os.gui.setMainScr(scr);
+  sys.btnStdbyEn(1);
+  # DFPlayer on the internal expansion by default
+  # Pin16 is used to enable power for the player
+  sys.iPinDef(15, PIN_ALT, 0);
+  sys.iPinDef(16, PIN_OUT, 0);
+  sys.iPinSet(16, 1);
 
-	sys cOpen("mp3-list.dat");
-	array btnList[5];
-	array prevSongs[15];
-	numOfSongs = countSongs();
+  sys.fs.conf.open("mp3-list.dat");
+  array btnList[5];
+  array prevSongs[15];
+  numOfSongs = countSongs();
 
   listScr = 0;
   addList();
-  btnUp = sys pAddButton(8,2,1,2, "\n/\\", scr);
-  btnDn = sys pAddButton(8,4,1,2, "\n\\/", scr);
+  btnUp = sys.gui.addButton(8,2,1,2, "\n/\\", scr);
+  btnDn = sys.gui.addButton(8,4,1,2, "\n\\/", scr);
 
   listBegin = 0;
   prevSong = 0;
 
-  if (sys cKeyExists("volume")) {
-    sys pSetValue(vol_sld, num(sys cKeyRead("volume")));
+  if (sys.fs.conf.exists("volume")) {
+    sys.gui.setValue(vol_sld, num(sys.fs.conf.read("volume")));
     setInitVolFlag = 40;
   }
 }
 
 function countSongs {
   n = 0;
-  while(sys cKeyExists(n + "")) {
+  while(sys.fs.conf.exists(n + "")) {
     n++;
   }
 
@@ -117,18 +117,18 @@ function countSongs {
 
 function addList {
   if (listScr != 0){
-    sys pDestroy(listScr);
+    sys.gui.destroy(listScr);
   }
 
-  listScr = sys pAddScreen();
-  sys pSetScreen(listScr, scr);
-  sys pSetXYXY(listScr, 1, 2, 7, 4);
+  listScr = sys.gui.addScreen();
+  sys.gui.setScreen(listScr, scr);
+  sys.gui.setXYXY(listScr, 1, 2, 7, 4);
 
   local b;
   b = 0;
   for(n = listBegin; n < (listBegin + 4); n++;) {
-    if(sys cKeyExists(n + "")) {
-      btnList[b] = sys pAddButton(0, 0 + b, 7, 1, sys cKeyRead(n+"") , listScr);
+    if(sys.fs.conf.exists(n + "")) {
+      btnList[b] = sys.gui.addButton(0, 0 + b, 7, 1, sys.fs.conf.read(n+"") , listScr);
       b++;
     } else {
       break;
@@ -141,7 +141,7 @@ function addList {
 function upd_list {
   local b;
   for(b = 0; b < listMax; b++;) {
-    if (sys pGetEventC(btnList[b]) == EV_RELEASED){
+    if (sys.gui.getEventC(btnList[b]) == EV_RELEASED){
       play_no(listBegin+b+1);
     }
   }
@@ -149,13 +149,13 @@ function upd_list {
 
 function play_no {
   play = 1;
-  sys pSetStr(btn, "Stop");
+  sys.gui.setStr(btn, "Stop");
   ds_play_s(arg0);
   print("play: " + arg0);
-  sys pSetStr(fnameText, "Current: " + sys cKeyRead(arg0-1+""));
-  waitTime = num(sys cKeyRead(arg0-1+"_len")) + sys getTime();
-  startTime = sys getTime();
-  sys pSetParam(timeBar, waitTime -  sys getTime());
+  sys.gui.setStr(fnameText, "Current: " + sys.fs.conf.read(arg0-1+""));
+  waitTime = num(sys.fs.conf.read(arg0-1+"_len")) + sys.time.get();
+  startTime = sys.time.get();
+  sys.gui.setParam(timeBar, waitTime -  sys.time.get());
 
   if (prevSongs[0] != currentSong and currentSong != 0) {
     local x;
@@ -169,10 +169,10 @@ function play_no {
 }
 
 function play_next {
-  if (sys pGetValue(btn_rnd)) {
+  if (sys.gui.getValue(btn_rnd)) {
     local rndSong;
     while (rndSong == currentSong) {
-      rndSong = sys rnd() % numOfSongs;
+      rndSong = sys.os.rnd() % numOfSongs;
     }
     play_no(rndSong);
   } else {
@@ -186,20 +186,20 @@ function update {
   if (setInitVolFlag != 0) {
     setInitVolFlag--;
     if (setInitVolFlag == 0) {
-      ds_vol(sys pGetValue(vol_sld));
+      ds_vol(sys.gui.getValue(vol_sld));
     }
   }
 
   upd_list();
 
-  if (sys pGetEventC(btnUp) == EV_RELEASED) {
+  if (sys.gui.getEventC(btnUp) == EV_RELEASED) {
     if (listBegin >= 4) {
       listBegin = listBegin - 4;
       addList();
     }
   }
 
-  if (sys pGetEventC(btnDn) == EV_RELEASED) {
+  if (sys.gui.getEventC(btnDn) == EV_RELEASED) {
     if (listBegin < numOfSongs) {
       listBegin = listBegin + 4;
       addList();
@@ -207,88 +207,88 @@ function update {
   }
 
   if (play == 1) {
-    sys pSetValue(timeBar, sys pGetParam(timeBar) - (waitTime - sys getTime()));
+    sys.gui.setValue(timeBar, sys.gui.getParam(timeBar) - (waitTime - sys.time.get()));
   }
 
-  if (sys getTime() > waitTime and waitTime != 0 and play == 1 ) {
+  if (sys.time.get() > waitTime and waitTime != 0 and play == 1 ) {
     play_next();
   }
 
-	if (sys pGetEventC(btn) == EV_RELEASED) {
-		if (play == 0) {
-			sys pSetStr(btn, "Stop");
-			ds_vol(sys pGetValue(vol_sld));
-			play_next();
-		} else {
-			sys pSetStr(btn, "Play");
-			ds_pause();
-			play = 0;
-		}
-	}
+  if (sys.gui.getEventC(btn) == EV_RELEASED) {
+    if (play == 0) {
+      sys.gui.setStr(btn, "Stop");
+      ds_vol(sys.gui.getValue(vol_sld));
+      play_next();
+    } else {
+      sys.gui.setStr(btn, "Play");
+      ds_pause();
+      play = 0;
+    }
+  }
 
-	if (sys pGetEventC(btn_n) == EV_RELEASED) {
-	  ds_vol(sys pGetValue(vol_sld));
-		play_next();
-	}
+  if (sys.gui.getEventC(btn_n) == EV_RELEASED) {
+    ds_vol(sys.gui.getValue(vol_sld));
+    play_next();
+  }
 
-	if (sys btnGetEv(BTN_RIGHT) == EV_PRESSED) {
-	  sys sdaWake();
-		sys pSetEvent(btn_n, EV_RELEASED);
-	}
+  if (sys.btnGetEv(BTN_RIGHT) == EV_PRESSED) {
+    sys.sdaWake();
+    sys.gui.setEvent(btn_n, EV_RELEASED);
+  }
 
-	if (sys btnGetEv(BTN_LEFT) == EV_PRESSED) {
-	  sys sdaWake();
-		sys pSetEvent(btn_p, EV_RELEASED);
-	}
+  if (sys.btnGetEv(BTN_LEFT) == EV_PRESSED) {
+    sys.sdaWake();
+    sys.gui.setEvent(btn_p, EV_RELEASED);
+  }
 
-	if (sys pGetEventC(btn_p) == EV_RELEASED) {
-	  ds_vol(sys pGetValue(vol_sld));
-	  if (sys getTime() - startTime > 3) {
-	    if (currentSong != 0) {
-		    play_no(currentSong);
-		  }
-		} else {
-		  if (prevSongs[0] != 0) {
-		    play_no(prevSongs[0]);
-		    local x;
-		    for (x = 0; x < 14; x++;) {
-		      prevSongs[x] = prevSongs[x + 1];
-		    }
-		    prevSongs[14] = 0;
-		  }
-		}
-	}
+  if (sys.gui.getEventC(btn_p) == EV_RELEASED) {
+    ds_vol(sys.gui.getValue(vol_sld));
+    if (sys.time.get() - startTime > 3) {
+      if (currentSong != 0) {
+        play_no(currentSong);
+      }
+    } else {
+      if (prevSongs[0] != 0) {
+        play_no(prevSongs[0]);
+        local x;
+        for (x = 0; x < 14; x++;) {
+          prevSongs[x] = prevSongs[x + 1];
+        }
+        prevSongs[14] = 0;
+      }
+    }
+  }
 
-	sys btnClrEv(BTN_LEFT);
-	sys btnClrEv(BTN_RIGHT);
+  sys.btnClrEv(BTN_LEFT);
+  sys.btnClrEv(BTN_RIGHT);
 
-	if (sys pGetEventC(vol_sld)) {
-		ds_vol(sys pGetValue(vol_sld));
-	}
+  if (sys.gui.getEventC(vol_sld)) {
+    ds_vol(sys.gui.getValue(vol_sld));
+  }
 
-	if (sys btnGetEv(BTN_UP) == EV_PRESSED) {
-	  sys sdaWake();
-		if (sys pGetValue(vol_sld) < 30) {
-			sys pSetValue(vol_sld, sys pGetValue(vol_sld) + 1);
-			sys pSetEvent(vol_sld, EV_RELEASED);
-		}
-	}
+  if (sys.btnGetEv(BTN_UP) == EV_PRESSED) {
+    sys.sdaWake();
+    if (sys.gui.getValue(vol_sld) < 30) {
+      sys.gui.setValue(vol_sld, sys.gui.getValue(vol_sld) + 1);
+      sys.gui.setEvent(vol_sld, EV_RELEASED);
+    }
+  }
 
-	if (sys btnGetEv(BTN_DOWN) == EV_PRESSED) {
-	  sys sdaWake();
-		if (sys pGetValue(vol_sld) > 0) {
-			sys pSetValue(vol_sld, sys pGetValue(vol_sld) - 1);
-			sys pSetEvent(vol_sld, EV_RELEASED);
-		}
-	}
-	sys btnClrEv(BTN_UP);
-	sys btnClrEv(BTN_DOWN);
+  if (sys.btnGetEv(BTN_DOWN) == EV_PRESSED) {
+    sys.sdaWake();
+    if (sys.gui.getValue(vol_sld) > 0) {
+      sys.gui.setValue(vol_sld, sys.gui.getValue(vol_sld) - 1);
+      sys.gui.setEvent(vol_sld, EV_RELEASED);
+    }
+  }
+  sys.btnClrEv(BTN_UP);
+  sys.btnClrEv(BTN_DOWN);
 
 }
 
 function exit {
-  sys cKeyWrite("volume", "" + sys pGetValue(vol_sld));
+  sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld));
   ds_pause();
-  sys iPinDef(15, PIN_IN, 0);
-	sys iPinSet(16, 0);
+  sys.iPinDef(15, PIN_IN, 0);
+  sys.iPinSet(16, 0);
 }

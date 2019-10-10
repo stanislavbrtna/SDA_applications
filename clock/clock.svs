@@ -1,320 +1,320 @@
 function init {
-	sys print("init: clock v 3.0");
-	sys checkSVSVer(700);
+  print("init: clock v 3.0");
+  sys.os.checkVer(700);
 
-	scr = sys pAddScreen();
-	s_budik = sys pAddScreen();
-	s_stop = sys pAddScreen();
-	s_min = sys pAddScreen();
+  scr = sys.gui.addScreen();
+  s_budik = sys.gui.addScreen();
+  s_stop = sys.gui.addScreen();
+  s_min = sys.gui.addScreen();
 
-	sys pSetMainScr(scr);
+  sys.os.gui.setMainScr(scr);
 
-	tim_ov = 0;
-	alarm_siren = 0;
+  tim_ov = 0;
+  alarm_siren = 0;
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-	  btn_budik = sys pAddButton(1, 1, 3, 2, "Budík", scr);
-	  btn_stop = sys pAddButton(3, 1, 6, 2, "Stopky", scr);
-	  btn_min = sys pAddButton(6, 1, 9, 2, "Minutka", scr);
-	} else {
-	  btn_budik = sys pAddButton(1, 1, 3, 2, "Alarm", scr);
-	  btn_stop = sys pAddButton(3, 1, 7, 2, "Stopwatch", scr);
-	  btn_min = sys pAddButton(7, 1, 9, 2, "Timer", scr);
-	  sys pSetParam(btn_budik, 7);
-	  sys pSetParam(btn_min, 5);
-	}
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    btn_budik = sys.gui.addButton(1, 1, 3, 2, "Budík", scr);
+    btn_stop = sys.gui.addButton(3, 1, 6, 2, "Stopky", scr);
+    btn_min = sys.gui.addButton(6, 1, 9, 2, "Minutka", scr);
+  } else {
+    btn_budik = sys.gui.addButton(1, 1, 3, 2, "Alarm", scr);
+    btn_stop = sys.gui.addButton(3, 1, 7, 2, "Stopwatch", scr);
+    btn_min = sys.gui.addButton(7, 1, 9, 2, "Timer", scr);
+    sys.gui.setParam(btn_budik, 7);
+    sys.gui.setParam(btn_min, 5);
+  }
 
-	sys pSetSelect(btn_budik, 1);
-	frame = sys pAddFrame(0, 2, 10, 14, s_budik, scr);
-	mode = 1; #1-budík 2-stopky 3-minutka
-	modeprev = 1;
+  sys.gui.setSelect(btn_budik, 1);
+  frame = sys.gui.addFrame(0, 2, 10, 14, s_budik, scr);
+  mode = 1; #1-budík 2-stopky 3-minutka
+  modeprev = 1;
 
-	init_budik();
-	init_stop();
-	init_min();
+  init_budik();
+  init_stop();
+  init_min();
 
-	if (sys alarmGetFlag()) {
-		if (sys alarmGetPar() == 0) {
-	  	alarm_siren = 1;
-	  	sys lcdWake();
-	  	sys pSetVisible(bud_ok, 1);
-	  	sys pSetVisible(bud_snooze, 1);
-	  	showDays(0);
-		}
-		sys alarmClrFlag();
-	}
+  if (sys.alarm.getFlag()) {
+    if (sys.alarm.getPar() == 0) {
+      alarm_siren = 1;
+      sys.hw.wakeLcd();
+      sys.gui.setVisible(bud_ok, 1);
+      sys.gui.setVisible(bud_snooze, 1);
+      showDays(0);
+    }
+    sys.alarm.clrFlag();
+  }
 
 }
 
 function update {
   #topmenu
-	if (sys pGetEventC(btn_budik) == EV_RELEASED) {
-	  mode = 1;
-	}
+  if (sys.gui.getEventC(btn_budik) == EV_RELEASED) {
+    mode = 1;
+  }
 
-	if (sys pGetEventC(btn_stop) == EV_RELEASED) {
-	  mode = 2;
-	}
+  if (sys.gui.getEventC(btn_stop) == EV_RELEASED) {
+    mode = 2;
+  }
 
-	if (sys pGetEventC(btn_min) == EV_RELEASED) {
-	  mode = 3;
-	}
+  if (sys.gui.getEventC(btn_min) == EV_RELEASED) {
+    mode = 3;
+  }
 
-	if(sys btnGetEv(BTN_RIGHT) == 1) {
-	  if (mode < 3) {
-	    mode = mode + 1;
-	  } else {
-	    mode = 1;
-	  }
-	}
-	sys btnClrEv(BTN_RIGHT);
+  if(sys.btnGetEv(BTN_RIGHT) == 1) {
+    if (mode < 3) {
+      mode = mode + 1;
+    } else {
+      mode = 1;
+    }
+  }
+  sys.btnClrEv(BTN_RIGHT);
 
-	if(sys btnGetEv(BTN_LEFT) == 1) {
-	  if (mode > 1) {
-	    mode = mode - 1;
-	  } else {
-	    mode = 3;
-	  }
-	}
-	sys btnClrEv(BTN_LEFT);
+  if(sys.btnGetEv(BTN_LEFT) == 1) {
+    if (mode > 1) {
+      mode = mode - 1;
+    } else {
+      mode = 3;
+    }
+  }
+  sys.btnClrEv(BTN_LEFT);
 
-	if(mode != modeprev) {
-		sys pSetSelect(btn_budik, 0);
-		sys pSetSelect(btn_stop, 0);
-		sys pSetSelect(btn_min, 0);
+  if(mode != modeprev) {
+    sys.gui.setSelect(btn_budik, 0);
+    sys.gui.setSelect(btn_stop, 0);
+    sys.gui.setSelect(btn_min, 0);
 
-	  if (mode == 1) {
-	    sys pSetValue(frame, s_budik);
-	    sys pSetSelect(btn_budik, 1);
-	  }
+    if (mode == 1) {
+      sys.gui.setValue(frame, s_budik);
+      sys.gui.setSelect(btn_budik, 1);
+    }
 
-	  if (mode == 2) {
-	    sys pSetValue(frame, s_stop);
-	    sys pSetSelect(btn_stop, 1);
-	  }
+    if (mode == 2) {
+      sys.gui.setValue(frame, s_stop);
+      sys.gui.setSelect(btn_stop, 1);
+    }
 
-	  if (mode == 3) {
-	    sys pSetValue(frame, s_min);
-	    sys pSetSelect(btn_min, 1);
-	  }
-	  modeprev = mode;
-	}
+    if (mode == 3) {
+      sys.gui.setValue(frame, s_min);
+      sys.gui.setSelect(btn_min, 1);
+    }
+    modeprev = mode;
+  }
 
-	if (mode == 1) {
-	  #update budik
-	  upd_bud();
-	}
+  if (mode == 1) {
+    #update budik
+    upd_bud();
+  }
 
-	if (mode == 2) {
-	  #update stopek
-	  upd_stop();
-	}
+  if (mode == 2) {
+    #update stopek
+    upd_stop();
+  }
 
-	if (mode == 3) {
-	  #update min
-	  upd_min();
-	}
+  if (mode == 3) {
+    #update min
+    upd_min();
+  }
 
-	if (sys getTimeUpd()) {
+  if (sys.time.getUpd()) {
 
-	  if (alarm_siren) {
-	    if(alarm_cnt > 3) {
-	      sys beep();
-	      alarm_cnt = 0;
-	    } else {
-	      alarm_cnt = alarm_cnt + 1;
-	    }
-	  }
+    if (alarm_siren) {
+      if(alarm_cnt > 3) {
+        sys.snd.beep();
+        alarm_cnt = 0;
+      } else {
+        alarm_cnt = alarm_cnt + 1;
+      }
+    }
 
-	  if (s_run == 1) {
-	    s_time = sys getUptime() - s_start_tim + s_tim_prev;
-	    s_time_upd = 1;
-	  }
-	  if (m_run == 1) {
-	    if (m_time > 0) {
-	      m_time = m_time_u + m_time_orig - sys getUptime();
-	      m_time_upd = 1;
-	    } else {
-	      beeptimer = beeptimer - 1;
-	    }
-	  }
-	}
+    if (s_run == 1) {
+      s_time = sys.time.getUptime() - s_start_tim + s_tim_prev;
+      s_time_upd = 1;
+    }
+    if (m_run == 1) {
+      if (m_time > 0) {
+        m_time = m_time_u + m_time_orig - sys.time.getUptime();
+        m_time_upd = 1;
+      } else {
+        beeptimer = beeptimer - 1;
+      }
+    }
+  }
 }
 
 function exit {
-  sys pDestroyScr(s_budik);
-  sys pDestroyScr(s_stop);
-  sys pDestroyScr(s_min);
+  sys.gui.destroy(s_budik);
+  sys.gui.destroy(s_stop);
+  sys.gui.destroy(s_min);
 }
 
 function init_budik {
 
-  bud_txt = sys pAddText(2, 1, 9, 4, "00:00", s_budik);
+  bud_txt = sys.gui.addText(2, 1, 9, 4, "00:00", s_budik);
 
-  sys pSetTxtSize(bud_txt, 70);
+  sys.gui.setTxtSize(bud_txt, 70);
 
   array btn_act_ar[7];
 
-  #sys pSetScreen(bud_dscr, s_budik);
+  #sys.gui.setScreen(bud_dscr, s_budik);
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-    sys pAddText(1, 0, 6, 1, "Budík:", s_budik);
-    bud_set = sys pAddButton(2, 3, 7, 4, "Nastavit čas", s_budik);
-    bud_act = sys pAddCheckBox(1, 5, 5, 6, "Budit", s_budik);
-	  btn_act_ar[0] = sys pAddCheckBox(6, 5, 10, 6, "Pondělí", s_budik);
-	  btn_act_ar[1] = sys pAddCheckBox(6, 6, 10, 7, "Úterý", s_budik);
-	  btn_act_ar[2] = sys pAddCheckBox(6, 7, 10, 8, "Středa", s_budik);
-	  btn_act_ar[3] = sys pAddCheckBox(6, 8, 10, 9, "Čtvrtek", s_budik);
-	  btn_act_ar[4] = sys pAddCheckBox(6, 9, 10, 10, "Pátek", s_budik);
-	  btn_act_ar[5] = sys pAddCheckBox(6, 10, 10, 11, "Sobota", s_budik);
-	  btn_act_ar[6] = sys pAddCheckBox(6, 11, 10, 12, "Neděle", s_budik);
-	  bud_snooze = sys pAddButton(5, 8, 9, 10, "Odložit\no 10 minut", s_budik);
-	} else {
-	  sys pAddText(1, 0, 6, 1, "Alarm:", s_budik);
-	  bud_set = sys pAddButton(2, 3, 7, 4, "Set alarm", s_budik);
-    bud_act = sys pAddCheckBox(1, 5, 5, 6, "Active", s_budik);
-	  btn_act_ar[0] = sys pAddCheckBox(5, 5, 10, 6, "Monday", s_budik);
-	  btn_act_ar[1] = sys pAddCheckBox(5, 6, 10, 7, "Tuesday", s_budik);
-	  btn_act_ar[2] = sys pAddCheckBox(5, 7, 10, 8, "Wednesday", s_budik);
-	  btn_act_ar[3] = sys pAddCheckBox(5, 8, 10, 9, "Thursday", s_budik);
-	  btn_act_ar[4] = sys pAddCheckBox(5, 9, 10, 10, "Friday", s_budik);
-	  btn_act_ar[5] = sys pAddCheckBox(5, 10, 10, 11, "Saturday", s_budik);
-	  btn_act_ar[6] = sys pAddCheckBox(5, 11, 10, 12, "Sunday", s_budik);
-	  bud_snooze = sys pAddButton(5, 8, 9, 10, "Snooze\n10 min", s_budik);
-	}
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.addText(1, 0, 6, 1, "Budík:", s_budik);
+    bud_set = sys.gui.addButton(2, 3, 7, 4, "Nastavit čas", s_budik);
+    bud_act = sys.gui.addCheckBox(1, 5, 5, 6, "Budit", s_budik);
+    btn_act_ar[0] = sys.gui.addCheckBox(6, 5, 10, 6, "Pondělí", s_budik);
+    btn_act_ar[1] = sys.gui.addCheckBox(6, 6, 10, 7, "Úterý", s_budik);
+    btn_act_ar[2] = sys.gui.addCheckBox(6, 7, 10, 8, "Středa", s_budik);
+    btn_act_ar[3] = sys.gui.addCheckBox(6, 8, 10, 9, "Čtvrtek", s_budik);
+    btn_act_ar[4] = sys.gui.addCheckBox(6, 9, 10, 10, "Pátek", s_budik);
+    btn_act_ar[5] = sys.gui.addCheckBox(6, 10, 10, 11, "Sobota", s_budik);
+    btn_act_ar[6] = sys.gui.addCheckBox(6, 11, 10, 12, "Neděle", s_budik);
+    bud_snooze = sys.gui.addButton(5, 8, 9, 10, "Odložit\no 10 minut", s_budik);
+  } else {
+    sys.gui.addText(1, 0, 6, 1, "Alarm:", s_budik);
+    bud_set = sys.gui.addButton(2, 3, 7, 4, "Set alarm", s_budik);
+    bud_act = sys.gui.addCheckBox(1, 5, 5, 6, "Active", s_budik);
+    btn_act_ar[0] = sys.gui.addCheckBox(5, 5, 10, 6, "Monday", s_budik);
+    btn_act_ar[1] = sys.gui.addCheckBox(5, 6, 10, 7, "Tuesday", s_budik);
+    btn_act_ar[2] = sys.gui.addCheckBox(5, 7, 10, 8, "Wednesday", s_budik);
+    btn_act_ar[3] = sys.gui.addCheckBox(5, 8, 10, 9, "Thursday", s_budik);
+    btn_act_ar[4] = sys.gui.addCheckBox(5, 9, 10, 10, "Friday", s_budik);
+    btn_act_ar[5] = sys.gui.addCheckBox(5, 10, 10, 11, "Saturday", s_budik);
+    btn_act_ar[6] = sys.gui.addCheckBox(5, 11, 10, 12, "Sunday", s_budik);
+    bud_snooze = sys.gui.addButton(5, 8, 9, 10, "Snooze\n10 min", s_budik);
+  }
 
-  bud_ok = sys pAddButton(1, 8, 4, 10, "OK", s_budik);
+  bud_ok = sys.gui.addButton(1, 8, 4, 10, "OK", s_budik);
 
-  sys pSetTxtSize(bud_ok, 32);
+  sys.gui.setTxtSize(bud_ok, 32);
 
-  sys pSetVisible(bud_ok, 0);
-  sys pSetVisible(bud_snooze, 0);
+  sys.gui.setVisible(bud_ok, 0);
+  sys.gui.setVisible(bud_snooze, 0);
 
-  sys cOpen("clock.dat");
+  sys.fs.conf.open("clock.dat");
 
-  bud_min = sys cKeyReadInt("min", 0);
-  bud_hour = sys cKeyReadInt("hour", 0);
+  bud_min = sys.fs.conf.readInt("min", 0);
+  bud_hour = sys.fs.conf.readInt("hour", 0);
 
-  bud_active = sys cKeyReadInt("active", 0);
+  bud_active = sys.fs.conf.readInt("active", 0);
 
-	for (x = 0; x < 7; x++;) {
-		sys pSetValue(btn_act_ar[x], sys cKeyReadInt("act_"+ x + 1, 0));
-	}
+  for (x = 0; x < 7; x++;) {
+    sys.gui.setValue(btn_act_ar[x], sys.fs.conf.readInt("act_"+ x + 1, 0));
+  }
 
   if (bud_active == 0) {
-    sys pSetValue(bud_act, 0);
+    sys.gui.setValue(bud_act, 0);
     showDays(0);
-    #sys pSetVisible(bud_dscr, 0);
+    #sys.gui.setVisible(bud_dscr, 0);
   } else {
-  	sys pSetValue(bud_act, 1);
-  	showDays(1);
-  	#sys pSetVisible(bud_dscr, 1);
+    sys.gui.setValue(bud_act, 1);
+    showDays(1);
+    #sys.gui.setVisible(bud_dscr, 1);
   }
 
   bud_setstr();
-  sys cClose();
-  sys beepDef();
+  sys.fs.conf.close();
+  sys.snd.beepDef();
 }
 
 function resetAlarm {
-	sys cOpen("clock.dat");
+  sys.fs.conf.open("clock.dat");
 
-	sys cKeyWrite("act_" + arg0 + 1 , "" + arg1);
+  sys.fs.conf.write("act_" + arg0 + 1 , "" + arg1);
 
-	if (arg1 == 1) {
-		sys alarmDestroy(sys cKeyReadInt("id_" + arg0 + 1, 0));
-		local id;
-		id = sys alarmSetRep(bud_hour, bud_min, arg0 + 1, 0, 0, 0);
-		sys cKeyWrite("id_" + arg0 + 1 , "" + id);
-	} else {
-		sys alarmDestroy(sys cKeyReadInt("id_" + arg0 + 1, 0));
-		sys cKeyWrite("id_" + arg0 + 1 , "0");
-	}
+  if (arg1 == 1) {
+    sys.alarm.destroy(sys.fs.conf.readInt("id_" + arg0 + 1, 0));
+    local id;
+    id = sys.alarm.setRep(bud_hour, bud_min, arg0 + 1, 0, 0, 0);
+    sys.fs.conf.write("id_" + arg0 + 1 , "" + id);
+  } else {
+    sys.alarm.destroy(sys.fs.conf.readInt("id_" + arg0 + 1, 0));
+    sys.fs.conf.write("id_" + arg0 + 1 , "0");
+  }
 
-	sys cClose();
+  sys.fs.conf.close();
 }
 
 function showDays {
-	local x;
-	for (x = 0; x < 7; x++;) {
-		sys pSetVisible(btn_act_ar[x], arg0);
-	}
+  local x;
+  for (x = 0; x < 7; x++;) {
+    sys.gui.setVisible(btn_act_ar[x], arg0);
+  }
 }
 
 function upd_bud {
-  if (sys pGetEventC(bud_act) == EV_RELEASED) {
-	  bud_active = sys pGetValue(bud_act);
+  if (sys.gui.getEventC(bud_act) == EV_RELEASED) {
+    bud_active = sys.gui.getValue(bud_act);
 
-	  if (bud_active) {
-			showDays(1);
-	    for (x = 0; x < 7; x++;) {
-				resetAlarm(x, sys pGetValue(btn_act_ar[x]));
-			}
-	  } else {
-	  	showDays(0);
-	  	for (x = 0; x < 7; x++;) {
-				resetAlarm(x, 0);
-			}
-	  }
+    if (bud_active) {
+      showDays(1);
+      for (x = 0; x < 7; x++;) {
+        resetAlarm(x, sys.gui.getValue(btn_act_ar[x]));
+      }
+    } else {
+      showDays(0);
+      for (x = 0; x < 7; x++;) {
+        resetAlarm(x, 0);
+      }
+    }
 
-	  sys cOpen("clock.dat");
+    sys.fs.conf.open("clock.dat");
 
-    sys cKeyWrite("active" , "" + bud_active);
+    sys.fs.conf.write("active" , "" + bud_active);
 
-    sys cClose();
-	}
+    sys.fs.conf.close();
+  }
 
-	for (x = 0; x < 7; x++;) {
-		if (sys pGetEventC(btn_act_ar[x]) == EV_RELEASED) {
-			resetAlarm(x, sys pGetValue(btn_act_ar[x]));
-		}
-	}
+  for (x = 0; x < 7; x++;) {
+    if (sys.gui.getEventC(btn_act_ar[x]) == EV_RELEASED) {
+      resetAlarm(x, sys.gui.getValue(btn_act_ar[x]));
+    }
+  }
 
-	if (sys pGetEventC(bud_set) == EV_RELEASED) {
-	  tim_ov = sys oTimAdd();
-	  sys oTimSet(tim_ov, bud_hour, bud_min);
-	}
+  if (sys.gui.getEventC(bud_set) == EV_RELEASED) {
+    tim_ov = sys.o.time.add();
+    sys.o.time.set(tim_ov, bud_hour, bud_min);
+  }
 
-	if (sys pGetEventC(bud_ok) == EV_RELEASED) {
-		sys pSetVisible(bud_snooze, 0);
-	  sys pSetVisible(bud_ok, 0);
-	  showDays(1);
-	  alarm_siren = 0;
-	}
+  if (sys.gui.getEventC(bud_ok) == EV_RELEASED) {
+    sys.gui.setVisible(bud_snooze, 0);
+    sys.gui.setVisible(bud_ok, 0);
+    showDays(1);
+    alarm_siren = 0;
+  }
 
-	if (sys pGetEventC(bud_snooze) == 3) {
-	  sys pSetVisible(bud_snooze, 0);
-	  sys pSetVisible(bud_ok, 0);
-	  alarm_siren = 0;
-	  sys alarmSetFixed(sys getTime() + 10 * 60, 0);
-	  sys exit();
-	}
+  if (sys.gui.getEventC(bud_snooze) == 3) {
+    sys.gui.setVisible(bud_snooze, 0);
+    sys.gui.setVisible(bud_ok, 0);
+    alarm_siren = 0;
+    sys.alarm.setFixed(sys.time.get() + 10 * 60, 0);
+    sys.os.exit();
+  }
 
-	sys oTimUpd(tim_ov);
+  sys.o.time.update(tim_ov);
 
-	if (sys oTimGetOk(tim_ov)) {
-	  local hr;
-	  local min;
+  if (sys.o.time.getOk(tim_ov)) {
+    local hr;
+    local min;
 
-	  bud_hour = sys oTimGetHr(tim_ov);
-	  bud_min = sys oTimGetMin(tim_ov);
+    bud_hour = sys.o.time.getHr(tim_ov);
+    bud_min = sys.o.time.getMin(tim_ov);
 
-	  bud_setstr();
+    bud_setstr();
 
-		if (sys pGetValue(bud_act)) {
-			for (x = 0; x < 7; x++;) {
-				resetAlarm(x, sys pGetValue(btn_act_ar[x]));
-			}
-		}
+    if (sys.gui.getValue(bud_act)) {
+      for (x = 0; x < 7; x++;) {
+        resetAlarm(x, sys.gui.getValue(btn_act_ar[x]));
+      }
+    }
 
-	  sys oTimClrOk(tim_ov);
-	  sys cOpen("clock.dat");
+    sys.o.time.clrOk(tim_ov);
+    sys.fs.conf.open("clock.dat");
 
-    sys cKeyWrite("min", "" + bud_min);
-    sys cKeyWrite("hour", "" + bud_hour);
+    sys.fs.conf.write("min", "" + bud_min);
+    sys.fs.conf.write("hour", "" + bud_hour);
 
-    sys cClose();
-	}
+    sys.fs.conf.close();
+  }
 }
 
 function bud_setstr {
@@ -330,28 +330,28 @@ function bud_setstr {
     min = "" + bud_min;
   }
 
-  sys pSetStr(bud_txt, "" + hr + ":" + min);
+  sys.gui.setStr(bud_txt, "" + hr + ":" + min);
 }
 
 function init_stop {
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-    sys pAddText(1, 0, 6, 1, "Stopky:", s_stop);
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.addText(1, 0, 6, 1, "Stopky:", s_stop);
   } else {
-    sys pAddText(1, 0, 6, 1, "Stopwatch:", s_stop);
+    sys.gui.addText(1, 0, 6, 1, "Stopwatch:", s_stop);
   }
-  stop_txt = sys pAddText(1, 1, 9, 4, "00:00:00", s_stop);
+  stop_txt = sys.gui.addText(1, 1, 9, 4, "00:00:00", s_stop);
 
-  sys pSetTxtSize(stop_txt, 70);
+  sys.gui.setTxtSize(stop_txt, 70);
 
-  s_b_start = sys pAddButton(5, 4, 8, 5, "Start", s_stop);
+  s_b_start = sys.gui.addButton(5, 4, 8, 5, "Start", s_stop);
 
-  s_b_stop = sys pAddButton(1, 4, 4, 5, "Stop", s_stop);
+  s_b_stop = sys.gui.addButton(1, 4, 4, 5, "Stop", s_stop);
 
-  s_b_reset = sys pAddButton(1, 6, 4, 7, "Reset", s_stop);
+  s_b_reset = sys.gui.addButton(1, 6, 4, 7, "Reset", s_stop);
 
-  sys pSetVisible(s_b_reset, 0);
-  sys pSetVisible(s_b_stop, 0);
+  sys.gui.setVisible(s_b_reset, 0);
+  sys.gui.setVisible(s_b_stop, 0);
 
   s_run = 0;
   s_time = 0;
@@ -361,89 +361,89 @@ function init_stop {
 }
 
 function upd_stop {
-  if (sys pGetEventC(s_b_start) == EV_RELEASED) {
-	  s_run = 1;
-	  s_start_tim = sys getUptime();
-	  sys pSetGrayout(s_b_start, 1);
-	  sys pSetGrayout(s_b_stop, 0);
-	  sys pSetVisible(s_b_stop, 1);
-	}
+  if (sys.gui.getEventC(s_b_start) == EV_RELEASED) {
+    s_run = 1;
+    s_start_tim = sys.time.getUptime();
+    sys.gui.setGrayout(s_b_start, 1);
+    sys.gui.setGrayout(s_b_stop, 0);
+    sys.gui.setVisible(s_b_stop, 1);
+  }
 
-  if (sys pGetEventC(s_b_stop) == EV_RELEASED) {
-    sys pSetVisible(s_b_reset, 1);
+  if (sys.gui.getEventC(s_b_stop) == EV_RELEASED) {
+    sys.gui.setVisible(s_b_reset, 1);
     s_tim_prev = s_time;
-	  s_run = 0;
-	  sys pSetGrayout(s_b_start, 0);
-	  sys pSetGrayout(s_b_stop, 1);
+    s_run = 0;
+    sys.gui.setGrayout(s_b_start, 0);
+    sys.gui.setGrayout(s_b_stop, 1);
 
-	}
+  }
 
-	if (sys pGetEventC(s_b_reset) == EV_RELEASED) {
-	  s_time = 0;
-	  s_time_upd = 1;
-	  s_start_tim = 0;
-	  s_tim_prev = 0;
-	  s_run = 0;
-	  sys pSetVisible(s_b_reset, 0);
-	  sys pSetVisible(s_b_stop, 0);
-	  sys pSetGrayout(s_b_start, 0);
-	  sys pSetGrayout(s_b_stop, 0);
-	}
+  if (sys.gui.getEventC(s_b_reset) == EV_RELEASED) {
+    s_time = 0;
+    s_time_upd = 1;
+    s_start_tim = 0;
+    s_tim_prev = 0;
+    s_run = 0;
+    sys.gui.setVisible(s_b_reset, 0);
+    sys.gui.setVisible(s_b_stop, 0);
+    sys.gui.setGrayout(s_b_start, 0);
+    sys.gui.setGrayout(s_b_stop, 0);
+  }
 
-	if (s_time_upd) {
-	  local hr;
-	  local min;
-	  local sec;
-	  if (s_time / 3600 < 10) {
-	    hr = "0" + s_time / 3600;
-	  } else {
-	    hr = "" + s_time / 3600;
-	  }
-	  if ((s_time / 60) % 60 < 10) {
-	    min = "0" + (s_time / 60) % 60;
-	  } else {
-	    min = "" + (s_time / 60) % 60;
-	  }
-	  if(s_time % 60 < 10) {
-	    sec = "0" + s_time % 60;
-	  } else {
-	    sec = "" + s_time % 60;
-	  }
-	  sys pSetStr(stop_txt, hr + ":" + min + ":" + sec);
-	  s_time_upd = 0;
-	}
+  if (s_time_upd) {
+    local hr;
+    local min;
+    local sec;
+    if (s_time / 3600 < 10) {
+      hr = "0" + s_time / 3600;
+    } else {
+      hr = "" + s_time / 3600;
+    }
+    if ((s_time / 60) % 60 < 10) {
+      min = "0" + (s_time / 60) % 60;
+    } else {
+      min = "" + (s_time / 60) % 60;
+    }
+    if(s_time % 60 < 10) {
+      sec = "0" + s_time % 60;
+    } else {
+      sec = "" + s_time % 60;
+    }
+    sys.gui.setStr(stop_txt, hr + ":" + min + ":" + sec);
+    s_time_upd = 0;
+  }
 }
 
 function init_min {
 
-  min_txt = sys pAddText(1, 1, 9, 3, "00:00:00", s_min);
+  min_txt = sys.gui.addText(1, 1, 9, 3, "00:00:00", s_min);
 
-  sys pSetTxtSize(min_txt, 70);
+  sys.gui.setTxtSize(min_txt, 70);
 
-  m_bp1 = sys pAddButton(1, 3, 2, 4, "+", s_min);
+  m_bp1 = sys.gui.addButton(1, 3, 2, 4, "+", s_min);
 
-  m_bp2 = sys pAddButton(3, 3, 4, 4, "+", s_min);
-  m_bp3 = sys pAddButton(4, 3, 5, 4, "+", s_min);
+  m_bp2 = sys.gui.addButton(3, 3, 4, 4, "+", s_min);
+  m_bp3 = sys.gui.addButton(4, 3, 5, 4, "+", s_min);
 
-  m_bp4 = sys pAddButton(6, 3, 7, 4, "+", s_min);
-  m_bp5 = sys pAddButton(7, 3, 8, 4, "+", s_min);
+  m_bp4 = sys.gui.addButton(6, 3, 7, 4, "+", s_min);
+  m_bp5 = sys.gui.addButton(7, 3, 8, 4, "+", s_min);
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-    sys pAddText(1, 0, 6, 1, "Minutka:", s_min);
-    m_b_start = sys pAddButton(5, 5, 8, 6, "Start", s_min);
-    m_b_del = sys pAddButton(1, 5, 4, 6, "Vymazat", s_min);
-    m_txt = sys pAddText(2, 7, 8, 8,"Čas vypršel!", s_min);
-    m_b_ok = sys pAddButton(3, 8, 5, 9, "Ok", s_min);
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.addText(1, 0, 6, 1, "Minutka:", s_min);
+    m_b_start = sys.gui.addButton(5, 5, 8, 6, "Start", s_min);
+    m_b_del = sys.gui.addButton(1, 5, 4, 6, "Vymazat", s_min);
+    m_txt = sys.gui.addText(2, 7, 8, 8,"Čas vypršel!", s_min);
+    m_b_ok = sys.gui.addButton(3, 8, 5, 9, "Ok", s_min);
   } else {
-    sys pAddText(1, 0, 6, 1, "Timer:", s_min);
-    m_b_start = sys pAddButton(5, 5, 8, 6, "Start", s_min);
-    m_b_del = sys pAddButton(1, 5, 4, 6, "Clear", s_min);
-    m_txt = sys pAddText(2, 7, 8, 8,"Time out!", s_min);
-    m_b_ok = sys pAddButton(3, 8, 5, 9, "Ok", s_min);
+    sys.gui.addText(1, 0, 6, 1, "Timer:", s_min);
+    m_b_start = sys.gui.addButton(5, 5, 8, 6, "Start", s_min);
+    m_b_del = sys.gui.addButton(1, 5, 4, 6, "Clear", s_min);
+    m_txt = sys.gui.addText(2, 7, 8, 8,"Time out!", s_min);
+    m_b_ok = sys.gui.addButton(3, 8, 5, 9, "Ok", s_min);
   }
-  sys pSetVisible(m_txt, 0);
-  sys pSetVisible(m_b_ok, 0);
-  sys pSetVisible(m_b_del, 0);
+  sys.gui.setVisible(m_txt, 0);
+  sys.gui.setVisible(m_b_ok, 0);
+  sys.gui.setVisible(m_b_del, 0);
 
   m_run = 0;
   beeptimer = 0;
@@ -454,96 +454,96 @@ function init_min {
 
 function upd_min {
   if(m_run == 0) {
-    if (sys pGetEventC(m_bp1) == EV_RELEASED) {
-	    m_time = m_time + 3600;
-	    m_time_upd = 1;
-	    sys pSetVisible(m_b_del, 1);
-	  }
+    if (sys.gui.getEventC(m_bp1) == EV_RELEASED) {
+      m_time = m_time + 3600;
+      m_time_upd = 1;
+      sys.gui.setVisible(m_b_del, 1);
+    }
 
-	  if (sys pGetEventC(m_bp2) == EV_RELEASED) {
-	    m_time = m_time + 600;
-	    m_time_upd = 1;
-	    sys pSetVisible(m_b_del, 1);
-	  }
+    if (sys.gui.getEventC(m_bp2) == EV_RELEASED) {
+      m_time = m_time + 600;
+      m_time_upd = 1;
+      sys.gui.setVisible(m_b_del, 1);
+    }
 
-	  if (sys pGetEventC(m_bp3) == EV_RELEASED) {
-	    m_time = m_time + 60;
-	    m_time_upd = 1;
-	    sys pSetVisible(m_b_del, 1);
-	  }
+    if (sys.gui.getEventC(m_bp3) == EV_RELEASED) {
+      m_time = m_time + 60;
+      m_time_upd = 1;
+      sys.gui.setVisible(m_b_del, 1);
+    }
 
-	  if (sys pGetEventC(m_bp4) == EV_RELEASED) {
-	    m_time = m_time + 10;
-	    m_time_upd = 1;
-	    sys pSetVisible(m_b_del, 1);
-	  }
+    if (sys.gui.getEventC(m_bp4) == EV_RELEASED) {
+      m_time = m_time + 10;
+      m_time_upd = 1;
+      sys.gui.setVisible(m_b_del, 1);
+    }
 
-	  if (sys pGetEventC(m_bp5) == EV_RELEASED) {
-	    m_time = m_time + 1;
-	    m_time_upd = 1;
-	    sys pSetVisible(m_b_del, 1);
-	  }
-	}
+    if (sys.gui.getEventC(m_bp5) == EV_RELEASED) {
+      m_time = m_time + 1;
+      m_time_upd = 1;
+      sys.gui.setVisible(m_b_del, 1);
+    }
+  }
 
-	if (sys pGetEventC(m_b_del) == EV_RELEASED) {
-	  m_time = 0;
-	  m_run = 0;
-	  m_time_upd = 1;
-	  sys pSetVisible(m_txt, 0);
-    sys pSetVisible(m_b_ok, 0);
-	  sys pSetVisible(m_b_del, 0);
-	}
+  if (sys.gui.getEventC(m_b_del) == EV_RELEASED) {
+    m_time = 0;
+    m_run = 0;
+    m_time_upd = 1;
+    sys.gui.setVisible(m_txt, 0);
+    sys.gui.setVisible(m_b_ok, 0);
+    sys.gui.setVisible(m_b_del, 0);
+  }
 
-  if (sys pGetEventC(m_b_start) == EV_RELEASED) {
-	  if (m_time != 0) {
-	    m_run = 1;
-	    m_time_orig = m_time;
-	    m_time_u = sys getUptime();
-	  }
-	  m_time_upd = 1;
-	}
+  if (sys.gui.getEventC(m_b_start) == EV_RELEASED) {
+    if (m_time != 0) {
+      m_run = 1;
+      m_time_orig = m_time;
+      m_time_u = sys.time.getUptime();
+    }
+    m_time_upd = 1;
+  }
 
   #budík
   if (m_run == 1 and m_time <= 0 and beeptimer <= 0) {
 
-    if (sys pGetVisible(m_txt) == 0) {
-    	sys pSetVisible(m_txt, 1);
-    	sys pSetVisible(m_b_ok, 1);
-    	sys lcdWake();
+    if (sys.gui.getVisible(m_txt) == 0) {
+      sys.gui.setVisible(m_txt, 1);
+      sys.gui.setVisible(m_b_ok, 1);
+      sys.hw.wakeLcd();
     }
-    sys beep();
+    sys.snd.beep();
     beeptimer = 3;
   }
 
-  if (sys pGetEventC(m_b_ok) == EV_RELEASED) {
-	  m_run = 0;
-	  m_time = m_time_orig;
-	  sys pSetVisible(m_txt, 0);
-    sys pSetVisible(m_b_ok, 0);
-	  m_time_upd = 1;
-	}
+  if (sys.gui.getEventC(m_b_ok) == EV_RELEASED) {
+    m_run = 0;
+    m_time = m_time_orig;
+    sys.gui.setVisible(m_txt, 0);
+    sys.gui.setVisible(m_b_ok, 0);
+    m_time_upd = 1;
+  }
 
 
   if (m_time_upd) {
-	  local hr;
-	  local min;
-	  local sec;
-	  if (m_time / 3600 < 10) {
-	    hr = "0" + m_time / 3600;
-	  } else {
-	    hr = "" + m_time / 3600;
-	  }
-	  if ((m_time / 60) % 60 < 10) {
-	    min = "0" + (m_time / 60) % 60;
-	  } else {
-	    min = "" + (m_time / 60) % 60;
-	  }
-	  if(m_time % 60 < 10) {
-	    sec = "0" + m_time % 60;
-	  } else {
-	    sec = "" + m_time % 60;
-	  }
-	  sys pSetStr(min_txt, hr + ":" + min + ":" + sec);
-	  m_time_upd = 0;
-	}
+    local hr;
+    local min;
+    local sec;
+    if (m_time / 3600 < 10) {
+      hr = "0" + m_time / 3600;
+    } else {
+      hr = "" + m_time / 3600;
+    }
+    if ((m_time / 60) % 60 < 10) {
+      min = "0" + (m_time / 60) % 60;
+    } else {
+      min = "" + (m_time / 60) % 60;
+    }
+    if(m_time % 60 < 10) {
+      sec = "0" + m_time % 60;
+    } else {
+      sec = "" + m_time % 60;
+    }
+    sys.gui.setStr(min_txt, hr + ":" + min + ":" + sec);
+    m_time_upd = 0;
+  }
 }

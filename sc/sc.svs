@@ -1,87 +1,87 @@
  #sda commander
  # todo: move, view
 function init {
-  sys checkSVSVer(720);
-	sys pSetRelInit(1);
-	scr = sys pAddScreen();
-	sys pSetMainScr(scr);
-	sys pAddText(1, 0, 8, 1, "SDA Commander 1.2.1", scr);
-	file_scr = sys pAddScreen();
-	scrollbar = sys pAddSliderV(9, 2, 1, 9, 100, 0, scr);
+  sys.os.checkVer(720);
+  sys.gui.setRelInit(1);
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.2.1", scr);
+  file_scr = sys.gui.addScreen();
+  scrollbar = sys.gui.addSliderVV(9, 2, 1, 9, 100, 0, scr);
 
-	sys pSetScreen(file_scr, scr);
-	sys pSetXYXY(file_scr, 0, 2, 9, 9);
+  sys.gui.setScreen(file_scr, scr);
+  sys.gui.setXYXY(file_scr, 0, 2, 9, 9);
 
-	bUp = sys pAddButton(0, 1, 1, 1, "/\\", scr);
-	bData = sys pAddButton(2, 1, 2, 1, "Data", scr);
-	bApps = sys pAddButton(4, 1, 2, 1, "Apps", scr);
+  bUp = sys.gui.addButton(0, 1, 1, 1, "/\\", scr);
+  bData = sys.gui.addButton(2, 1, 2, 1, "Data", scr);
+  bApps = sys.gui.addButton(4, 1, 2, 1, "Apps", scr);
 
-	# move, mkdir, launch, view, edit
-	bCopy = sys pAddButton(0, 11, 3, 1, "Copy", scr);
-	#bMove = sys pAddButton(3, 11, 3, 1, "Move", scr);
-	bRename = sys pAddButton(3, 11, 4, 1, "Rename", scr);
-	bMkdir = sys pAddButton(0, 12, 3, 1, "MkDir", scr);
-	#bView = sys pAddButton(3, 12, 3, 1, "View", scr);
-	bRemove = sys pAddButton(3, 12, 4, 1, "Remove", scr);
+  # move, mkdir, launch, view, edit
+  bCopy = sys.gui.addButton(0, 11, 3, 1, "Copy", scr);
+  #bMove = sys.gui.addButton(3, 11, 3, 1, "Move", scr);
+  bRename = sys.gui.addButton(3, 11, 4, 1, "Rename", scr);
+  bMkdir = sys.gui.addButton(0, 12, 3, 1, "MkDir", scr);
+  #bView = sys.gui.addButton(3, 12, 3, 1, "View", scr);
+  bRemove = sys.gui.addButton(3, 12, 4, 1, "Remove", scr);
 
-	array fScrBtns[200];
+  array fScrBtns[200];
 
-	rldFiles();
-	copyFname = "";
-	renameOp  = -1;
-	mkdirOp   = -1;
-	ppmOvr = -1;
+  rldFiles();
+  copyFname = "";
+  renameOp  = -1;
+  mkdirOp   = -1;
+  ppmOvr = -1;
 
-	sys pSetGrayout(bUp, 1);
+  sys.gui.setGrayout(bUp, 1);
 }
 
 function getsize {
-	local x;
-	sys pFrOpen(arg0);
-	x = sys pFrSize();
-	sys pFrClose();
+  local x;
+  sys.fs.open(arg0);
+  x = sys.fs.size();
+  sys.fs.close();
 
-	return x;
+  return x;
 }
 
 function rldFiles {
-	sys pDestroy(file_scr);
-	for (x = 0; x < 200; x++;) {
-		fScrBtns[x] = 0;
-	}
+  sys.gui.destroy(file_scr);
+  for (x = 0; x < 200; x++;) {
+    fScrBtns[x] = 0;
+  }
 
-	file_scr = sys pAddScreen();
+  file_scr = sys.gui.addScreen();
 
-	sys pSetScreen(file_scr, scr);
-	sys pSetXYXY(file_scr, 0, 2, 9, 9);
+  sys.gui.setScreen(file_scr, scr);
+  sys.gui.setXYXY(file_scr, 0, 2, 9, 9);
 
-	i = 0;
+  i = 0;
 
-	#load directory
-	for(findfil = sys fFind("", "."); findfil != ""; findfil = sys fFindNext();) {
-	  fScrBtns[i] = findfil;
-		i++;
-	}
+  #load directory
+  for(findfil = sys.fs.find("", "."); findfil != ""; findfil = sys.fs.findNext();) {
+    fScrBtns[i] = findfil;
+    i++;
+  }
 
-	numOfFiles = i;
+  numOfFiles = i;
 
-	#sortOutDirs
-	lastdir = 0;
-	for(i = 0; i < numOfFiles; i++;) {
-		if (sys fIsDir(fScrBtns[i])) {
-			prac = fScrBtns[lastdir];
+  #sortOutDirs
+  lastdir = 0;
+  for(i = 0; i < numOfFiles; i++;) {
+    if (sys.fs.isDir(fScrBtns[i])) {
+      prac = fScrBtns[lastdir];
 
-			fScrBtns[lastdir] = fScrBtns[i];
+      fScrBtns[lastdir] = fScrBtns[i];
 
-			fScrBtns[i] = prac;
+      fScrBtns[i] = prac;
 
-			lastdir++;
-		}
-	}
+      lastdir++;
+    }
+  }
 
-	sortstring = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  sortstring = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-	# alphabetical sort dirs
+  # alphabetical sort dirs
   {
     local sorted;
     local i;
@@ -123,310 +123,310 @@ function rldFiles {
     }
   }
 
-	#load sorted buttons
-	for(i = 0; i < numOfFiles; i++;) {
-		findfil =  fScrBtns[i];
-		fScrBtns[i] = sys pAddButton(0, i, 5, 1, findfil, file_scr);
+  #load sorted buttons
+  for(i = 0; i < numOfFiles; i++;) {
+    findfil =  fScrBtns[i];
+    fScrBtns[i] = sys.gui.addButton(0, i, 5, 1, findfil, file_scr);
 
-		if (sys fIsDir(findfil)) {
-			sys pAddText(6, i, 2, 1, "(Dir)", file_scr);
-		} else {
-			sys pAddText(6, i, 4, 1, "" + getsize(findfil) + "B", file_scr);
-		}
-	}
+    if (sys.fs.isDir(findfil)) {
+      sys.gui.addText(6, i, 2, 1, "(Dir)", file_scr);
+    } else {
+      sys.gui.addText(6, i, 4, 1, "" + getsize(findfil) + "B", file_scr);
+    }
+  }
 
-	sys pSetValue(scrollbar, 0);
+  sys.gui.setValue(scrollbar, 0);
 
-	if (i > 9) {
-		sys pSetParam(scrollbar, 32 * i - 8 * 32);
-		sys pSetGrayout(scrollbar, 0);
-	} else {
-		sys pSetGrayout(scrollbar, 1);
-	}
+  if (i > 9) {
+    sys.gui.setParam(scrollbar, 32 * i - 8 * 32);
+    sys.gui.setGrayout(scrollbar, 0);
+  } else {
+    sys.gui.setGrayout(scrollbar, 1);
+  }
 
-	selected = -1;
+  selected = -1;
 }
 
 function tryOpen {
-	# arg0 -> fname
-	extension = getcp(arg0, len(arg0) - 2) + getcp(arg0, len(arg0) -1) + getcp(arg0, len(arg0));
-	print(extension);
-	if (extension == "svs") {
-	  sys subProcCWD(1);
-		sys subProcess(arg0, "", 0, 0, 0);
-	}
+  # arg0 -> fname
+  extension = getcp(arg0, len(arg0) - 2) + getcp(arg0, len(arg0) -1) + getcp(arg0, len(arg0));
+  print(extension);
+  if (extension == "svs") {
+    sys.os.subProcCWD(1);
+    sys.os.subProcess(arg0, "", 0, 0, 0);
+  }
 
-	if (extension == "txt") {
-	  sys subProcCWD(0);
-		sys subProcess("notepad/notepad.svs", "", arg0, 0, 0);
-	}
+  if (extension == "txt") {
+    sys.os.subProcCWD(0);
+    sys.os.subProcess("notepad/notepad.svs", "", arg0, 0, 0);
+  }
 
-	if (extension == "ppm" or extension == "p16") {
-		showPpm(arg0);
-	}
+  if (extension == "ppm" or extension == "p16") {
+    showPpm(arg0);
+  }
 }
 
 function updFiles {
-	local x;
-	for (x = 0; x < numOfFiles; x++;) {
-		if (sys pGetEventC(fScrBtns[x]) == EV_RELEASED) {
+  local x;
+  for (x = 0; x < numOfFiles; x++;) {
+    if (sys.gui.getEventC(fScrBtns[x]) == EV_RELEASED) {
 
-				if (selected == -1) {
-					sys pSetSelect(fScrBtns[x], 1);
-					selected = x;
-				} else {
-				if (selected == x) {
-					if (sys fIsDir(sys pGetStr(fScrBtns[x]))) {
-						sys fChDir(sys pGetStr(fScrBtns[x]));
-						rldFiles();
-						sys pSetGrayout(bUp, 0);
-						upCount++;
-					} else {
-						print ("clicked:" + sys pGetStr(fScrBtns[x]));
-						tryOpen(sys pGetStr(fScrBtns[x]));
-					}
-				} else {
-					sys pSetSelect(fScrBtns[selected], 0);
-					sys pSetSelect(fScrBtns[x], 1);
-					selected = x;
-				}
-			}
-		}
-	}
+        if (selected == -1) {
+          sys.gui.setSelect(fScrBtns[x], 1);
+          selected = x;
+        } else {
+        if (selected == x) {
+          if (sys.fs.isDir(sys.gui.getStr(fScrBtns[x]))) {
+            sys.fs.chDir(sys.gui.getStr(fScrBtns[x]));
+            rldFiles();
+            sys.gui.setGrayout(bUp, 0);
+            upCount++;
+          } else {
+            print ("clicked:" + sys.gui.getStr(fScrBtns[x]));
+            tryOpen(sys.gui.getStr(fScrBtns[x]));
+          }
+        } else {
+          sys.gui.setSelect(fScrBtns[selected], 0);
+          sys.gui.setSelect(fScrBtns[x], 1);
+          selected = x;
+        }
+      }
+    }
+  }
 }
 
 function update {
-	updFiles();
-	sys pSetYscroll(file_scr, sys pGetValue(scrollbar) - 8);
+  updFiles();
+  sys.gui.setYscroll(file_scr, sys.gui.getValue(scrollbar) - 8);
 
-	if (sys pGetEventC(bUp) == EV_RELEASED) {
-		sys fChDir("..");
-		rldFiles();
-		upCount--;
-		if (upCount == 0){
-			sys pSetGrayout(bUp, 1);
-		}
-	}
+  if (sys.gui.getEventC(bUp) == EV_RELEASED) {
+    sys.fs.chDir("..");
+    rldFiles();
+    upCount--;
+    if (upCount == 0){
+      sys.gui.setGrayout(bUp, 1);
+    }
+  }
 
-	if (sys pGetEventC(bData) == EV_RELEASED) {
-		sys fChDir();
-		sys pSetGrayout(bUp, 1);
-		upCount = 0;
-		rldFiles();
-	}
+  if (sys.gui.getEventC(bData) == EV_RELEASED) {
+    sys.fs.chDir();
+    sys.gui.setGrayout(bUp, 1);
+    upCount = 0;
+    rldFiles();
+  }
 
-	if (sys pGetEventC(bApps) == EV_RELEASED) {
-		sys fChDir(1);
-		sys pSetGrayout(bUp, 1);
-		upCount = 0;
-		rldFiles();
-	}
+  if (sys.gui.getEventC(bApps) == EV_RELEASED) {
+    sys.fs.chDir(1);
+    sys.gui.setGrayout(bUp, 1);
+    upCount = 0;
+    rldFiles();
+  }
 
-	if (sys pGetEventC(bCopy) == EV_RELEASED) {
-		if (copyFname == "") {
-			if (selected != -1) {
-				copyFname = sys pGetStr(fScrBtns[selected]);
-				sys fCopySource(copyFname);
-				sys pSetStr(bCopy, "Paste");
-			}
-		} else {
-			pasteOvInit();
-		}
-	}
+  if (sys.gui.getEventC(bCopy) == EV_RELEASED) {
+    if (copyFname == "") {
+      if (selected != -1) {
+        copyFname = sys.gui.getStr(fScrBtns[selected]);
+        sys.fs.copySource(copyFname);
+        sys.gui.setStr(bCopy, "Paste");
+      }
+    } else {
+      pasteOvInit();
+    }
+  }
 
-	if (sys pGetEventC(bRemove) == EV_RELEASED) {
-		if (selected != -1) {
-			remName = sys pGetStr(fScrBtns[selected]);
-			remOvrInit();
-		}
-	}
+  if (sys.gui.getEventC(bRemove) == EV_RELEASED) {
+    if (selected != -1) {
+      remName = sys.gui.getStr(fScrBtns[selected]);
+      remOvrInit();
+    }
+  }
 
-	if (sys pGetEventC(bRename) == EV_RELEASED) {
-		if (selected != -1) {
-			renameFile = sys pGetStr(fScrBtns[selected]);
-			renameOp = textOvInit();
-			renameName = renameFile;
-			sys pSetStr(textLbl, "New name:");
-		}
-	}
+  if (sys.gui.getEventC(bRename) == EV_RELEASED) {
+    if (selected != -1) {
+      renameFile = sys.gui.getStr(fScrBtns[selected]);
+      renameOp = textOvInit();
+      renameName = renameFile;
+      sys.gui.setStr(textLbl, "New name:");
+    }
+  }
 
-	if (sys pGetEventC(bMkdir) == EV_RELEASED) {
-		mkdirOp = textOvInit();
-		mkdirName = "";
-		sys pSetStr(textLbl, "New directory:");
-	}
+  if (sys.gui.getEventC(bMkdir) == EV_RELEASED) {
+    mkdirOp = textOvInit();
+    mkdirName = "";
+    sys.gui.setStr(textLbl, "New directory:");
+  }
 
 
 
-	if (sys pGetOvrId() == pasteOvr and sys pGetOvrId() != 0) {
-		pasteOvUpd();
-	}
+  if (sys.o.getId() == pasteOvr and sys.o.getId() != 0) {
+    pasteOvUpd();
+  }
 
-	remOvrUpdate();
+  remOvrUpdate();
 
-	if (sys pGetOvrId() == renameOp) {
-		handleRename();
-	}
+  if (sys.o.getId() == renameOp) {
+    handleRename();
+  }
 
-	if (sys pGetOvrId() == mkdirOp) {
-		handleMkdir();
-	}
+  if (sys.o.getId() == mkdirOp) {
+    handleMkdir();
+  }
 
-	if (sys pGetOvrId() == ppmOvr) {
-		if (sys pGetEventC(ppmOk) == EV_RELEASED) {
-			sys pOvrDestroy();
-		}
-	}
+  if (sys.o.getId() == ppmOvr) {
+    if (sys.gui.getEventC(ppmOk) == EV_RELEASED) {
+      sys.o.destroy();
+    }
+  }
 }
 
 function handleRename {
-	renameName = sys pHandleText(textTxt, renameName);
-	if (sys pGetEventC(textOk) == EV_RELEASED) {
-		if (not sys pFrExists(renameName)) {
-			sys fRename(renameFile, renameName);
-			sys pOvrDestroy();
-			sys keybHide();
-			rldFiles();
-			return;
-		}
-	}
+  renameName = sys.os.gui.handleText(textTxt, renameName);
+  if (sys.gui.getEventC(textOk) == EV_RELEASED) {
+    if (not sys.fs.exists(renameName)) {
+      sys.fs.rename(renameFile, renameName);
+      sys.o.destroy();
+      sys.os.hideKbd();
+      rldFiles();
+      return;
+    }
+  }
 
-	if (sys pGetEventC(textCancel) == EV_RELEASED) {
-		sys pOvrDestroy();
-		sys keybHide();
-		return;
-	}
+  if (sys.gui.getEventC(textCancel) == EV_RELEASED) {
+    sys.o.destroy();
+    sys.os.hideKbd();
+    return;
+  }
 }
 
 function handleMkdir {
-	mkdirName = sys pHandleText(textTxt, mkdirName);
-	if (sys pGetEventC(textOk) == EV_RELEASED) {
-		sys fMkDir(mkdirName);
-		sys pOvrDestroy();
-		sys keybHide();
-		rldFiles();
-		return;
-	}
+  mkdirName = sys.os.gui.handleText(textTxt, mkdirName);
+  if (sys.gui.getEventC(textOk) == EV_RELEASED) {
+    sys.fs.mkDir(mkdirName);
+    sys.o.destroy();
+    sys.os.hideKbd();
+    rldFiles();
+    return;
+  }
 
-	if (sys pGetEventC(textCancel) == EV_RELEASED) {
-		sys pOvrDestroy();
-		sys keybHide();
-		return;
-	}
+  if (sys.gui.getEventC(textCancel) == EV_RELEASED) {
+    sys.o.destroy();
+    sys.os.hideKbd();
+    return;
+  }
 }
 
 function pasteOvInit {
-	pasteScr = sys pAddScreen();
-	pasteTx2 = sys pAddText(1, 0, 8, 1, "New file name:", pasteScr);
-	pasteTxt = sys pAddText(1, 1, 6, 1, "", pasteScr);
-	pasteOk = sys pAddButton(1, 2, 2, 1, "Ok", pasteScr);
-	pasteCancel = sys pAddButton(4, 2, 3, 1, "Cancel", pasteScr);
-	pasteBar = sys pAddBar(1, 1, 6, 1, 100, 0, pasteScr);
-	pasteName = copyFname;
-	pasteReplace = 1;
-	copyRun = 0;
-	sys pSetTexEd(pasteTxt, 1);
-	pasteOvr = sys pSetOvrScr(pasteScr);
-	sys pOvrSetXYXY(32, 64, 278, 190);
-	sys pSetVisible(pasteBar, 0);
+  pasteScr = sys.gui.addScreen();
+  pasteTx2 = sys.gui.addText(1, 0, 8, 1, "New file name:", pasteScr);
+  pasteTxt = sys.gui.addText(1, 1, 6, 1, "", pasteScr);
+  pasteOk = sys.gui.addButton(1, 2, 2, 1, "Ok", pasteScr);
+  pasteCancel = sys.gui.addButton(4, 2, 3, 1, "Cancel", pasteScr);
+  pasteBar = sys.gui.addBar(1, 1, 6, 1, 100, 0, pasteScr);
+  pasteName = copyFname;
+  pasteReplace = 1;
+  copyRun = 0;
+  sys.gui.setTexEd(pasteTxt, 1);
+  pasteOvr = sys.o.setScr(pasteScr);
+  sys.o.setXYXY(32, 64, 278, 190);
+  sys.gui.setVisible(pasteBar, 0);
 }
 
 function pasteOvUpd {
-	pasteName = sys pHandleText(pasteTxt, pasteName);
+  pasteName = sys.os.gui.handleText(pasteTxt, pasteName);
 
-	if (sys pGetEventC(pasteOk) == EV_RELEASED) {
-		if (sys pFrExists(pasteName) and pasteReplace) {
-			sys pSetStr(pasteTx2, "File exists! replace?");
-			pasteReplace = 0;
-		} else {
-		sys pSetStr(pasteTx2, "Copy: " + pasteName);
-		sys pSetVisible(pasteTxt, 0);
-		sys pSetVisible(pasteOk, 0);
-		sys keybHide();
-		sys pSetVisible(pasteBar, 1);
-		sys fCopyStart(pasteName, 2048);
-		sys pSetParam(pasteBar, sys fCopyStat(1));
-		print("copy: "+sys fCopyStat(1)+"bytes");
-		copyRun = 1;
-		sys pSetRedraw();
-		sys pSetStr(bCopy, "Copy");
-		copyFname = "";
-		}
-	}
+  if (sys.gui.getEventC(pasteOk) == EV_RELEASED) {
+    if (sys.fs.exists(pasteName) and pasteReplace) {
+      sys.gui.setStr(pasteTx2, "File exists! replace?");
+      pasteReplace = 0;
+    } else {
+    sys.gui.setStr(pasteTx2, "Copy: " + pasteName);
+    sys.gui.setVisible(pasteTxt, 0);
+    sys.gui.setVisible(pasteOk, 0);
+    sys.os.hideKbd();
+    sys.gui.setVisible(pasteBar, 1);
+    sys.fs.copyStart(pasteName, 2048);
+    sys.gui.setParam(pasteBar, sys.fs.copyStat(1));
+    print("copy: "+sys.fs.copyStat(1)+"bytes");
+    copyRun = 1;
+    sys.os.setRedraw();
+    sys.gui.setStr(bCopy, "Copy");
+    copyFname = "";
+    }
+  }
 
-	if (sys pGetEventC(pasteCancel) == EV_RELEASED) {
-		cancelCopy();
-		sys pOvrDestroy();
-		return;
-	}
+  if (sys.gui.getEventC(pasteCancel) == EV_RELEASED) {
+    cancelCopy();
+    sys.o.destroy();
+    return;
+  }
 
-	if (copyRun == 1) {
-		sys pSetValue(pasteBar, sys fCopyStat(2));
+  if (copyRun == 1) {
+    sys.gui.setValue(pasteBar, sys.fs.copyStat(2));
 
-		if (sys fCopyStat(0) == 0) {
-			print("copy: "+sys fCopyStat(2)+"bytes done");
-			rldFiles();
-			sys pOvrDestroy();
-			copyRun = 0;
-			return;
-		}
-	}
+    if (sys.fs.copyStat(0) == 0) {
+      print("copy: "+sys.fs.copyStat(2)+"bytes done");
+      rldFiles();
+      sys.o.destroy();
+      copyRun = 0;
+      return;
+    }
+  }
 }
 
 function cancelCopy {
-	sys pSetStr(bCopy, "Copy");
-	sys fCopyStop();
-	copyFname = "";
+  sys.gui.setStr(bCopy, "Copy");
+  sys.fs.copyStop();
+  copyFname = "";
 }
 
 function remOvrInit {
-	rmScr = sys pAddScreen();
-	sys pAddText(1, 1, 6, 1, "Remove "+ remName +" ?", rmScr);
-	rmOk = sys pAddButton(1, 2, 2, 1, "Ok", rmScr);
-	rmCancel = sys pAddButton(4, 2, 3, 1, "Cancel", rmScr);
-	remOvr = sys pSetOvrScr(rmScr);
-	sys pOvrSetXYXY(32, 64, 278, 190);
+  rmScr = sys.gui.addScreen();
+  sys.gui.addText(1, 1, 6, 1, "Remove "+ remName +" ?", rmScr);
+  rmOk = sys.gui.addButton(1, 2, 2, 1, "Ok", rmScr);
+  rmCancel = sys.gui.addButton(4, 2, 3, 1, "Cancel", rmScr);
+  remOvr = sys.o.setScr(rmScr);
+  sys.o.setXYXY(32, 64, 278, 190);
 }
 
 function remOvrUpdate {
-	if (sys pGetOvrId() != remOvr or sys pGetOvrId() == 0) {
-		return;
-	}
+  if (sys.o.getId() != remOvr or sys.o.getId() == 0) {
+    return;
+  }
 
-	if (sys pGetEventC(rmOk) == EV_RELEASED) {
-		#sys print("deleting:" + remName);
-		sys fDelete(remName);
-		sys pOvrDestroy();
-		rldFiles();
-		return;
-	}
+  if (sys.gui.getEventC(rmOk) == EV_RELEASED) {
+    #print("deleting:" + remName);
+    sys.fs.delete(remName);
+    sys.o.destroy();
+    rldFiles();
+    return;
+  }
 
-	if (sys pGetEventC(rmCancel) == EV_RELEASED) {
-		sys pOvrDestroy();
-		return;
-	}
+  if (sys.gui.getEventC(rmCancel) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
 }
 
 function textOvInit {
-	textScr = sys pAddScreen();
-	textLbl = sys pAddText(1, 0, 8, 1, "Label", textScr);
-	textTxt = sys pAddText(1, 1, 6, 1, "", textScr);
-	textOk = sys pAddButton(1, 2, 2, 1, "Ok", textScr);
-	textCancel = sys pAddButton(4, 2, 3, 1, "Cancel", textScr);
+  textScr = sys.gui.addScreen();
+  textLbl = sys.gui.addText(1, 0, 8, 1, "Label", textScr);
+  textTxt = sys.gui.addText(1, 1, 6, 1, "", textScr);
+  textOk = sys.gui.addButton(1, 2, 2, 1, "Ok", textScr);
+  textCancel = sys.gui.addButton(4, 2, 3, 1, "Cancel", textScr);
 
-	pasteReplace = 1;
-	copyRun = 0;
-	sys pSetTexEd(textTxt, 1);
-	textOvr = sys pSetOvrScr(textScr);
-	sys pOvrSetXYXY(32, 64, 278, 190);
-	return textOvr;
+  pasteReplace = 1;
+  copyRun = 0;
+  sys.gui.setTexEd(textTxt, 1);
+  textOvr = sys.o.setScr(textScr);
+  sys.o.setXYXY(32, 64, 278, 190);
+  return textOvr;
 }
 
 function showPpm {
-	ppmScr = sys pAddScreen();
-	ppmLbl = sys pAddText(1, 0, 8, 1, arg0, ppmScr);
-	sys pAddImage(1, 1, 8, 9, arg0, ppmScr);
-	ppmOk = sys pAddButton(1, 10, 2, 1, "Ok", ppmScr);
-	ppmOvr = sys pSetOvrScr(ppmScr);
+  ppmScr = sys.gui.addScreen();
+  ppmLbl = sys.gui.addText(1, 0, 8, 1, arg0, ppmScr);
+  sys.gui.addImage(1, 1, 8, 9, arg0, ppmScr);
+  ppmOk = sys.gui.addButton(1, 10, 2, 1, "Ok", ppmScr);
+  ppmOvr = sys.o.setScr(ppmScr);
 }
 

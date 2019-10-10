@@ -1,45 +1,45 @@
  # Simple app for measuring how long the SDA can go on battery
 
 function init {
-	scr = sys pAddScreen();
-	sys pSetMainScr(scr);
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
 
-  text = sys pAddText(0, 0, 8, 1, "Battery tester!", scr);
-	btn1 = sys pAddButton(1, 1, 5, 2, "Start", scr);
-	time = 0;
+  text = sys.gui.addText(0, 0, 8, 1, "Battery tester!", scr);
+  btn1 = sys.gui.addButton(1, 1, 5, 2, "Start", scr);
+  time = 0;
 
-	sys cOpen("battest.dat");
-	sys pAddText(0, 4, 8, 5, "Last time: "+num(sys cKeyRead("time"))/60+" : "+num(sys cKeyRead("time"))%60, scr);
-	sys cClose();
+  sys.fs.conf.open("battest.dat");
+  sys.gui.addText(0, 4, 8, 5, "Last time: "+num(sys.fs.conf.read("time"))/60+" : "+num(sys.fs.conf.read("time"))%60, scr);
+  sys.fs.conf.close();
 }
 
 function update {
-	if (sys pGetEventC(btn1) == EV_RELEASED) {
-		running = 1;
-		sys sleepLock(1);
-	}
+  if (sys.gui.getEventC(btn1) == EV_RELEASED) {
+    running = 1;
+    sys.hw.lockSleep(1);
+  }
 
-	if (running == 1) {
-	  sys sxSetArea(0, 64, 318, 300);
-	  sys sxClearArea(sys sxMixColor(255,0,0));
+  if (running == 1) {
+    sys.ds.setArea(0, 64, 318, 300);
+    sys.ds.clearArea(sys.ds.mixColor(255,0,0));
 
-	  for(x = 0; x < 320; x++;) {
-		  for(y = 0; y < 250; y++;) {
-		  sys sxFillRect(x , y, x, y, sys rnd());
-		  check();
-		  }
-	  }
-	}
+    for(x = 0; x < 320; x++;) {
+      for(y = 0; y < 250; y++;) {
+      sys.ds.fillRect(x , y, x, y, sys.os.rnd());
+      check();
+      }
+    }
+  }
 }
 
 function check{
-	min = sys getTimeMin();
-	if (min != oldmin) {
-		time++;
-		sys cOpen("battest.dat");
-		sys cKeyWrite("time", "" + time);
-		sys cClose();
-		sys pSetStr(text, "time: " + time/60 + " : " + time%60);
-	}
-	oldmin = min;
+  min = sys.time.getMin();
+  if (min != oldmin) {
+    time++;
+    sys.fs.conf.open("battest.dat");
+    sys.fs.conf.write("time", "" + time);
+    sys.fs.conf.close();
+    sys.gui.setStr(text, "time: " + time/60 + " : " + time%60);
+  }
+  oldmin = min;
 }

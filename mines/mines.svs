@@ -1,38 +1,38 @@
 function init {
-	sys print("init:");
-	sys dbg(0);
-	sys dbgCache(0);
-	scr= sys pAddScreen();
-	sys pSetMainScr(scr);
-	btn1=sys pAddButton(1,0,5,1, "New game!", scr);
-	wk_txt=sys pAddText(5,0,10,1, "Working...", scr);
-	
-	mines=5;
-	
-	num_txt=sys pAddText(3,12,6,13, "Mines: "+mines, scr);
-	
-	
-	btnp=sys pAddButton(2,12,3,13, "+", scr);
-	
-	btnm=sys pAddButton(6,12,7,13, "-", scr);
-	
-	sys pSetVisible(wk_txt, 0);
-	
-	poleBtn=sys arrayNew(100);
-	
-	pole=sys arrayNew(100);
-	
-  poleSel=sys arrayNew(100);
-	
-	
-	
-	generate();
+  print("init:");
+  sys.dbg(0);
+  sys.dbgCache(0);
+  scr= sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  btn1=sys.gui.addButton(1,0,5,1, "New game!", scr);
+  wk_txt=sys.gui.addText(5,0,10,1, "Working...", scr);
+  
+  mines=5;
+  
+  num_txt=sys.gui.addText(3,12,6,13, "Mines: "+mines, scr);
+  
+  
+  btnp=sys.gui.addButton(2,12,3,13, "+", scr);
+  
+  btnm=sys.gui.addButton(6,12,7,13, "-", scr);
+  
+  sys.gui.setVisible(wk_txt, 0);
+  
+  poleBtn=sys.arrayNew(100);
+  
+  pole=sys.arrayNew(100);
+  
+  poleSel=sys.arrayNew(100);
+  
+  
+  
+  generate();
 }
 
 function add_mines{
 x=1;
   while(x<=mines){
-    sys arraySet(pole, sys rnd()%100, 1);
+    sys.arraySet(pole, sys.os.rnd()%100, 1);
     x=x+1;
   }
   
@@ -47,7 +47,7 @@ function generate{
   
   x=0;
   while (x<100){
-    sys arraySet(poleBtn, x, sys pAddButton(x%10, 1+x/10, x%10+1, 1+x/10+1, "X", scr));
+    sys.arraySet(poleBtn, x, sys.gui.addButton(x%10, 1+x/10, x%10+1, 1+x/10+1, "X", scr));
     x=x+1;
   }
 
@@ -58,13 +58,13 @@ function reset{
   sstart=0;
   clicked=0;
   boom=0;
-  sys pSetStr(btn1,"New game!");
+  sys.gui.setStr(btn1,"New game!");
   
   x=0;
   while (x<100){
-    sys pSetStr(sys arrayGet(poleBtn, x),"X");
-    sys arraySet(poleSel,x, 0);
-    sys arraySet(pole, x, 0);
+    sys.gui.setStr(sys.arrayGet(poleBtn, x),"X");
+    sys.arraySet(poleSel,x, 0);
+    sys.arraySet(pole, x, 0);
     x=x+1;
   }
   
@@ -78,105 +78,105 @@ function update {
 
   x=0;
   while (x<100){
-    if ((sys pGetEvent(sys arrayGet(poleBtn, x))==3)*(boom==0)){
-      if (sys arrayGet(pole, x)==1){
-        sys pSetStr(btn1,"BOOM!!");
+    if ((sys.gui.getEvent(sys.arrayGet(poleBtn, x))==3)*(boom==0)){
+      if (sys.arrayGet(pole, x)==1){
+        sys.gui.setStr(btn1,"BOOM!!");
         show_mines();
         boom=1;
         return;
       }else{
         clicked=1;
         arg=x;
-        sys pSetEvent(sys arrayGet(poleBtn, x),0);
+        sys.gui.setEvent(sys.arrayGet(poleBtn, x),0);
         break;
       }
     }
-    sys pSetEvent(sys arrayGet(poleBtn, x),0);
+    sys.gui.setEvent(sys.arrayGet(poleBtn, x),0);
     x=x+1;
   }
 
 
-	if (sys pGetEvent(btn1)==3){
-	  sys pSetEvent(btn1,0);
-	  reset();
-	  return;
-	}
-	
-	if(sstart!=0){
-	  
-	  quick=0;
-	   while ((sstart!=0)*(quick<80)){
-	    quick=quick+1;
-	    fflg=0;
-	    if (sys arrayGet(poleSel,scnt)==1){
-	      arg=scnt;
-	      val=get_val();
-	      if (val!=0){
-	        sys pSetStr(sys arrayGet(poleBtn, scnt),""+val);
-	      }else{
-	        if (sys arrayGet(pole, scnt)==0){
-	          sys pSetStr(sys arrayGet(poleBtn, scnt),"");
-	        }
-	      }
-	      sys arraySet(poleSel,arg, 2);
-	      if(val==0){
-	        selector();
-	      }
-	    }
+  if (sys.gui.getEvent(btn1)==3){
+    sys.gui.setEvent(btn1,0);
+    reset();
+    return;
+  }
+  
+  if(sstart!=0){
+    
+    quick=0;
+     while ((sstart!=0)*(quick<80)){
+      quick=quick+1;
+      fflg=0;
+      if (sys.arrayGet(poleSel,scnt)==1){
+        arg=scnt;
+        val=get_val();
+        if (val!=0){
+          sys.gui.setStr(sys.arrayGet(poleBtn, scnt),""+val);
+        }else{
+          if (sys.arrayGet(pole, scnt)==0){
+            sys.gui.setStr(sys.arrayGet(poleBtn, scnt),"");
+          }
+        }
+        sys.arraySet(poleSel,arg, 2);
+        if(val==0){
+          selector();
+        }
+      }
 
-	    
-	    if ((scnt<100)*(down==0)+(scnt>0)*(down==1)){
-	      if (down==1){
-	        scnt=scnt-1;
-	      }else{
-	        scnt=scnt+1;
-	      }
-	      #sys print("sc"+scnt+" down:"+down);
-	      if (fflg==1){
-	        sstart=1;
-	      }
-	    }else{
-	      if (fflg==0){
-	        if(sstart==2){
-	          sstart=0;
-	          sys pSetVisible(wk_txt, 0);
-	          break;
-	        }else{
-	          sstart=2;
-	          down=1-down;
-	          scnt=100*down;
-	        }
-	      }
-	    }
-	  }
-	}
-	
-	sys pSetEvent(btn1,0);
-	
-	if(clicked==1){
-	  clicked=0;
-	  sstart=arg;
-	  sys pSetVisible(wk_txt, 1);
-	  scnt=0;
-	  down=0;
-	  sys arraySet(poleSel,arg, 1);
-	}
-	
-	if (sys pGetEvent(btnp)==3){
-	  mines=mines+1;
-	  sys pSetStr(num_txt,"Mines: "+mines);
-	}
-	sys pSetEvent(btnp,0);
-	
-	if (sys pGetEvent(btnm)==3){
-	  if (mines>3){
-	    mines=mines-1;
-	  }
-	  sys pSetStr(num_txt,"Mines: "+mines);
-	}
-	sys pSetEvent(btnm,0);
-	
-	
+      
+      if ((scnt<100)*(down==0)+(scnt>0)*(down==1)){
+        if (down==1){
+          scnt=scnt-1;
+        }else{
+          scnt=scnt+1;
+        }
+        #print("sc"+scnt+" down:"+down);
+        if (fflg==1){
+          sstart=1;
+        }
+      }else{
+        if (fflg==0){
+          if(sstart==2){
+            sstart=0;
+            sys.gui.setVisible(wk_txt, 0);
+            break;
+          }else{
+            sstart=2;
+            down=1-down;
+            scnt=100*down;
+          }
+        }
+      }
+    }
+  }
+  
+  sys.gui.setEvent(btn1,0);
+  
+  if(clicked==1){
+    clicked=0;
+    sstart=arg;
+    sys.gui.setVisible(wk_txt, 1);
+    scnt=0;
+    down=0;
+    sys.arraySet(poleSel,arg, 1);
+  }
+  
+  if (sys.gui.getEvent(btnp)==3){
+    mines=mines+1;
+    sys.gui.setStr(num_txt,"Mines: "+mines);
+  }
+  sys.gui.setEvent(btnp,0);
+  
+  if (sys.gui.getEvent(btnm)==3){
+    if (mines>3){
+      mines=mines-1;
+    }
+    sys.gui.setStr(num_txt,"Mines: "+mines);
+  }
+  sys.gui.setEvent(btnm,0);
+  
+  
 }
 
 function show_mines{
@@ -184,25 +184,25 @@ function show_mines{
   
   while(x<100){
     arg=x;
-    if (sys pGetStr(sys arrayGet(poleBtn, x))=="X"){
-	    val=get_val();
-	    if (val!=0){
-	      sys pSetStr(sys arrayGet(poleBtn, x),""+val);
-	    }else{
-	      sys pSetStr(sys arrayGet(poleBtn, x),"");
-	    }
-	    
-	    if (sys arrayGet(pole, x)==1){
-	      sys pSetStr(sys arrayGet(poleBtn, x),"x");
-	    }
+    if (sys.gui.getStr(sys.arrayGet(poleBtn, x))=="X"){
+      val=get_val();
+      if (val!=0){
+        sys.gui.setStr(sys.arrayGet(poleBtn, x),""+val);
+      }else{
+        sys.gui.setStr(sys.arrayGet(poleBtn, x),"");
+      }
+      
+      if (sys.arrayGet(pole, x)==1){
+        sys.gui.setStr(sys.arrayGet(poleBtn, x),"x");
+      }
     }
     x=x+1;
   }
 }
 
 function select_x{
-  if (sys arrayGet(poleSel,arg)==0){
-    sys arraySet(poleSel,arg, 1);
+  if (sys.arrayGet(poleSel,arg)==0){
+    sys.arraySet(poleSel,arg, 1);
     fflg=1;
   }
 }
@@ -344,57 +344,57 @@ function get_val{
   #vrch
   retval=0;
   if (arg==0){
-    retval=sys arrayGet(pole,1)+sys arrayGet(pole, 10)+sys arrayGet(pole, 11);
+    retval=sys.arrayGet(pole,1)+sys.arrayGet(pole, 10)+sys.arrayGet(pole, 11);
     return retval;
   }
   
   if (arg==9){
-    retval=sys arrayGet(pole, 8)+sys arrayGet(pole, 18)+sys arrayGet(pole, 19);
+    retval=sys.arrayGet(pole, 8)+sys.arrayGet(pole, 18)+sys.arrayGet(pole, 19);
     return retval;
   }
   
   if ((arg>0)*(arg<9)){
-      retval=sys arrayGet(pole, arg-1)+sys arrayGet(pole, arg+1)
-              +sys arrayGet(pole, arg+9)+sys arrayGet(pole, arg+10)+sys arrayGet(pole, arg+11);
+      retval=sys.arrayGet(pole, arg-1)+sys.arrayGet(pole, arg+1)
+              +sys.arrayGet(pole, arg+9)+sys.arrayGet(pole, arg+10)+sys.arrayGet(pole, arg+11);
       return retval;
   }
   
   #střed
   if ((arg>9)*(arg<90)){
     if (arg%10==0){
-      retval=sys arrayGet(pole, arg-10)+sys arrayGet(pole, arg-9)+sys arrayGet(pole, arg+1)
-              +sys arrayGet(pole, arg+10)+sys arrayGet(pole, arg+11);
+      retval=sys.arrayGet(pole, arg-10)+sys.arrayGet(pole, arg-9)+sys.arrayGet(pole, arg+1)
+              +sys.arrayGet(pole, arg+10)+sys.arrayGet(pole, arg+11);
       return retval;
     }
     
     if (arg%10==9){
-      retval=sys arrayGet(pole, arg-10)+sys arrayGet(pole, arg-11)+sys arrayGet(pole, arg-1)
-              +sys arrayGet(pole, arg+9)+sys arrayGet(pole, arg+10);
+      retval=sys.arrayGet(pole, arg-10)+sys.arrayGet(pole, arg-11)+sys.arrayGet(pole, arg-1)
+              +sys.arrayGet(pole, arg+9)+sys.arrayGet(pole, arg+10);
       return retval;
     }
     
     if((arg%10!=0)*(arg%10!=9)){
-      retval=sys arrayGet(pole, arg-11)+sys arrayGet(pole, arg-10)+sys arrayGet(pole, arg-9)
-           +sys arrayGet(pole, arg-1)+sys arrayGet(pole, arg+1)
-           +sys arrayGet(pole, arg+9)+sys arrayGet(pole, arg+10)+sys arrayGet(pole, arg+11);
+      retval=sys.arrayGet(pole, arg-11)+sys.arrayGet(pole, arg-10)+sys.arrayGet(pole, arg-9)
+           +sys.arrayGet(pole, arg-1)+sys.arrayGet(pole, arg+1)
+           +sys.arrayGet(pole, arg+9)+sys.arrayGet(pole, arg+10)+sys.arrayGet(pole, arg+11);
       return retval;
     }
   }
   
   #spodek
   if (arg==90){
-    retval=sys arrayGet(pole,80)+sys arrayGet(pole, 81)+sys arrayGet(pole, 91);
+    retval=sys.arrayGet(pole,80)+sys.arrayGet(pole, 81)+sys.arrayGet(pole, 91);
     return retval;
   }
   
   if (arg==99){
-    retval=sys arrayGet(pole, 88)+sys arrayGet(pole, 89)+sys arrayGet(pole, 98);
+    retval=sys.arrayGet(pole, 88)+sys.arrayGet(pole, 89)+sys.arrayGet(pole, 98);
     return retval;
   }
   
   if ((arg>90)*(arg<99)){
-      retval=sys arrayGet(pole, arg-1)+sys arrayGet(pole, arg+1)
-              +sys arrayGet(pole, arg-11)+sys arrayGet(pole, arg-10)+sys arrayGet(pole, arg-9);
+      retval=sys.arrayGet(pole, arg-1)+sys.arrayGet(pole, arg+1)
+              +sys.arrayGet(pole, arg-11)+sys.arrayGet(pole, arg-10)+sys.arrayGet(pole, arg-9);
       return retval;
   }
   

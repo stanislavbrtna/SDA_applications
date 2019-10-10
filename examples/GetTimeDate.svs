@@ -1,38 +1,38 @@
 function init {
-  scr = sys pAddScreen();
+  scr = sys.gui.addScreen();
 
-  getDate = sys pAddButton(1, 1, 5, 2, "Get Date", scr);
+  getDate = sys.gui.addButton(1, 1, 5, 2, "Get Date", scr);
 
-  getTime = sys pAddButton(1, 3, 5, 4, "Get Time", scr);
+  getTime = sys.gui.addButton(1, 3, 5, 4, "Get Time", scr);
 
-  sys pSetMainScr(scr);
+  sys.os.gui.setMainScr(scr);
 }
 
 function update {
 
-  if (sys pGetEventC(getDate) == EV_RELEASED) {
-    dateOvr = sys oDateAdd(sys getTimeYear(), sys getTimeMonth(), sys getTimeDay());
+  if (sys.gui.getEventC(getDate) == EV_RELEASED) {
+    dateOvr = sys.o.date.add(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay());
   }
 
-  sys oDateUpd(dateOvr); # updates given overlay id, does nothing if overlay is inactive
+  sys.o.date.update(dateOvr); # updates given overlay id, does nothing if overlay is inactive
 
-  if (sys oDateGetOk(dateOvr)) {
-    sys pSetStr(getDate, "" +sys oDateGetDay(dateOvr) + ". "+sys oDateGetMon(dateOvr) + ". " +sys oDateGetYr(dateOvr));
-    sys oDateClrOk(dateOvr);
+  if (sys.o.date.getOk(dateOvr)) {
+    sys.gui.setStr(getDate, "" +sys.o.date.getDay(dateOvr) + ". "+sys.o.date.getMon(dateOvr) + ". " +sys.o.date.getYr(dateOvr));
+    sys.o.date.clrOk(dateOvr);
   }
 
   # nearly same for time
 
-  if (sys pGetEventC(getTime) == EV_RELEASED) {
-    timeOvr = sys oTimAdd();
-    sys oTimSet(timeOvr, sys getTimeHr(), sys getTimeMin());
+  if (sys.gui.getEventC(getTime) == EV_RELEASED) {
+    timeOvr = sys.o.time.add();
+    sys.o.time.set(timeOvr, sys.time.getHr(), sys.time.getMin());
   }
 
-  sys oTimUpd(timeOvr);
+  sys.o.time.update(timeOvr);
 
-  if (sys oTimGetOk(timeOvr)) {
-    sys pSetStr(getTime, "" + sys oTimGetHr(timeOvr) + ":" + fmt(sys oTimGetMin(timeOvr)));
-    sys oTimClrOk(timeOvr);
+  if (sys.o.time.getOk(timeOvr)) {
+    sys.gui.setStr(getTime, "" + sys.o.time.getHr(timeOvr) + ":" + fmt(sys.o.time.getMin(timeOvr)));
+    sys.o.time.clrOk(timeOvr);
   }
 }
 
