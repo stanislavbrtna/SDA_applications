@@ -1,0 +1,492 @@
+function init {
+  initSelect();
+  initRun();
+
+  splashScr = sys.gui.addScreen();
+  splash = sys.gui.addImage(1, 2, 9, 12, "sVload.p16", splashScr);
+
+  sys.cnt.set(5000);
+  sys.os.gui.setMainScr(splashScr);
+}
+
+function update {
+  if (sys.os.gui.getMainScr() == splashScr) {
+    if (sys.cnt.get() == 0 or (sys.gui.getEvent(splash) == EV_PRESSED)) {
+      sys.os.gui.setMainScr(selectScr);
+    }
+  }
+
+  if (sys.os.gui.getMainScr() == selectScr) {
+    updateSelect();
+  }
+
+  if (sys.os.gui.getMainScr() == runScr) {
+    updateRun();
+  }
+}
+
+function initSelect {
+  selectScr = sys.gui.addScreen();
+  sys.gui.addText(1, 1, 10, 2, "S! Runtime pro SDA", selectScr);
+
+  btn_ar = sys.arrayNew(10);
+  name_ar = sys.arrayNew(10);
+  x = 0;
+  for(findfil = sys.fs.find("sva", "sv"); findfil != "" and x < 10; findfil = sys.fs.findNext();) {
+    findfil = "sv/" + findfil;
+    print("file: " + findfil);
+    sys.arraySet(name_ar, x, findfil);
+
+    sys.fs.conf.open(findfil);
+
+    sys.arraySet(btn_ar, x, sys.gui.addButton( 1, 2 + x, 7, 3 + x, sys.fs.conf.read("name"), selectScr));
+
+    sys.fs.conf.close();
+
+    x++;
+  }
+  progCount = x;
+}
+
+function updateSelect {
+
+  for (x = 0; x < progCount; x++;) {
+    if (sys.gui.getEventC(sys.arrayGet(btn_ar, x)) == EV_RELEASED) {
+      appToLoad = sys.arrayGet(name_ar, x);
+      loadApp();
+    }
+  }
+
+}
+
+function loadApp {
+  vmLink = 1;
+  vmWait = 0;
+
+  sys.fs.conf.open(appToLoad);
+  sys.os.gui.setMainScr(runScr);
+
+  print("using: " + appToLoad);
+}
+
+function redrawText {
+  local x;
+  local y;
+  #local out;
+  if (arg0) {
+    sys.ds.setArea(0, 64, 318, 440);
+  } else {
+    sys.ds.setArea(0, 64, 318, 240);
+  }
+  sys.ds.clearArea(sys.gui.getColor(COL_BACKGROUND));
+  if (ppm_background != ""){
+    sys.ds.drawPPM(0, 64, 1, ppm_background);
+  }
+
+  for(x = 0; x < OUT_LINES; x++;) {
+    out = "";
+    string = sys.arrayGet(volOutLines_ar, x);
+    for (y = 0; y < len(sys.arrayGet(volOutLines_ar, x)) + 1; y++;) {
+
+      if (getcp(string, y) != "##" )
+      {
+        c = getcp(string, y);
+        out = out + c;
+      } else {
+        out = out + "\n";
+      }
+
+
+    }
+    sys.ds.setTextFit(1, 318);
+    sys.ds.drawText(10, 17 * x, "" + out,sys.gui.getColor(COL_TEXT));
+  }
+
+}
+
+function initRun {
+  runScr = sys.gui.addScreen();
+
+  volBtn_ar = sys.arrayNew(7);
+  volLink_ar = sys.arrayNew(7);
+  volText_ar = sys.arrayNew(7);
+
+  OUT_LINES = 9;
+  FLT_VARS = 5;
+  STR_VARS = 5;
+
+  volOutLines_ar = sys.arrayNew(OUT_LINES);
+
+  fltVar_ar = sys.arrayNew(FLT_VARS);
+
+  strVar_ar = sys.arrayNew(STR_VARS);
+
+  for(x = 0; x < OUT_LINES; x++;) {
+    sys.arraySet(volOutLines_ar, x, "");
+  }
+
+  linksBtn  = sys.gui.addButton(2, 13, 8, 14, "Volby", runScr);
+
+
+  ppm_background = "";
+  inText = "";
+  inTextEl  = sys.gui.addText(1, 7, 7, 8, inText, runScr);
+  sys.gui.setTexEd(inTextEl, 1);
+  inTextOk  = sys.gui.addButton(7, 7, 10, 8, "Ok", runScr);
+
+  showInp(0);
+
+}
+
+function showInp {
+  sys.gui.setVisible(inTextEl, arg0);
+  sys.gui.setVisible(inTextOk, arg0);
+  if (arg0){
+    sys.os.showKbd();
+    sys.gui.setTexAct(inTextEl);
+  } else {
+    sys.os.hideKbd();
+    redrawText();
+  }
+}
+
+function updateRun {
+  if (sys.gui.getEventC(linksBtn) == EV_RELEASED) {
+    addOverlay();
+  }
+
+  if (ovr_id == sys.o.getId() and sys.o.getId() != 0) {
+    handleOverlay();
+  }
+
+  vmLoop();
+
+  inText = sys.os.gui.handleText(inTextEl, inText);
+
+  if(sys.os.getRedraw()) {
+    redrawText(sys.gui.getVisible(inTextOk) == 0);
+  }
+}
+
+
+#*
+  Implementuje sub-set originálního S! jazyka.
+  Cílem implementace je dosáhnout 100% kompatibility s programy:
+  - calc.sva
+  - kecak.sva
+  - about.sva
+  - prohl.sva
+
+  Neobstahuje všechny příkazy zmiňované v:
+      s! - dokumentace příkazů, Revize č.1
+  Ovšem obsahuje starší nedokumentované příkazy.
+*#
+function vmLoop {
+  if (vmWait) {
+    return;
+  }
+
+  local x;
+  local y;
+  local z;
+
+  # programy občas skáčou na neexistující řádek 0
+  if (not sys.fs.conf.exists("" + vmLink) and vmLink != 0) {
+    print("linka: " + vmLink + " neexistuje!");
+    vmWait = 1;
+    return;
+  }
+
+  cmd = sys.fs.conf.read("" + vmLink);
+  if (cmd == "cudl") {
+    vmLink++;
+    for(x = 0; x < 7; x++;) {
+      sys.arraySet(volText_ar, x, sys.fs.conf.read("" + vmLink));
+      vmLink++;
+    }
+
+    for(x = 0; x < 7; x++;) {
+      sys.arraySet(volLink_ar, x, sys.fs.conf.read("" + vmLink));
+      vmLink++;
+    }
+    return;
+  }
+
+  if (cmd == "wait") {
+    vmWait = 1;
+    return;
+  }
+
+  if (cmd == "link") {
+    vmLink++;
+    vmLink = num (sys.fs.conf.read("" + vmLink));
+    print("link: jump: " + vmLink);
+    return;
+  }
+
+  if (cmd == "ds_text") {
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    sys.arraySet(volOutLines_ar, x - 1, sys.fs.conf.read("" + vmLink));
+    redrawText();
+    vmLink++;
+    return;
+  }
+
+  if (cmd == "random4") {
+    vmLink++;
+    vmLink = vmLink + sys.os.rnd() % 4;
+    vmLink = num (sys.fs.conf.read("" + vmLink));
+    print("random4: jump: " + vmLink);
+    return;
+  }
+
+  if (cmd == "addprom") {
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    if (x >= 0 and x < FLT_VARS) {
+      sys.arraySet(fltVar_ar, x, float(sys.fs.conf.read("" + vmLink)));
+      vmLink++;
+    } else {
+      print("error: nedostatek FLT VARs")
+    }
+    return;
+  }
+
+  if (cmd == "zispr") {
+    if (sys.gui.getVisible(inTextOk) == 0) {
+      showInp(1);
+      val = 0;
+      inText = "";
+      return;
+    } else {
+      if (sys.gui.getEventC(inTextOk) == EV_RELEASED) {
+        showInp(0);
+      } else {
+        return;
+      }
+    }
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    if (x >= 0 and x < FLT_VARS) {
+      sys.arraySet(fltVar_ar, x, float(inText));
+    } else {
+      print("error: nedostatek FLT VARs")
+    }
+    return;
+  }
+
+  if (cmd == "addstr" or cmd == "vczstr") {
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    if (x >= 0 and x < STR_VARS) {
+      sys.arraySet(strVar_ar, x, sys.fs.conf.read("" + vmLink));
+      vmLink++;
+    } else {
+      print("error: nedostatek STR VARs");
+    }
+    return;
+  }
+
+  if (cmd == "zisstr") {
+    if (sys.gui.getVisible(inTextOk) == 0) {
+      showInp(1);
+      val = 0;
+      inText = "";
+      return;
+    } else {
+      if (sys.gui.getEventC(inTextOk) == EV_RELEASED) {
+        showInp(0);
+      } else {
+        return;
+      }
+    }
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    if (x >= 0 and x < STR_VARS) {
+      sys.arraySet(strVar_ar, x, inText);
+    } else {
+      print("error: nedostatek STR VARs");
+    }
+    return;
+  }
+
+  if (cmd == "secti" or cmd == "scipr") {
+
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    y = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    z = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    print("x: " + x + " y: " + y + " z: " + z);
+    if (x >= 0 and x < FLT_VARS and y >= 0 and y < FLT_VARS and z >= 0 and z < FLT_VARS) {
+      sys.arraySet(fltVar_ar, z, sys.arrayGet(fltVar_ar, x) + sys.arrayGet(fltVar_ar, y));
+    } else {
+      print("error: nedostatek FLT VARs");
+    }
+    return;
+  }
+
+  if (cmd == "odecti" or cmd == "odcpr") {
+
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    y = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    z = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    print("x: " + x + " y: " + y + " z: " + z);
+    if (x >= 0 and x < FLT_VARS and y >= 0 and y < FLT_VARS and z >= 0 and z < FLT_VARS) {
+      sys.arraySet(fltVar_ar, z, sys.arrayGet(fltVar_ar, x) - sys.arrayGet(fltVar_ar, y));
+    } else {
+      print("error: nedostatek FLT VARs");
+    }
+    return;
+  }
+
+  if (cmd == "nasob" or cmd == "naspr") {
+
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    y = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    z = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    print("x: " + x + " y: " + y + " z: " + z);
+    if (x >= 0 and x < FLT_VARS and y >= 0 and y < FLT_VARS and z >= 0 and z < FLT_VARS) {
+      sys.arraySet(fltVar_ar, z, sys.arrayGet(fltVar_ar, x) * sys.arrayGet(fltVar_ar, y));
+    } else {
+      print("error: nedostatek FLT VARs");
+    }
+    return;
+  }
+
+  if (cmd == "del" or cmd == "delpr") {
+
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    y = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    z = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    print("x: " + x + " y: " + y + " z: " + z);
+    if (x >= 0 and x < FLT_VARS and y >= 0 and y < FLT_VARS and z >= 0 and z < FLT_VARS) {
+      sys.arraySet(fltVar_ar, z, sys.arrayGet(fltVar_ar, x) / sys.arrayGet(fltVar_ar, y));
+    } else {
+      print("error: nedostatek FLT VARs");
+    }
+
+    return;
+  }
+
+  if (cmd == "vikpr") {
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    y = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    sys.arraySet(volOutLines_ar, x - 1, sys.fs.conf.read("" + vmLink) + sys.arrayGet(fltVar_ar, y));
+    redrawText();
+    vmLink++;
+    print("vikpr: end: "+vmLink);
+    return;
+  }
+
+  if (cmd == "strrovno") {
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    y = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    z = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+
+    if (x >= 0 and x < STR_VARS and y >= 0 and y < STR_VARS) {
+      print("compare: "+ sys.arrayGet(strVar_ar, x)+ " a " + sys.arrayGet(strVar_ar, y));
+      if (("" + sys.arrayGet(strVar_ar, x)) == (""+sys.arrayGet(strVar_ar, y))) {
+        vmLink = num(z);
+      }
+      return;
+    } else {
+      print("error: nedostatek FLT VARs");
+    }
+  }
+
+  if (cmd == "vikstr") {
+    vmLink++;
+    x = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    y = num (sys.fs.conf.read("" + vmLink));
+    vmLink++;
+    sys.arraySet(volOutLines_ar, x - 1, sys.fs.conf.read("" + vmLink) + sys.arrayGet(strVar_ar, y));
+    redrawText();
+    vmLink++;
+    print("vikstr: end: "+vmLink);
+    return;
+  }
+
+  if (cmd == "ds_background") {
+    vmLink++;
+    ppm_background = sys.fs.conf.read("" + vmLink);
+    redrawText();
+    vmLink++;
+    return;
+  }
+
+  if (cmd == "ds_stop_background") {
+    vmLink++;
+    ppm_background = "";
+    redrawText();
+    return;
+  }
+
+  # přeskočení neznámých příkazů
+  print("Neznam: "+cmd);
+  vmLink++;
+}
+
+function addOverlay {
+  linkScr = sys.gui.addScreen();
+  for(x = 0; x < 7; x++;) {
+    sys.arraySet(volBtn_ar, x, sys.gui.addButton(0, 1 + x, 8, 2 + x, "" + sys.arrayGet(volText_ar, x), linkScr));
+  }
+  x++;
+  linkBack = sys.gui.addButton(0, 1 + x, 8, 2 + x, "Zpět", linkScr);
+
+  ovr_id = sys.o.setScr(linkScr);
+}
+
+function handleOverlay {
+  if (sys.gui.getEventC(linkBack) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+
+  for(x = 0; x < 7; x++;) {
+    if (sys.gui.getEventC(sys.arrayGet(volBtn_ar, x)) == EV_RELEASED) {
+      vmWait = 0;
+      vmLink = num(sys.arrayGet(volLink_ar, x));
+      print("jump: " + vmLink);
+      sys.o.destroy();
+      return;
+    }
+  }
+}

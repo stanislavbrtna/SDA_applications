@@ -1,0 +1,86 @@
+function init {
+  FAIL = 0;
+
+  scr = sys.gui.addScreen();
+
+#*  sys.os.gui.setMainScr(123);
+
+  if (sys.os.gui.getMainScr() != 123) {
+    FAIL = 1;
+    print("set or get main screen");
+  }
+*#
+  sys.os.gui.setMainScr(scr);
+
+  prg = 0;
+}
+
+function update {
+  if (FAIL == 0) {
+    prg++;
+  } else {
+    prg = 0;
+  }
+  cur = 0;
+
+  cur++;
+  if(prg == cur) {
+    print("pGetRedraw:", "");
+    sys.os.setRedraw();
+    return;
+  }
+
+  cur++;
+  if(prg == cur) {
+    if (not sys.os.getRedraw()) {
+      FAIL = 1;
+      print("FAIL");
+    } else {
+      print("OK");
+    }
+    return;
+  }
+
+  cur++;
+  if(prg == cur) {
+    print("Counter:", "");
+    sys.cnt.set(100);
+
+    if (sys.cnt.get() > 100 or sys.cnt.get() < 10) {
+      FAIL = 1;
+      print("FAIL (1)");
+    }
+    return;
+  }
+
+  cur++;
+  if(prg == cur) {
+    if (sys.cnt.get() >= 100) {
+      FAIL = 1;
+      print("FAIL (2)");
+    } else {
+      if (FAIL != 0)
+        print("OK");
+    }
+    return;
+  }
+
+  #TODO: hw buttons (also with lcd off)
+  #TODO: text input
+  #TODO: keyboard hide/show
+
+  cur++;
+  if(prg == cur) {
+    print("Random:", "");
+    if (sys.os.rnd() == sys.os.rnd() and sys.os.rnd() ==  sys.os.rnd()) {
+      FAIL = 1;
+      print("FAIL (random not random)");
+    } else {
+      if (FAIL != 0)
+        print("OK");
+    }
+    return;
+  }
+
+
+}

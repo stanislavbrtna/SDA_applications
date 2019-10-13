@@ -1,0 +1,84 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(0, 0, 5, 1, "Direct-S demo", scr);
+  button = sys.gui.addCheckBox(5, 0, 8, 1, "cont", scr);
+
+  gray = sys.ds.mixColor(200, 200, 200);
+  green = sys.ds.mixColor(24, 240, 20);
+
+  game_speed = 300;
+  redrawAll = 3;
+
+  touchX = 0;
+  touchY = 0;
+}
+
+
+
+function redraw {
+
+  sys.ds.setArea(0, 64, 318, 440);
+
+  if (redrawAll) {
+    sys.ds.clearArea(0);
+    redrawAll--;
+    redraw = 1;
+    redraw_score = 1;
+    redraw_food = 1;
+  }
+
+  if (redraw == 0) {
+    return;
+  }
+
+  if (touchX != 0 and touchY != 0) {
+    sys.ds.fillCircle(touchX, touchY, 8, green);
+  }
+
+  if (redraw_score) {
+    redraw_score = 0;
+    sys.ds.fillRect( 0, 336, 319, 376, 0xFFFF);
+    sys.ds.drawText(90, 346, "text", 0);
+  }
+  redraw = 0;
+}
+
+
+function update {
+
+  if (sys.os.getRedraw()){
+    redrawAll = 2;
+  }
+
+  #* framelimiter
+  if ((sys.cnt.get() != 0)) {
+    return;
+  } else {
+    sys.cnt.set(game_speed);
+  }
+  *#
+
+  if (sys.ds.touchEv() == EV_PRESSED) {
+    touchX = sys.ds.touchX();
+    touchY = sys.ds.touchY() - 64;
+    redraw = 1;
+    print("clicked!");
+  }
+
+  if (sys.ds.touchEv() and sys.gui.getValue(button)) {
+    touchX = sys.ds.touchX();
+    touchY = sys.ds.touchY() - 64;
+    redraw = 1;
+    print("clicked!");
+  }
+
+  sys.ds.touchClr();
+
+  if(sys.gui.getEventC(button) == EV_RELEASED) {
+    print("testbutton");
+  }
+
+  redraw();
+
+}
