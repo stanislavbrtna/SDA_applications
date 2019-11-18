@@ -359,23 +359,23 @@ function update {
 
     inText=sys.os.gui.handleText(txt, inText);
 
-    if(sys.btnGetEv(BTN_UP)==1){
+    if(sys.hw.btn.getEvent(BTN_UP)==1){
       if (sys.gui.getValue(sld)>10){
         sys.gui.setValue(sld,sys.gui.getValue(sld)-10);
       }else{
         sys.gui.setValue(sld,0);
       }
     }
-    sys.btnClrEv(BTN_UP);
+    sys.hw.btn.clrEvent(BTN_UP);
 
-    if(sys.btnGetEv(BTN_DOWN)==1){
+    if(sys.hw.btn.getEvent(BTN_DOWN)==1){
       if (sys.gui.getValue(sld)<90){
         sys.gui.setValue(sld,sys.gui.getValue(sld)+10);
       }else{
         sys.gui.setValue(sld,100);
       }
     }
-    sys.btnClrEv(BTN_DOWN);
+    sys.hw.btn.clrEvent(BTN_DOWN);
 
     sys.gui.setYscroll(scr2, sys.gui.getValue(sld)*5);
   }

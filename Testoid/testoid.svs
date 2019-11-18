@@ -78,7 +78,7 @@ function init {
   init_inp();
   init_runner();
 
-  sys.btnStdbyEn(1);
+  sys.hw.btn.stdbyEn(1);
 }
 
 function init_runner {
@@ -276,40 +276,40 @@ function update {
     update_inp();
   }
 
-  if (sys.btnGetEv(0) == 1){
+  if (sys.hw.btn.getEvent(0) == 1){
     sys.gui.setStr(btn_text, "A Pressed (0)");
   }
-  sys.btnClrEv(0);
+  sys.hw.btn.clrEvent(0);
 
-  if (sys.btnGetEv(1) == 1){
+  if (sys.hw.btn.getEvent(1) == 1){
     sys.gui.setStr(btn_text, "Left Pressed (1)");
   }
-  sys.btnClrEv(1);
+  sys.hw.btn.clrEvent(1);
 
-  if (sys.btnGetEv(2) == 1){
+  if (sys.hw.btn.getEvent(2) == 1){
     sys.gui.setStr(btn_text, "Up Pressed (2)");
   }
-  sys.btnClrEv(2);
+  sys.hw.btn.clrEvent(2);
 
 
-  if (sys.btnGetEv(3) == 1){
+  if (sys.hw.btn.getEvent(3) == 1){
     sys.gui.setStr(btn_text, "Down Pressed (3)");
   }
-  sys.btnClrEv(3);
+  sys.hw.btn.clrEvent(3);
 
-  if (sys.btnGetEv(4) == 1){
+  if (sys.hw.btn.getEvent(4) == 1){
     sys.gui.setStr(btn_text, "Right Pressed (4)");
   }
-  sys.btnClrEv(4);
+  sys.hw.btn.clrEvent(4);
 
-  if (sys.btnGetEv(5) == 1){
+  if (sys.hw.btn.getEvent(5) == 1){
     sys.gui.setStr(btn_text, "B Pressed (5)");
   }
-  sys.btnClrEv(5);
+  sys.hw.btn.clrEvent(5);
 
   if (sys.gui.getEvent(btn_ledstat) == EV_RELEASED) {
     ledstat = ledstat + 1;
-    sys.sdaSetLed(ledstat);
+    sys.hw.setLed(ledstat);
 
     if (ledstat >= 4) {
       ledstat = -1;

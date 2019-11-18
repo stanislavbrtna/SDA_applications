@@ -41,6 +41,7 @@ function init {
   if (not sys.fs.conf.exists("f_ver")) {
     sys.fs.conf.write("f_ver", "1");
   }
+
 }
 
 
@@ -384,23 +385,23 @@ function day_update{
 
   sys.gui.setYscroll(day_scr_l, sys.gui.getValue(day_sld)*5);
 
-  if(sys.btnGetEv(BTN_UP)==1){
+  if(sys.hw.btn.getEvent(BTN_UP)==1){
     if (sys.gui.getValue(day_sld)>10){
       sys.gui.setValue(day_sld,sys.gui.getValue(day_sld)-10);
     }else{
       sys.gui.setValue(day_sld,0);
     }
   }
-  sys.btnClrEv(BTN_UP);
+  sys.hw.btn.clrEvent(BTN_UP);
 
-  if(sys.btnGetEv(BTN_DOWN)==1){
+  if(sys.hw.btn.getEvent(BTN_DOWN)==1){
     if (sys.gui.getValue(day_sld)<90){
       sys.gui.setValue(day_sld,sys.gui.getValue(day_sld)+10);
     }else{
       sys.gui.setValue(day_sld,100);
     }
   }
-  sys.btnClrEv(BTN_DOWN);
+  sys.hw.btn.clrEvent(BTN_DOWN);
 
   if(day_reload==1){
     day_reloader();

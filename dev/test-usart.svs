@@ -6,14 +6,14 @@ function init {
   sys.os.gui.setMainScr(scr);
 
   # external pin defines
-  sys.ePinDef(5, PIN_ALT, PIN_NOPULL);
-  sys.ePinDef(6, PIN_ALT, PIN_NOPULL);
+  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
 }
 
 function update {
 
   if (sys.gui.getEventC(btn) == EV_RELEASED) {
-    sys.serialTrs("test" + a);
+    sys.com.uartTrs("test" + a);
     a = a +1;
   }
 
@@ -23,7 +23,7 @@ function update {
   }
 
   if (get == 1) {
-    x = sys.serialRcv(3200);
+    x = sys.com.uartRcv(3200);
     if (x != "") {
       sys.gui.setStr(txt, x);
       get = 0;

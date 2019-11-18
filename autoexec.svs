@@ -3,7 +3,7 @@ function init {
 }
 
 function update {
-  sys exit();
+  sys.os.exit();
 }
 
 function exit {

@@ -5,18 +5,18 @@ function init{
   btn2 = sys.gui.addButton (3, 3, 7, 4, "Toggle pin 4", scr);
   sys.os.gui.setMainScr(scr);
 
-  sys.ePinDef(4, PIN_OUT, 0);
+  sys.hw.ePinDef(4, PIN_OUT, 0);
 }
 
 function update{
   if(sys.gui.getEventC(btn) == EV_RELEASED){
-    val = sys.eADCRead();
+    val = sys.hw.eADCRead();
     print(val+" type "+typeof(val));
     sys.gui.setStr(btn, ""+ val +" V");
   }
 
   if(sys.gui.getEventC(btn2) == EV_RELEASED){
-    sys.ePinSet(4, pin);
+    sys.hw.ePinSet(4, pin);
     pin = 1 - pin;
   }
 }

@@ -60,23 +60,23 @@ function update {
     mode = 3;
   }
 
-  if(sys.btnGetEv(BTN_RIGHT) == 1) {
+  if(sys.hw.btn.getEvent(BTN_RIGHT) == 1) {
     if (mode < 3) {
       mode = mode + 1;
     } else {
       mode = 1;
     }
   }
-  sys.btnClrEv(BTN_RIGHT);
+  sys.hw.btn.clrEvent(BTN_RIGHT);
 
-  if(sys.btnGetEv(BTN_LEFT) == 1) {
+  if(sys.hw.btn.getEvent(BTN_LEFT) == 1) {
     if (mode > 1) {
       mode = mode - 1;
     } else {
       mode = 3;
     }
   }
-  sys.btnClrEv(BTN_LEFT);
+  sys.hw.btn.clrEvent(BTN_LEFT);
 
   if(mode != modeprev) {
     sys.gui.setSelect(btn_budik, 0);

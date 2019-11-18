@@ -8,38 +8,38 @@
  *
  * Novinky: * Smazat je šedé u nové události
  *          * Přidána podpora pro timestamp
- *					* Opravena chyba která rozbije datový soubor při smazání poslední události.
+ *          * Opravena chyba která rozbije datový soubor při smazání poslední události.
  *          * přidán systémový error pro rozbitej soubor
  *
 *#
 
 function init {
-	sys print("init: cal v.3.1");
-	sys checkSVSVer(700);
-	sys setSingular();
-	#sys profiler(1);
-  #sys dbg(1);
+  print("init: cal v.3.1");
+  sys.os.checkVer(700);
+  sys.os.setSingular();
+  #sys.profiler(1);
+  #sys.dbg(1);
   HS_init();
   day_init();
   edit_init();
 
-  sys pSetMainScr(hs_scr);
+  sys.os.gui.setMainScr(hs_scr);
   mode = 1;
 
-  if (not sys pFrExists("cal.dat")) {
-    sys cOpen("cal.dat");
-    sys cKeyWrite("first", "-1");
+  if (not sys.fs.exists("cal.dat")) {
+    sys.fs.conf.open("cal.dat");
+    sys.fs.conf.write("first", "-1");
   } else {
-    sys cOpen("cal.dat");
+    sys.fs.conf.open("cal.dat");
   }
 
 
 
-  if (not sys cKeyExists("first")) {
-  	sys cKeyWrite("first", "0");
+  if (not sys.fs.conf.exists("first")) {
+    sys.fs.conf.write("first", "0");
   }
-  if (not sys cKeyExists("f_ver")) {
-  	sys cKeyWrite("f_ver", "1");
+  if (not sys.fs.conf.exists("f_ver")) {
+    sys.fs.conf.write("f_ver", "1");
   }
 }
 
@@ -47,116 +47,116 @@ function init {
  # month screen
 function HS_init {
 
-  hs_scr = sys pAddScreen();
+  hs_scr = sys.gui.addScreen();
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-    sys pAddText(0, 0, 8, 1, "Kalendář", hs_scr);
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.addText(0, 0, 8, 1, "Kalendář", hs_scr);
   } else {
-    sys pAddText(0, 0, 8, 1, "Calendar", hs_scr);
+    sys.gui.addText(0, 0, 8, 1, "Calendar", hs_scr);
   }
 
-	hs_select = sys pAddButton(1, 1, 6, 2, "MM. YYYY", hs_scr);
+  hs_select = sys.gui.addButton(1, 1, 6, 2, "MM. YYYY", hs_scr);
 
-	hs_prev = sys pAddButton(7, 1, 8, 2, "<", hs_scr);
+  hs_prev = sys.gui.addButton(7, 1, 8, 2, "<", hs_scr);
 
-	hs_next = sys pAddButton(8, 1, 9, 2, ">", hs_scr);
+  hs_next = sys.gui.addButton(8, 1, 9, 2, ">", hs_scr);
 
-	hs_cal = sys wCalInit(sys getTimeYear(), sys getTimeMonth(), sys getTimeDay());
+  hs_cal = sys.w.cal.init(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay());
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-	  hs_today = sys pAddButton(6, 12, 9, 13, "Dnes", hs_scr);
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    hs_today = sys.gui.addButton(6, 12, 9, 13, "Dnes", hs_scr);
   } else {
-    hs_today = sys pAddButton(6, 12, 9, 13, "Today", hs_scr);
+    hs_today = sys.gui.addButton(6, 12, 9, 13, "Today", hs_scr);
   }
-	hs_new = sys pAddButton(1, 12, 2, 13, "+", hs_scr);
+  hs_new = sys.gui.addButton(1, 12, 2, 13, "+", hs_scr);
 
-	sys pSetScreen(hs_cal, hs_scr);
+  sys.gui.setScreen(hs_cal, hs_scr);
 
-	sys pSetXYXY(hs_cal, 0, 2, 10, 12); # kalendář je 7x7, ale je možnost ho nafouknout
+  sys.gui.setXYXY(hs_cal, 0, 2, 10, 12); # kalendář je 7x7, ale je možnost ho nafouknout
 
-	sys pSetXcell(hs_cal, 45);
-	sys pSetYcell(hs_cal, 45);
+  sys.gui.setXcell(hs_cal, 45);
+  sys.gui.setYcell(hs_cal, 45);
 
-	hs_reload = 1;
+  hs_reload = 1;
 
-	hs_year = sys getTimeYear();
-	hs_month = sys getTimeMonth();
-	hs_day = sys getTimeDay();
+  hs_year = sys.time.getYear();
+  hs_month = sys.time.getMonth();
+  hs_day = sys.time.getDay();
 
-	hs_date_ov = 0;
+  hs_date_ov = 0;
 
-	HS_new(0);
+  HS_new(0);
 }
 
 
 function HS_reload {
   # reload month button
-  sys pSetStr(hs_select, hs_day + ". " + hs_month + ". " + hs_year);
+  sys.gui.setStr(hs_select, hs_day + ". " + hs_month + ". " + hs_year);
   # reload cal widget
-  sys wCalSelect(hs_year, hs_month, hs_day);
+  sys.w.cal.select(hs_year, hs_month, hs_day);
   # reload událostí
 
-  cfg_first = sys cKeyReadInt("first", 0);
+  cfg_first = sys.fs.conf.readInt("first", 0);
 
   if (cfg_first == -1){
     return;
   }
 
   #max událostí je 7000
-  for(n = cfg_first; n < (cfg_first + 7000); n = sys cKeyReadInt(n + "_next", (-1));) {
-    if(sys cKeyExists(n + "_name")) {
-    	p_timestamp = sys cKeyReadInt(n + "_timestamp", 0);
-      p_day = sys getTsDay(p_timestamp);
-      p_mon = sys getTsMonth(p_timestamp);
-      p_year = sys getTsYear(p_timestamp);
+  for(n = cfg_first; n < (cfg_first + 7000); n = sys.fs.conf.readInt(n + "_next", (-1));) {
+    if(sys.fs.conf.exists(n + "_name")) {
+      p_timestamp = sys.fs.conf.readInt(n + "_timestamp", 0);
+      p_day = sys.time.getTsDay(p_timestamp);
+      p_mon = sys.time.getTsMonth(p_timestamp);
+      p_year = sys.time.getTsYear(p_timestamp);
 
       if (p_day == 0 or p_mon == 0 or p_year == 0) {
-      	sys error("data file error (zero val)");
-      	break;
+        sys.os.error("data file error (zero val)");
+        break;
       }
 
       if (p_year == hs_year and p_mon == hs_month and hs_day != p_day) {
-        sys wCalMark(p_day);
+        sys.w.cal.mark(p_day);
       }
 
-      if (sys cKeyReadInt(n + "_next", (-1)) == (-1)) {
-        #sys print("end of list: " + n);
+      if (sys.fs.conf.readInt(n + "_next", (-1)) == (-1)) {
+        #print("end of list: " + n);
         break;
       }
     } else {
-      sys error("Data file error!\n(missing record " + n + ")");
+      sys.os.error("Data file error!\n(missing record " + n + ")");
       break;
     }
   }
 }
 
 function next_id {
-  cfg_first = sys cKeyReadInt("first", 0);
+  cfg_first = sys.fs.conf.readInt("first", 0);
 
   if (cfg_first == -1){
-    sys cKeyWrite("first", "0");
+    sys.fs.conf.write("first", "0");
     return 0;
   }
 
   #max událostí je 7000
-  for(n = cfg_first; n < (cfg_first + 7000); n = sys cKeyReadInt(n + "_next", (-1));) {
-    if(sys cKeyExists(n + "_name")) {
+  for(n = cfg_first; n < (cfg_first + 7000); n = sys.fs.conf.readInt(n + "_next", (-1));) {
+    if(sys.fs.conf.exists(n + "_name")) {
 
-      if (sys cKeyReadInt(n + "_next", (-1)) == (-1)) {
-        sys print("end of list: " + n);
-        sys cKeyWrite(n + "_next","" + n + 1);
+      if (sys.fs.conf.readInt(n + "_next", (-1)) == (-1)) {
+        print("end of list: " + n);
+        sys.fs.conf.write(n + "_next","" + n + 1);
 
         return n + 1;
       }
     } else {
-      sys error("Data file error!\n(missing record " + n + ")");
+      sys.os.error("Data file error!\n(missing record " + n + ")");
       break;
     }
   }
 }
 
 function HS_new {
-  sys pSetVisible(hs_new, arg0);
+  sys.gui.setVisible(hs_new, arg0);
 }
 
 function HS_update {
@@ -165,80 +165,80 @@ function HS_update {
     HS_reload();
   }
 
-	if (sys pGetEvent(hs_select) == 3) {
-	  hs_date_ov = sys oDateAdd(hs_year, hs_month, hs_day);
-	}
-	sys pSetEvent(hs_select, 0);
+  if (sys.gui.getEvent(hs_select) == 3) {
+    hs_date_ov = sys.o.date.add(hs_year, hs_month, hs_day);
+  }
+  sys.gui.setEvent(hs_select, 0);
 
-	sys oDateUpd(hs_date_ov);
+  sys.o.date.update(hs_date_ov);
 
-	if (sys oDateGetOk(hs_date_ov)) {
-	  hs_day = sys oDateGetDay(hs_date_ov);
-	  hs_month = sys oDateGetMon(hs_date_ov);
-	  hs_year = sys oDateGetYr(hs_date_ov);
-	  sys oDateClrOk(hs_date_ov);
-	  hs_reload = 1;
-	  HS_new(1);
-	}
+  if (sys.o.date.getOk(hs_date_ov)) {
+    hs_day = sys.o.date.getDay(hs_date_ov);
+    hs_month = sys.o.date.getMon(hs_date_ov);
+    hs_year = sys.o.date.getYr(hs_date_ov);
+    sys.o.date.clrOk(hs_date_ov);
+    hs_reload = 1;
+    HS_new(1);
+  }
 
-	if (sys pGetEvent(hs_next) == 3) {
-	  if (hs_month < 12) {
-	    hs_month = hs_month + 1;
-	  } else {
-	    hs_year = hs_year + 1;
-	    hs_month = 1;
-	  }
-	  hs_reload = 1;
-	  HS_new(0);
-	}
-	sys pSetEvent(hs_next, 0);
+  if (sys.gui.getEvent(hs_next) == 3) {
+    if (hs_month < 12) {
+      hs_month = hs_month + 1;
+    } else {
+      hs_year = hs_year + 1;
+      hs_month = 1;
+    }
+    hs_reload = 1;
+    HS_new(0);
+  }
+  sys.gui.setEvent(hs_next, 0);
 
-	if (sys pGetEvent(hs_prev) == 3) {
-	  if (hs_month > 1) {
-	    hs_month = hs_month - 1;
-	  } else {
-	    hs_year = hs_year - 1;
-	    hs_month = 12;
-	  }
-	  hs_reload = 1;
-	  HS_new(0);
-	}
-	sys pSetEvent(hs_prev, 0);
+  if (sys.gui.getEvent(hs_prev) == 3) {
+    if (hs_month > 1) {
+      hs_month = hs_month - 1;
+    } else {
+      hs_year = hs_year - 1;
+      hs_month = 12;
+    }
+    hs_reload = 1;
+    HS_new(0);
+  }
+  sys.gui.setEvent(hs_prev, 0);
 
-	if (sys pGetEvent(hs_today) == 3) {
-	  hs_reload = 1;
+  if (sys.gui.getEvent(hs_today) == 3) {
+    hs_reload = 1;
 
-	  hs_year = sys getTimeYear();
-	  hs_month = sys getTimeMonth();
-	  hs_day = sys getTimeDay();
+    hs_year = sys.time.getYear();
+    hs_month = sys.time.getMonth();
+    hs_day = sys.time.getDay();
 
-	  HS_new(0);
-	}
-	sys pSetEvent(hs_today, 0);
+    HS_new(0);
+  }
+  sys.gui.setEvent(hs_today, 0);
 
-	upd_ret = sys wCalUpdate();
+  upd_ret = sys.w.cal.update();
 
-	if(upd_ret == 1) {
-	  hs_day = sys wCalGetDay();
-	  hs_reload = 1;
-	  HS_new(1);
-	}
+  if(upd_ret == 1) {
+    hs_day = sys.w.cal.getDay();
+    hs_reload = 1;
+    HS_new(1);
+  }
 
-	if(upd_ret == 2) {
-	  day_switch();
-	}
+  if(upd_ret == 2) {
+    day_switch();
+  }
 
-	if(sys pGetEvent(hs_new) == 3) {
-	  edit_new();
-	}
-	sys pSetEvent(hs_new, 0);
+  if(sys.gui.getEvent(hs_new) == 3) {
+    edit_new();
+  }
+  sys.gui.setEvent(hs_new, 0);
 
 }
 
 function hs_switch {
   mode = 1;
-	sys pSetMainScr(hs_scr);
-	hs_reload = 1;
+  sys.os.gui.setMainScr(hs_scr);
+  hs_reload = 1;
 }
 
  #day screen
@@ -246,9 +246,9 @@ function day_switch {
   #Switch to day
   mode = 2;
   day_reload = 1;
-  sys pSetMainScr(day_scr);
+  sys.os.gui.setMainScr(day_scr);
 
-  sys keybHide();
+  sys.os.hideKbd();
 
   if(day_loaded == 0) {
     load_days();
@@ -260,9 +260,9 @@ function day_switch {
 }
 
 function load_days {
-  sys print("loading days");
+  print("loading days");
   # načtení událostí dne do pole
-  cfg_first = sys cKeyReadInt("first", 0);
+  cfg_first = sys.fs.conf.readInt("first", 0);
   day_cnt = 0;
 
   if (cfg_first == -1) {
@@ -270,24 +270,24 @@ function load_days {
   }
 
   # max událostí je 7000
-  for(n = cfg_first; n < (cfg_first + 7000); n = sys cKeyReadInt(n + "_next", (-1));) {
-    if(sys cKeyExists(n + "_name")) {
-      p_timestamp = sys cKeyReadInt(n + "_timestamp", 0);
-      p_day = sys getTsDay(p_timestamp);
-      p_mon = sys getTsMonth(p_timestamp);
-      p_year = sys getTsYear(p_timestamp);
+  for(n = cfg_first; n < (cfg_first + 7000); n = sys.fs.conf.readInt(n + "_next", (-1));) {
+    if(sys.fs.conf.exists(n + "_name")) {
+      p_timestamp = sys.fs.conf.readInt(n + "_timestamp", 0);
+      p_day = sys.time.getTsDay(p_timestamp);
+      p_mon = sys.time.getTsMonth(p_timestamp);
+      p_year = sys.time.getTsYear(p_timestamp);
 
       if (p_year == hs_year and p_mon == hs_month and p_day == hs_day) {
         day_list_id[day_cnt] = n;
         day_cnt = day_cnt + 1;
       }
 
-      if (sys cKeyReadInt(n + "_next", (-1)) == (-1)) {
-        sys print("end of list: " + n);
+      if (sys.fs.conf.readInt(n + "_next", (-1)) == (-1)) {
+        print("end of list: " + n);
         break;
       }
     } else {
-      sys error("Data file error!\n(missing record " + n + ")");
+      sys.os.error("Data file error!\n(missing record " + n + ")");
       break;
     }
   }
@@ -296,24 +296,24 @@ function load_days {
 
   for(i = 0; i < 24; i = i + 1;) {
     for(n = 0; n < day_cnt; n = n + 1;) {
-      if (sys cKeyReadInt(day_list_id[n] + "_s_hr", 0) == i) {
+      if (sys.fs.conf.readInt(day_list_id[n] + "_s_hr", 0) == i) {
         #array jsou číslovaný stejně, jen se mění pozice dle času
         if(day_list[n] == 0) {
-          if (sys cKeyReadInt(day_list_id[n] + "_s_min", 0) < 10) {
-            time=sys cKeyRead(day_list_id[n]+"_s_hr")+":0"+sys cKeyReadInt(day_list_id[n]+"_s_min",0);
+          if (sys.fs.conf.readInt(day_list_id[n] + "_s_min", 0) < 10) {
+            time=sys.fs.conf.read(day_list_id[n]+"_s_hr")+":0"+sys.fs.conf.readInt(day_list_id[n]+"_s_min",0);
           }else{
-            time=sys cKeyRead(day_list_id[n]+"_s_hr")+":"+sys cKeyRead(day_list_id[n]+"_s_min");
+            time=sys.fs.conf.read(day_list_id[n]+"_s_hr")+":"+sys.fs.conf.read(day_list_id[n]+"_s_min");
           }
 
-          if (sys cKeyReadInt(day_list_id[n]+"_e_min", 0)<10){
-            time2=sys cKeyRead(day_list_id[n]+"_e_hr")+":0"+sys cKeyReadInt(day_list_id[n]+"_e_min", 0);
+          if (sys.fs.conf.readInt(day_list_id[n]+"_e_min", 0)<10){
+            time2=sys.fs.conf.read(day_list_id[n]+"_e_hr")+":0"+sys.fs.conf.readInt(day_list_id[n]+"_e_min", 0);
           }else{
-            time2=sys cKeyRead(day_list_id[n]+"_e_hr")+":"+sys cKeyRead(day_list_id[n]+"_e_min");
+            time2=sys.fs.conf.read(day_list_id[n]+"_e_hr")+":"+sys.fs.conf.read(day_list_id[n]+"_e_min");
           }
 
-          prac=time+" "+sys cKeyRead(day_list_id[n]+"_name")+"\n"+time2;
-          day_list[n] = sys pAddButton(1,1+2*d_ar_cnt, 8,1+2*(d_ar_cnt+1), prac,day_scr_l);
-          sys print("add:"+sys cKeyRead(day_list_id[n]+"_name"));
+          prac=time+" "+sys.fs.conf.read(day_list_id[n]+"_name")+"\n"+time2;
+          day_list[n] = sys.gui.addButton(1,1+2*d_ar_cnt, 8,1+2*(d_ar_cnt+1), prac,day_scr_l);
+          print("add:"+sys.fs.conf.read(day_list_id[n]+"_name"));
           d_ar_cnt=d_ar_cnt+1;
         }
       }
@@ -322,11 +322,11 @@ function load_days {
 }
 
 function remove_days{
-  sys print("removing days");
+  print("removing days");
   for(n = 0; n < day_cnt; n = n + 1;) {
     #array jsou číslovaný stejně, jen se mění pozice dle času
     if (day_list[n] != 0) {
-      sys pDestroy(day_list[n]);
+      sys.gui.destroy(day_list[n]);
       day_list[n] = 0;
     }
   }
@@ -334,410 +334,410 @@ function remove_days{
 }
 
 function day_reloader{
-  sys pSetStr(day_date, hs_day+". "+hs_month+". "+hs_year);
+  sys.gui.setStr(day_date, hs_day+". "+hs_month+". "+hs_year);
 }
 
 function day_init{
 
-  day_scr= sys pAddScreen();
+  day_scr= sys.gui.addScreen();
 
-	day_date=sys pAddButton(1, 1, 6, 2, "DD. MM. YYYY", day_scr );
+  day_date=sys.gui.addButton(1, 1, 6, 2, "DD. MM. YYYY", day_scr );
 
-	day_new=sys pAddButton(1, 11, 3, 13, "+", day_scr );
+  day_new=sys.gui.addButton(1, 11, 3, 13, "+", day_scr );
 
-	day_scr_l= sys pAddScreen();
+  day_scr_l= sys.gui.addScreen();
 
-	sys pSetScreen(day_scr_l, day_scr);
+  sys.gui.setScreen(day_scr_l, day_scr);
 
-	sys pSetXYXY(day_scr_l, 0, 2,9,11 );
+  sys.gui.setXYXY(day_scr_l, 0, 2,9,11 );
 
-	day_sld= sys pAddSlider(9,2,10,11,100, 1,day_scr);
+  day_sld= sys.gui.addSliderV(9,2,10,11,100, 1,day_scr);
 
-	day_reload=1;
+  day_reload=1;
 
-	array day_list[35];
-	array day_list_id[35];
+  array day_list[35];
+  array day_list_id[35];
 
-	day_loaded=0;
+  day_loaded=0;
 }
 
 function day_update{
-  if (sys pGetEvent(day_date)==3){
-	  hs_switch();
-	}
-	sys pSetEvent(day_date,0);
+  if (sys.gui.getEvent(day_date)==3){
+    hs_switch();
+  }
+  sys.gui.setEvent(day_date,0);
 
-	if (sys pGetEvent(day_new)==3){
-	  edit_new();
-	}
-	sys pSetEvent(day_new,0);
+  if (sys.gui.getEvent(day_new)==3){
+    edit_new();
+  }
+  sys.gui.setEvent(day_new,0);
 
-	for(n=0; n<day_cnt; n=n+1;){
+  for(n=0; n<day_cnt; n=n+1;){
     if (day_list[n]!=0){
-      if (sys pGetEvent(day_list[n])==3){
+      if (sys.gui.getEvent(day_list[n])==3){
         file_store_id= day_list_id[n];
         edit_existing();
       }
-      sys pSetEvent(day_list[n],0);
+      sys.gui.setEvent(day_list[n],0);
     }
   }
 
-	sys pSetYscroll(day_scr_l, sys pGetValue(day_sld)*5);
+  sys.gui.setYscroll(day_scr_l, sys.gui.getValue(day_sld)*5);
 
-	if(sys btnGetEv(BTN_UP)==1){
-    if (sys pGetValue(day_sld)>10){
-      sys pSetValue(day_sld,sys pGetValue(day_sld)-10);
+  if(sys.hw.btn.getEvent(BTN_UP)==1){
+    if (sys.gui.getValue(day_sld)>10){
+      sys.gui.setValue(day_sld,sys.gui.getValue(day_sld)-10);
     }else{
-      sys pSetValue(day_sld,0);
+      sys.gui.setValue(day_sld,0);
     }
   }
-  sys btnClrEv(BTN_UP);
+  sys.hw.btn.clrEvent(BTN_UP);
 
-  if(sys btnGetEv(BTN_DOWN)==1){
-    if (sys pGetValue(day_sld)<90){
-      sys pSetValue(day_sld,sys pGetValue(day_sld)+10);
+  if(sys.hw.btn.getEvent(BTN_DOWN)==1){
+    if (sys.gui.getValue(day_sld)<90){
+      sys.gui.setValue(day_sld,sys.gui.getValue(day_sld)+10);
     }else{
-      sys pSetValue(day_sld,100);
+      sys.gui.setValue(day_sld,100);
     }
   }
-  sys btnClrEv(BTN_DOWN);
+  sys.hw.btn.clrEvent(BTN_DOWN);
 
-	if(day_reload==1){
-	  day_reloader();
-	  day_reload=0;
-	}
+  if(day_reload==1){
+    day_reloader();
+    day_reload=0;
+  }
 }
 
  # edit screen
 
 function edit_init{
-  edit_scr = sys pAddScreen();
+  edit_scr = sys.gui.addScreen();
   e_ts = 0;
   e_t_stop = 0;
   edit_date_ov = 0;
   edit_des_p = 0;
 
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-    sys pAddText(1, 0, 9, 1, "Název:", edit_scr);
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.addText(1, 0, 9, 1, "Název:", edit_scr);
   } else {
-    sys pAddText(1, 0, 9, 1, "Name:", edit_scr);
+    sys.gui.addText(1, 0, 9, 1, "Name:", edit_scr);
   }
 
-  edit_name=sys pAddText(1,1,9,2, "NAME", edit_scr);
+  edit_name=sys.gui.addText(1,1,9,2, "NAME", edit_scr);
 
-  edit_date=sys pAddButton(1,2,5,3, "DATE", edit_scr);
+  edit_date=sys.gui.addButton(1,2,5,3, "DATE", edit_scr);
 
-  #edit_allDay=sys pAddButton(1,3,5,4, "Celý den", edit_scr);
+  #edit_allDay=sys.gui.addButton(1,3,5,4, "Celý den", edit_scr);
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-    edit_start = sys pAddButton(7,2,9,3, "OD:", edit_scr);
-    edit_stop = sys pAddButton(7,3,9,4, "DO:", edit_scr);
-    edit_store=sys pAddButton(1,13,5,14, "Uložit", edit_scr);
-    edit_remove=sys pAddButton(1,12,5,13, "Smazat", edit_scr);
-    edit_back=sys pAddButton(6,13,9,14, "Zpět", edit_scr);
-    sys pAddText(1,4,9,5, "Popis:", edit_scr);
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    edit_start = sys.gui.addButton(7,2,9,3, "OD:", edit_scr);
+    edit_stop = sys.gui.addButton(7,3,9,4, "DO:", edit_scr);
+    edit_store=sys.gui.addButton(1,13,5,14, "Uložit", edit_scr);
+    edit_remove=sys.gui.addButton(1,12,5,13, "Smazat", edit_scr);
+    edit_back=sys.gui.addButton(6,13,9,14, "Zpět", edit_scr);
+    sys.gui.addText(1,4,9,5, "Popis:", edit_scr);
   } else {
-    sys pAddText(1,4,9,5, "Description:", edit_scr);
-    edit_start = sys pAddButton(7,2,9,3, "From:", edit_scr);
-    edit_stop = sys pAddButton(7,3,9,4, "To:", edit_scr);
-    edit_store=sys pAddButton(1,13,5,14, "Save", edit_scr);
-    edit_remove=sys pAddButton(1,12,5,13, "Delete", edit_scr);
-    edit_back=sys pAddButton(6,13,9,14, "Back", edit_scr);
+    sys.gui.addText(1,4,9,5, "Description:", edit_scr);
+    edit_start = sys.gui.addButton(7,2,9,3, "From:", edit_scr);
+    edit_stop = sys.gui.addButton(7,3,9,4, "To:", edit_scr);
+    edit_store=sys.gui.addButton(1,13,5,14, "Save", edit_scr);
+    edit_remove=sys.gui.addButton(1,12,5,13, "Delete", edit_scr);
+    edit_back=sys.gui.addButton(6,13,9,14, "Back", edit_scr);
   }
 
-  edit_descr=sys pAddText(1,5,9,12, "Descr", edit_scr);
+  edit_descr=sys.gui.addText(1,5,9,12, "Descr", edit_scr);
 
   #mazací obrazovka
 
-  ed_rm_scr=sys pAddScreen();
+  ed_rm_scr=sys.gui.addScreen();
 
-  if (sys sdaGetLang() == SVP_LANG_CZ) {
-    sys pAddText(2,3,9,4, "Vymazat událost?", ed_rm_scr);
-    ed_rm_ok = sys pAddButton(2,4,4,5, "Ano", ed_rm_scr);
-    ed_rm_no = sys pAddButton(6,4,8,5, "Ne", ed_rm_scr);
-    ed_rm_cancel = sys pAddButton(3,6,7,7, "Storno", ed_rm_scr);
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.addText(2,3,9,4, "Vymazat událost?", ed_rm_scr);
+    ed_rm_ok = sys.gui.addButton(2,4,4,5, "Ano", ed_rm_scr);
+    ed_rm_no = sys.gui.addButton(6,4,8,5, "Ne", ed_rm_scr);
+    ed_rm_cancel = sys.gui.addButton(3,6,7,7, "Storno", ed_rm_scr);
   } else {
-    sys pAddText(2,3,9,4, "Delete event?", ed_rm_scr);
-    ed_rm_ok = sys pAddButton(2,4,4,5, "Yes", ed_rm_scr);
-    ed_rm_no = sys pAddButton(6,4,8,5, "No", ed_rm_scr);
-    ed_rm_cancel = sys pAddButton(3,6,7,7, "Cancel", ed_rm_scr);
+    sys.gui.addText(2,3,9,4, "Delete event?", ed_rm_scr);
+    ed_rm_ok = sys.gui.addButton(2,4,4,5, "Yes", ed_rm_scr);
+    ed_rm_no = sys.gui.addButton(6,4,8,5, "No", ed_rm_scr);
+    ed_rm_cancel = sys.gui.addButton(3,6,7,7, "Cancel", ed_rm_scr);
   }
-  sys pSetTexEd(edit_name, 1);
-  sys pSetTexEd(edit_descr, 1);
+  sys.gui.setTexEd(edit_name, 1);
+  sys.gui.setTexEd(edit_descr, 1);
 }
 
 function edit_new{
 
-  sys pSetYscroll(edit_scr,0);
+  sys.gui.setYscroll(edit_scr,0);
 
-  hs_hrStart=sys getTimeHr();
+  hs_hrStart=sys.time.getHr();
   hs_minStart=0;
 
-  hs_hrStop=sys getTimeHr()+1;
+  hs_hrStop=sys.time.getHr()+1;
   hs_minStop=0;
 
-  sys pSetStr(edit_name, "");
+  sys.gui.setStr(edit_name, "");
 
-  sys pSetStr(edit_date, hs_day+". "+hs_month+". "+hs_year);
+  sys.gui.setStr(edit_date, hs_day+". "+hs_month+". "+hs_year);
 
-  sys pSetStr(edit_start, hs_hrStart+":00");
-  sys pSetStr(edit_stop, hs_hrStop+":00");
+  sys.gui.setStr(edit_start, hs_hrStart+":00");
+  sys.gui.setStr(edit_stop, hs_hrStop+":00");
 
   mode=3;
-	sys pSetMainScr(edit_scr);
+  sys.os.gui.setMainScr(edit_scr);
 
-	ed_changed=0;
-	sys pSetGrayout(edit_store, 1);
-	sys pSetGrayout(edit_remove, 1);
+  ed_changed=0;
+  sys.gui.setGrayout(edit_store, 1);
+  sys.gui.setGrayout(edit_remove, 1);
 
-	EdTxName="";
-	EdTxDescr="";
+  EdTxName="";
+  EdTxDescr="";
 
-	file_store_id=-1;
+  file_store_id=-1;
 }
 
 function edit_existing{
 
-  sys pSetYscroll(edit_scr,0);
+  sys.gui.setYscroll(edit_scr,0);
 
-  hs_hrStart=sys cKeyReadInt(file_store_id+"_s_hr", 0);
-  hs_minStart=sys cKeyReadInt(file_store_id+"_s_min", 0);
+  hs_hrStart=sys.fs.conf.readInt(file_store_id+"_s_hr", 0);
+  hs_minStart=sys.fs.conf.readInt(file_store_id+"_s_min", 0);
 
-  hs_hrStop=sys cKeyReadInt(file_store_id+"_e_hr", 0);
-  hs_minStop=sys cKeyReadInt(file_store_id+"_e_min", 0);
+  hs_hrStop=sys.fs.conf.readInt(file_store_id+"_e_hr", 0);
+  hs_minStop=sys.fs.conf.readInt(file_store_id+"_e_min", 0);
 
-  sys pSetStr(edit_name, "");
+  sys.gui.setStr(edit_name, "");
 
-  p_timestamp = sys cKeyReadInt(file_store_id + "_timestamp", 0);
-  hs_day = sys getTsDay(p_timestamp);
-  hs_month = sys getTsMonth(p_timestamp);
-  hs_year = sys getTsYear(p_timestamp);
+  p_timestamp = sys.fs.conf.readInt(file_store_id + "_timestamp", 0);
+  hs_day = sys.time.getTsDay(p_timestamp);
+  hs_month = sys.time.getTsMonth(p_timestamp);
+  hs_year = sys.time.getTsYear(p_timestamp);
 
-  sys pSetStr(edit_date, hs_day+". "+hs_month+". "+hs_year);
+  sys.gui.setStr(edit_date, hs_day+". "+hs_month+". "+hs_year);
 
   if (hs_minStart < 10){
-  	sys pSetStr(edit_start, hs_hrStart + ":0" + hs_minStart);
+    sys.gui.setStr(edit_start, hs_hrStart + ":0" + hs_minStart);
   } else {
-  	sys pSetStr(edit_start, hs_hrStart + ":" + hs_minStart);
+    sys.gui.setStr(edit_start, hs_hrStart + ":" + hs_minStart);
   }
 
   if (hs_minStop  < 10){
-  	sys pSetStr(edit_stop, hs_hrStop+":0" + hs_minStop);
+    sys.gui.setStr(edit_stop, hs_hrStop+":0" + hs_minStop);
   } else {
-  	sys pSetStr(edit_stop, hs_hrStop+":" + hs_minStop);
+    sys.gui.setStr(edit_stop, hs_hrStop+":" + hs_minStop);
   }
 
   mode = 3;
-	sys pSetMainScr(edit_scr);
+  sys.os.gui.setMainScr(edit_scr);
 
-	ed_changed = 0;
-	sys pSetGrayout(edit_store, 1);
-	sys pSetGrayout(edit_remove, 0);
+  ed_changed = 0;
+  sys.gui.setGrayout(edit_store, 1);
+  sys.gui.setGrayout(edit_remove, 0);
 
-	EdTxName = sys cKeyRead(file_store_id + "_name");
-	EdTxDescr = sys cKeyRead(file_store_id + "_descr");
+  EdTxName = sys.fs.conf.read(file_store_id + "_name");
+  EdTxDescr = sys.fs.conf.read(file_store_id + "_descr");
 }
 
 
 function edit_update{
 
-  EdTxName = sys pHandleText(edit_name, EdTxName);
-  EdTxDescr = sys pHandleText(edit_descr, EdTxDescr);
+  EdTxName = sys.os.gui.handleText(edit_name, EdTxName);
+  EdTxDescr = sys.os.gui.handleText(edit_descr, EdTxDescr);
 
-  if (sys pGetEvent(edit_start) == 3) {
-	  e_ts = sys oTimAdd();
-	  sys oTimSet(e_ts, hs_hrStart, hs_minStart);
-	}
-	sys pSetEvent(edit_start, 0);
+  if (sys.gui.getEvent(edit_start) == 3) {
+    e_ts = sys.o.time.add();
+    sys.o.time.set(e_ts, hs_hrStart, hs_minStart);
+  }
+  sys.gui.setEvent(edit_start, 0);
 
-	if (sys pGetEvent(edit_stop) == 3) {
-	  e_t_stop = sys oTimAdd();
-	  sys oTimSet(e_t_stop, hs_hrStop, hs_minStop);
-	}
-	sys pSetEvent(edit_stop, 0);
+  if (sys.gui.getEvent(edit_stop) == 3) {
+    e_t_stop = sys.o.time.add();
+    sys.o.time.set(e_t_stop, hs_hrStop, hs_minStop);
+  }
+  sys.gui.setEvent(edit_stop, 0);
 
-	sys oTimUpd(e_ts);
-	sys oTimUpd(e_t_stop);
+  sys.o.time.update(e_ts);
+  sys.o.time.update(e_t_stop);
 
-	if(sys oTimGetOk(e_ts)) {
-	  hs_hrStart = sys oTimGetHr(e_ts);
-	  hs_minStart = sys oTimGetMin(e_ts);
-	  sys oTimClrOk(e_ts);
-	  local minp;
-	  if (hs_minStart < 10) {
-	    minp = "0" + hs_minStart;
-	  } else {
-		minp = hs_minStart;
-	  }
-	  sys pSetStr(edit_start, hs_hrStart + ":" + minp);
-	  ed_changed = 1;
-	}
+  if(sys.o.time.getOk(e_ts)) {
+    hs_hrStart = sys.o.time.getHr(e_ts);
+    hs_minStart = sys.o.time.getMin(e_ts);
+    sys.o.time.clrOk(e_ts);
+    local minp;
+    if (hs_minStart < 10) {
+      minp = "0" + hs_minStart;
+    } else {
+    minp = hs_minStart;
+    }
+    sys.gui.setStr(edit_start, hs_hrStart + ":" + minp);
+    ed_changed = 1;
+  }
 
-	if(sys oTimGetOk(e_t_stop)) {
-	  hs_hrStop = sys oTimGetHr(e_t_stop);
-	  hs_minStop = sys oTimGetMin(e_t_stop);
-	  local minp;
-	  sys oTimClrOk(e_t_stop);
-	  if (hs_minStop < 10) {
-	    minp = "0" + hs_minStop;
-	  } else {
-			minp = hs_minStop;
-	  }
-	  sys pSetStr(edit_stop, hs_hrStop + ":" + minp);
-	  ed_changed = 1;
-	}
+  if(sys.o.time.getOk(e_t_stop)) {
+    hs_hrStop = sys.o.time.getHr(e_t_stop);
+    hs_minStop = sys.o.time.getMin(e_t_stop);
+    local minp;
+    sys.o.time.clrOk(e_t_stop);
+    if (hs_minStop < 10) {
+      minp = "0" + hs_minStop;
+    } else {
+      minp = hs_minStop;
+    }
+    sys.gui.setStr(edit_stop, hs_hrStop + ":" + minp);
+    ed_changed = 1;
+  }
 
-  if (sys pGetEvent(edit_date) == 3) {
-	  edit_date_ov = sys oDateAdd(hs_year, hs_month, hs_day);
-	}
-	sys pSetEvent(edit_date, 0);
+  if (sys.gui.getEvent(edit_date) == 3) {
+    edit_date_ov = sys.o.date.add(hs_year, hs_month, hs_day);
+  }
+  sys.gui.setEvent(edit_date, 0);
 
-	sys oDateUpd(edit_date_ov);
+  sys.o.date.update(edit_date_ov);
 
-	if (sys oDateGetOk(edit_date_ov)) {
-	  hs_day = sys oDateGetDay(edit_date_ov);
-	  hs_month = sys oDateGetMon(edit_date_ov);
-	  hs_year = sys oDateGetYr(edit_date_ov);
-	  sys oDateClrOk(edit_date_ov);
-	  sys pSetStr(edit_date, hs_day + ". " + hs_month + ". " + hs_year);
-	  ed_changed = 1;
-	}
+  if (sys.o.date.getOk(edit_date_ov)) {
+    hs_day = sys.o.date.getDay(edit_date_ov);
+    hs_month = sys.o.date.getMon(edit_date_ov);
+    hs_year = sys.o.date.getYr(edit_date_ov);
+    sys.o.date.clrOk(edit_date_ov);
+    sys.gui.setStr(edit_date, hs_day + ". " + hs_month + ". " + hs_year);
+    ed_changed = 1;
+  }
 
-	if((sys pGetValue(edit_name) == 1) + (sys pGetValue(edit_descr) == 1)) {
-	  ed_changed = 1;
-	}
+  if((sys.gui.getValue(edit_name) == 1) + (sys.gui.getValue(edit_descr) == 1)) {
+    ed_changed = 1;
+  }
 
-	if (ed_changed == 1) {
-	  sys pSetGrayout(edit_store, 0);
-	  ed_changed = 0;
-	}
+  if (ed_changed == 1) {
+    sys.gui.setGrayout(edit_store, 0);
+    ed_changed = 0;
+  }
 
-	if (sys pGetEvent(edit_back) == 3) {
-	  day_switch();
-	}
-	sys pSetEvent(edit_back, 0);
+  if (sys.gui.getEvent(edit_back) == 3) {
+    day_switch();
+  }
+  sys.gui.setEvent(edit_back, 0);
 
-	if (sys pGetEvent(edit_store) == 3) {
-		local newfile;
-		newfile = 0;
-	  if (file_store_id == (-1)) {
-	    file_store_id = next_id();
-	    newfile = 1;
-	    #uzavření seznamu
-	  }
+  if (sys.gui.getEvent(edit_store) == 3) {
+    local newfile;
+    newfile = 0;
+    if (file_store_id == (-1)) {
+      file_store_id = next_id();
+      newfile = 1;
+      #uzavření seznamu
+    }
 
-	  sys cKeyWrite(file_store_id + "_name", EdTxName);
-	  sys cKeyWrite(file_store_id + "_descr", EdTxDescr);
+    sys.fs.conf.write(file_store_id + "_name", EdTxName);
+    sys.fs.conf.write(file_store_id + "_descr", EdTxDescr);
 
-	  hs_timestamp = sys setTs(hs_year, hs_month, hs_day, hs_hrStart, hs_minStop, 0);
+    hs_timestamp = sys.time.setTs(hs_year, hs_month, hs_day, hs_hrStart, hs_minStop, 0);
 
-		sys cKeyWrite(file_store_id + "_timestamp", "" + hs_timestamp);
+    sys.fs.conf.write(file_store_id + "_timestamp", "" + hs_timestamp);
 
-	  sys cKeyWrite(file_store_id + "_s_hr", "" + hs_hrStart);
-	  sys cKeyWrite(file_store_id + "_s_min", "" + hs_minStart);
+    sys.fs.conf.write(file_store_id + "_s_hr", "" + hs_hrStart);
+    sys.fs.conf.write(file_store_id + "_s_min", "" + hs_minStart);
 
-	  sys cKeyWrite(file_store_id + "_e_hr", "" + hs_hrStop);
-	  sys cKeyWrite(file_store_id + "_e_min", "" + hs_minStop);
+    sys.fs.conf.write(file_store_id + "_e_hr", "" + hs_hrStop);
+    sys.fs.conf.write(file_store_id + "_e_min", "" + hs_minStop);
 
-		# next musí bejt až na konci, zrychlí to načítání
-		# nemusí se pak znovu prohledávat celej soubor
-		if (newfile) {
-			sys cKeyWrite(file_store_id + "_next", "-1");
-		}
-	  day_switch();
-	}
-	sys pSetEvent(edit_store, 0);
+    # next musí bejt až na konci, zrychlí to načítání
+    # nemusí se pak znovu prohledávat celej soubor
+    if (newfile) {
+      sys.fs.conf.write(file_store_id + "_next", "-1");
+    }
+    day_switch();
+  }
+  sys.gui.setEvent(edit_store, 0);
 
-	if ((sys pGetValue(edit_descr) == 1) * (edit_des_p == 0)) {
-	  sys pSetYscroll(edit_scr, 160);
-	  sys pSetModif(edit_scr);
-	} else {
-	  if ((sys pGetValue(edit_descr) == 0) * (edit_des_p == 1)) {
-	    sys pSetYscroll(edit_scr, 0);
-	    sys pSetModif(edit_scr);
-	  }
-	}
+  if ((sys.gui.getValue(edit_descr) == 1) * (edit_des_p == 0)) {
+    sys.gui.setYscroll(edit_scr, 160);
+    sys.gui.setModif(edit_scr);
+  } else {
+    if ((sys.gui.getValue(edit_descr) == 0) * (edit_des_p == 1)) {
+      sys.gui.setYscroll(edit_scr, 0);
+      sys.gui.setModif(edit_scr);
+    }
+  }
 
-	edit_des_p=sys pGetValue(edit_descr);
+  edit_des_p=sys.gui.getValue(edit_descr);
 
-	if (sys pGetEvent(edit_remove)==3){
-	  sys pSetMainScr(ed_rm_scr);
-	}
-	sys pSetEvent(edit_remove,0);
+  if (sys.gui.getEvent(edit_remove)==3){
+    sys.os.gui.setMainScr(ed_rm_scr);
+  }
+  sys.gui.setEvent(edit_remove,0);
 
-  if (sys pGetEvent(ed_rm_cancel)==3){
-	  sys pSetMainScr(edit_scr);
-	}
-	sys pSetEvent(ed_rm_cancel,0);
+  if (sys.gui.getEvent(ed_rm_cancel)==3){
+    sys.os.gui.setMainScr(edit_scr);
+  }
+  sys.gui.setEvent(ed_rm_cancel,0);
 
-	if (sys pGetEvent(ed_rm_no)==3){
-	  sys pSetMainScr(edit_scr);
-	}
-	sys pSetEvent(ed_rm_no,0);
+  if (sys.gui.getEvent(ed_rm_no)==3){
+    sys.os.gui.setMainScr(edit_scr);
+  }
+  sys.gui.setEvent(ed_rm_no,0);
 
-	if (sys pGetEvent(ed_rm_ok)==3){
-	  if (file_store_id != (-1)) {
-	    #označíme ToBeRemoved, asi jen tak pro efekt
-	    sys cKeyWrite(file_store_id+"_tbr", "1");
+  if (sys.gui.getEvent(ed_rm_ok)==3){
+    if (file_store_id != (-1)) {
+      #označíme ToBeRemoved, asi jen tak pro efekt
+      sys.fs.conf.write(file_store_id+"_tbr", "1");
 
-	    #pokud je první
-	    if (sys cKeyReadInt("first", 0) == file_store_id) {
-	      #tady je problem, že tu první položku ze spojovýho seznamu neodpojíme
-	      #bude třeba mazat name, aby se nenačítala, ale funkci na mazání z ini zatim nemam
-	      sys cKeyWrite("first", sys cKeyRead(file_store_id+"_next"));
-	    } else {
-	      #jinak potřebujem najít předchozí
+      #pokud je první
+      if (sys.fs.conf.readInt("first", 0) == file_store_id) {
+        #tady je problem, že tu první položku ze spojovýho seznamu neodpojíme
+        #bude třeba mazat name, aby se nenačítala, ale funkci na mazání z ini zatim nemam
+        sys.fs.conf.write("first", sys.fs.conf.read(file_store_id+"_next"));
+      } else {
+        #jinak potřebujem najít předchozí
 
-	      cfg_first=sys cKeyReadInt("first", 0);
+        cfg_first=sys.fs.conf.readInt("first", 0);
 
         #max událostí je 7000
-        for(n=cfg_first;n<(cfg_first+7000);n=sys cKeyReadInt(n+"_next", (-1));){
-          if(sys cKeyExists(n+"_name")){
+        for(n=cfg_first;n<(cfg_first+7000);n=sys.fs.conf.readInt(n+"_next", (-1));){
+          if(sys.fs.conf.exists(n+"_name")){
 
-            if (sys cKeyReadInt(n+"_next", (-1))==(-1)){
-              sys print("end of list: "+n);
+            if (sys.fs.conf.readInt(n+"_next", (-1))==(-1)){
+              print("end of list: "+n);
               break;
             }
 
-            if (sys cKeyReadInt(n+"_next", (-1)) == file_store_id) {
-              sys cKeyWrite(n + "_next","" + sys cKeyReadInt(file_store_id + "_next", (-1)));
+            if (sys.fs.conf.readInt(n+"_next", (-1)) == file_store_id) {
+              sys.fs.conf.write(n + "_next","" + sys.fs.conf.readInt(file_store_id + "_next", (-1)));
               break;
             }
 
           } else {
-            sys error("Data file error!\n(missing record " + n + ")");
+            sys.os.error("Data file error!\n(missing record " + n + ")");
             break;
           }
         }
-	    }
-	  }
-	  day_switch();
-	}
-	sys pSetEvent(ed_rm_ok,0);
+      }
+    }
+    day_switch();
+  }
+  sys.gui.setEvent(ed_rm_ok,0);
 
 }
 
 function update {
   if(mode == 1) {
     HS_update();
-	}
+  }
 
-	if(mode == 2) {
-	  day_update();
-	}
+  if(mode == 2) {
+    day_update();
+  }
 
-	if(mode == 3) {
-	  edit_update();
-	}
+  if(mode == 3) {
+    edit_update();
+  }
 }
 
 function exit{
-  sys pDestroyScr(hs_scr);
-  sys pDestroyScr(day_scr);
-  sys pDestroyScr(day_scr_l);
-  sys pDestroyScr(edit_scr);
-  sys pDestroyScr(ed_rm_scr);
-  sys cClose();
+  sys.gui.destroy(hs_scr);
+  sys.gui.destroy(day_scr);
+  sys.gui.destroy(day_scr_l);
+  sys.gui.destroy(edit_scr);
+  sys.gui.destroy(ed_rm_scr);
+  sys.fs.conf.close();
 }
 

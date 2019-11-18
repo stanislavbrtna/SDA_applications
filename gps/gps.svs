@@ -84,7 +84,7 @@ function update {
   if (sys.hw.getLcdState() == 1) {
     if ((update == 1 and redrawMap == 1) or ((sys.time.getUptime() > updTime + 25) and failLock == 0)) {
       updTime = sys.time.getUptime();
-      x = sys.serialRcv(3200);
+      x = sys.com.uartRcv(3200);
       if (x != "") {
         gps = x;
         x = 0; # throw away the long string

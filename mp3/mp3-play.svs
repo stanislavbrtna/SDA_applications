@@ -9,24 +9,24 @@ find . -maxdepth 1 -name '*.mp3' | awk 'BEGIN{ a=0 }{ printf "mp3info -p \"%d=%%
 
 *#
 function ds_cmd { # cmd, param1, param2
-  sys.srlTrsQAdd(0x7E);
-  sys.srlTrsQAdd(0xFF);
-  sys.srlTrsQAdd(0x06);
-  sys.srlTrsQAdd(arg0);
-  sys.srlTrsQAdd(0x00);
-  sys.srlTrsQAdd(arg1);
-  sys.srlTrsQAdd(arg2);
+  sys.com.qAdd(0x7E);
+  sys.com.qAdd(0xFF);
+  sys.com.qAdd(0x06);
+  sys.com.qAdd(arg0);
+  sys.com.qAdd(0x00);
+  sys.com.qAdd(arg1);
+  sys.com.qAdd(arg2);
 
   local sum;
 
   sum = 65536 - (0xFF + 0x06 + arg0 + arg1 + arg2);
 
-  sys.srlTrsQAdd(sum / 256);
-  sys.srlTrsQAdd(sum % 0xFF00);
+  sys.com.qAdd(sum / 256);
+  sys.com.qAdd(sum % 0xFF00);
 
-  sys.srlTrsQAdd(0xEF);
-  sys.srlTrsQAdd(0x00);
-  sys.srlTrsQ();
+  sys.com.qAdd(0xEF);
+  sys.com.qAdd(0x00);
+  sys.com.uartTrsQ();
 }
 
 function ds_play {
@@ -80,12 +80,12 @@ function init {
   vol_sld = sys.gui.addSliderH(4,9,5,1, 30, 15, scr);
   timeBar = sys.gui.addBar(1, 7, 8, 1, 0, 10, scr);
   sys.os.gui.setMainScr(scr);
-  sys.btnStdbyEn(1);
+  sys.hw.btn.stdbyEn(1);
   # DFPlayer on the internal expansion by default
   # Pin16 is used to enable power for the player
-  sys.iPinDef(15, PIN_ALT, 0);
-  sys.iPinDef(16, PIN_OUT, 0);
-  sys.iPinSet(16, 1);
+  sys.hw.iPinDef(15, PIN_ALT, 0);
+  sys.hw.iPinDef(16, PIN_OUT, 0);
+  sys.hw.iPinSet(16, 1);
 
   sys.fs.conf.open("mp3-list.dat");
   array btnList[5];
@@ -231,13 +231,13 @@ function update {
     play_next();
   }
 
-  if (sys.btnGetEv(BTN_RIGHT) == EV_PRESSED) {
-    sys.sdaWake();
+  if (sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
+    sys.os.wake();
     sys.gui.setEvent(btn_n, EV_RELEASED);
   }
 
-  if (sys.btnGetEv(BTN_LEFT) == EV_PRESSED) {
-    sys.sdaWake();
+  if (sys.hw.btn.getEvent(BTN_LEFT) == EV_PRESSED) {
+    sys.os.wake();
     sys.gui.setEvent(btn_p, EV_RELEASED);
   }
 
@@ -259,36 +259,36 @@ function update {
     }
   }
 
-  sys.btnClrEv(BTN_LEFT);
-  sys.btnClrEv(BTN_RIGHT);
+  sys.hw.btn.clrEvent(BTN_LEFT);
+  sys.hw.btn.clrEvent(BTN_RIGHT);
 
   if (sys.gui.getEventC(vol_sld)) {
     ds_vol(sys.gui.getValue(vol_sld));
   }
 
-  if (sys.btnGetEv(BTN_UP) == EV_PRESSED) {
-    sys.sdaWake();
+  if (sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+    sys.os.wake();
     if (sys.gui.getValue(vol_sld) < 30) {
       sys.gui.setValue(vol_sld, sys.gui.getValue(vol_sld) + 1);
       sys.gui.setEvent(vol_sld, EV_RELEASED);
     }
   }
 
-  if (sys.btnGetEv(BTN_DOWN) == EV_PRESSED) {
-    sys.sdaWake();
+  if (sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+    sys.os.wake();
     if (sys.gui.getValue(vol_sld) > 0) {
       sys.gui.setValue(vol_sld, sys.gui.getValue(vol_sld) - 1);
       sys.gui.setEvent(vol_sld, EV_RELEASED);
     }
   }
-  sys.btnClrEv(BTN_UP);
-  sys.btnClrEv(BTN_DOWN);
+  sys.hw.btn.clrEvent(BTN_UP);
+  sys.hw.btn.clrEvent(BTN_DOWN);
 
 }
 
 function exit {
   sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld));
   ds_pause();
-  sys.iPinDef(15, PIN_IN, 0);
-  sys.iPinSet(16, 0);
+  sys.hw.iPinDef(15, PIN_IN, 0);
+  sys.hw.iPinSet(16, 0);
 }

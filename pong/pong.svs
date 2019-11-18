@@ -91,7 +91,7 @@ function update {
     return;
   } else {
     sys.cnt.set(game_speed);
-    if (sys.btnGetEv(BTN_UP)) {
+    if (sys.hw.btn.getEvent(BTN_UP)) {
       rp_y_old = rp_y;
       rp_y = rp_y - pspeed;
       redraw = 1;
@@ -100,9 +100,9 @@ function update {
       }
       started = 1;
     }
-    sys.btnClrEv(BTN_UP);
+    sys.hw.btn.clrEvent(BTN_UP);
 
-    if (sys.btnGetEv(BTN_DOWN)) {
+    if (sys.hw.btn.getEvent(BTN_DOWN)) {
       rp_y_old = rp_y;
       rp_y = rp_y + pspeed;
       redraw = 1;
@@ -111,7 +111,7 @@ function update {
       }
       started = 1;
     }
-    sys.btnClrEv(BTN_DOWN);
+    sys.hw.btn.clrEvent(BTN_DOWN);
 
     if (started) {
       lp_x_old = lp_x;

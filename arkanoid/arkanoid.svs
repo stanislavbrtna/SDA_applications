@@ -110,7 +110,7 @@ function update {
     redrawAll = 7;
   }
   if (win == 0){
-    if (sys.btnGetEv(BTN_LEFT)) {
+    if (sys.hw.btn.getEvent(BTN_LEFT)) {
       paddle_x_old = paddle_x;
       paddle_x = paddle_x - pspeed;
       redraw = 1;
@@ -119,9 +119,9 @@ function update {
       }
       started = 1;
     }
-    sys.btnClrEv(BTN_LEFT);
+    sys.hw.btn.clrEvent(BTN_LEFT);
 
-    if (sys.btnGetEv(BTN_RIGHT)) {
+    if (sys.hw.btn.getEvent(BTN_RIGHT)) {
       paddle_x_old = paddle_x;
       paddle_x = paddle_x + pspeed;
       redraw = 1;
@@ -130,16 +130,16 @@ function update {
       }
       started = 1;
     }
-    sys.btnClrEv(BTN_RIGHT);
+    sys.hw.btn.clrEvent(BTN_RIGHT);
 
 #*
-    if (sys.btnGetEv(1)) {
+    if (sys.hw.btn.getEvent(1)) {
       for(x = 0; x < 50; x = x + 1;) {
         sys.arraySet(blArr, x, 0);
       }
       score = 480;
     }
-    sys.btnClrEv(1);
+    sys.hw.btn.clrEvent(1);
 *#
   } else {
     if (sys.gui.getEvent(newgame) == EV_PRESSED) {

@@ -201,41 +201,41 @@ function update {
   }
 
   if (dir_set == 0) {
-    if (sys.btnGetEv(BTN_UP) * (dir_set == 0)) {
+    if (sys.hw.btn.getEvent(BTN_UP) * (dir_set == 0)) {
       if (direction != 3) {
         direction = 2;
       }
       started = 1;
       dir_set = 1;
     }
-    sys.btnClrEv(BTN_UP);
+    sys.hw.btn.clrEvent(BTN_UP);
 
-    if (sys.btnGetEv(BTN_DOWN) * (dir_set == 0)) {
+    if (sys.hw.btn.getEvent(BTN_DOWN) * (dir_set == 0)) {
       if (direction != 2) {
         direction = 3;
       }
       started = 1;
       dir_set = 1;
     }
-    sys.btnClrEv(BTN_DOWN);
+    sys.hw.btn.clrEvent(BTN_DOWN);
 
-    if (sys.btnGetEv(BTN_LEFT) * (dir_set == 0)) {
+    if (sys.hw.btn.getEvent(BTN_LEFT) * (dir_set == 0)) {
       if (direction != 1) {
         direction = 0;
       }
       started = 1;
       dir_set = 1;
     }
-    sys.btnClrEv(BTN_LEFT);
+    sys.hw.btn.clrEvent(BTN_LEFT);
 
-    if (sys.btnGetEv(BTN_RIGHT) * (dir_set == 0)) {
+    if (sys.hw.btn.getEvent(BTN_RIGHT) * (dir_set == 0)) {
       if (direction != 0) {
         direction = 1;
       }
       started = 1;
       dir_set = 1;
     }
-    sys.btnClrEv(BTN_RIGHT);
+    sys.hw.btn.clrEvent(BTN_RIGHT);
   }
 
   if((sys.cnt.get() != 0)) { # framelimiter

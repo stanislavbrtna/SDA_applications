@@ -189,15 +189,15 @@ function upd_rd {
     sys.fs.conf.write("line" + sel_id, "" + line);
   }
 
-  if (sys.gui.getEventC(rd_dn) == EV_RELEASED or sys.btnGetEv(BTN_DOWN) == EV_PRESSED) {
+  if (sys.gui.getEventC(rd_dn) == EV_RELEASED or sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
     pos_down = 3;
   }
-  sys.btnClrEv(BTN_DOWN);
+  sys.hw.btn.clrEvent(BTN_DOWN);
 
-  if (sys.gui.getEventC(rd_up) == EV_RELEASED or sys.btnGetEv(BTN_UP) == EV_PRESSED) {
+  if (sys.gui.getEventC(rd_up) == EV_RELEASED or sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
     pos_up = 3;
   }
-  sys.btnClrEv(BTN_UP);
+  sys.hw.btn.clrEvent(BTN_UP);
 
   if (pos_up > 0) {
     if(line >= 50) {

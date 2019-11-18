@@ -33,6 +33,9 @@ function init {
   ppmOvr = -1;
 
   sys.gui.setGrayout(bUp, 1);
+
+  pasteOvr = 0;
+  remOvr = 0;
 }
 
 function getsize {
