@@ -34,8 +34,8 @@ function init {
 
   sys.gui.setGrayout(bUp, 1);
 
-  pasteOvr = 0;
-  remOvr = 0;
+  pasteOvr = -1;
+  remOvr = -1;
 }
 
 function getsize {
@@ -258,8 +258,6 @@ function update {
     mkdirName = "";
     sys.gui.setStr(textLbl, "New directory:");
   }
-
-
 
   if (sys.o.getId() == pasteOvr and sys.o.getId() != 0) {
     pasteOvUpd();
