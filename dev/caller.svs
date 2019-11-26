@@ -1,0 +1,22 @@
+ # calls the file select overlay app
+
+function init {
+  scr = sys.gui.addScreen();
+  btn = sys.gui.addButton(1, 1, 9, 2, "Choose file", scr);
+
+  sys.os.gui.setMainScr(scr);
+}
+
+function update {
+  if(sys.gui.getEventC(btn) == EV_RELEASED) {
+    sys.os.subProcess("dev/fsl.svs", &callRet, 123, 0, 0);
+    return;
+  }
+}
+
+function callRet {
+  print("callback returned");
+  print("argument0: " + arg0);
+
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+}
