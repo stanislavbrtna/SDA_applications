@@ -104,6 +104,8 @@ function init {
     sys.gui.setValue(vol_sld, num(sys.fs.conf.read("volume")));
     setInitVolFlag = 40;
   }
+
+  MoveList = 1;
 }
 
 function countSongs {
@@ -142,7 +144,9 @@ function upd_list {
   local b;
   for(b = 0; b < listMax; b++;) {
     if (sys.gui.getEventC(btnList[b]) == EV_RELEASED){
-      play_no(listBegin+b+1);
+      MoveList = 0;
+      play_no(listBegin + b + 1);
+      MoveList = 1;
     }
   }
 }
@@ -166,6 +170,12 @@ function play_no {
     prevSongs[0] = currentSong;
   }
   currentSong = arg0;
+
+  # Move the list
+  if (MoveList) {
+    listBegin = arg0 - 1;
+    addList();
+  }
 }
 
 function play_next {
