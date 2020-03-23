@@ -5,7 +5,7 @@ function init {
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.3", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.3.1", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -214,6 +214,7 @@ function updFiles {
 function update {
   updFiles();
   sys.gui.setYscroll(file_scr, sys.gui.getValue(scrollbar) - 8);
+  buttonScroll(scrollbar, 16);
 
   if (sys.gui.getEventC(bUp) == EV_RELEASED) {
     sys.fs.chDir("..");
@@ -291,6 +292,28 @@ function update {
       sys.o.destroy();
     }
   }
+}
+
+function buttonScroll {
+  # Up
+  if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+    if (sys.gui.getValue(arg0) > arg1) {
+      sys.gui.setValue(arg0, sys.gui.getValue(arg0) - arg1);
+    } else {
+      sys.gui.setValue(arg0, 0);
+    }
+  }
+  sys.hw.btn.clrEvent(BTN_UP);
+
+  # Down
+  if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+    if (sys.gui.getValue(arg0) < sys.gui.getParam(arg0) - arg1) {
+      sys.gui.setValue(arg0, sys.gui.getValue(arg0) + arg1);
+    } else {
+      sys.gui.setValue(arg0, sys.gui.getParam(arg0));
+    }
+  }
+  sys.hw.btn.clrEvent(BTN_DOWN);
 }
 
 function handleRename {
