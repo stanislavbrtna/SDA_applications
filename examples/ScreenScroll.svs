@@ -18,4 +18,40 @@ function init {
 function update {
   # manage the scrollbar
   sys.gui.setYscroll(innerScreen, sys.gui.getValue(scrollbar));
+
+  # Scrolling with buttons
+  buttonScroll(scrollbar, 10);
+
 }
+
+
+ # buttonScroll(scrollbar, step)
+function buttonScroll {
+  # Up
+  if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+    if (sys.gui.getValue(arg0) > arg1) {
+      sys.gui.setValue(arg0, sys.gui.getValue(arg0) - arg1);
+    } else {
+      sys.gui.setValue(arg0, 0);
+    }
+  }
+  sys.hw.btn.clrEvent(BTN_UP);
+
+  # Down
+  if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+    if (sys.gui.getValue(arg0) < sys.gui.getParam(arg0) - arg1) {
+      sys.gui.setValue(arg0, sys.gui.getValue(arg0) + arg1);
+    } else {
+      sys.gui.setValue(arg0, sys.gui.getParam(arg0));
+    }
+  }
+  sys.hw.btn.clrEvent(BTN_DOWN);
+}
+
+#*
+ The buttonScroll function goes around some quirks of SVS,
+ mainly it does not use any variables, to save them for rest of the app.
+
+ If you want to use it in your app, please consider its position in the file.
+ Tu should be near the call to it, to avoid unnecessary cache reloads.
+*#
