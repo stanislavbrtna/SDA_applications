@@ -10,18 +10,28 @@ function init {
 
 function update {
 
+  # Launch overlay
   if (sys.gui.getEventC(getDate) == EV_RELEASED) {
     dateOvr = sys.o.date.add(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay());
   }
 
-  sys.o.date.update(dateOvr); # updates given overlay id, does nothing if overlay is inactive
+  # Updates given overlay id, does nothing if overlay is inactive
+  sys.o.date.update(dateOvr);
 
+  # Handles overlay success
   if (sys.o.date.getOk(dateOvr)) {
-    sys.gui.setStr(getDate, "" +sys.o.date.getDay(dateOvr) + ". "+sys.o.date.getMon(dateOvr) + ". " +sys.o.date.getYr(dateOvr));
+    sys.gui.setStr(
+      getDate,
+      sys.o.date.getDay(dateOvr)
+      + ". "
+      + sys.o.date.getMon(dateOvr)
+      + ". "
+      + sys.o.date.getYr(dateOvr)
+    );
     sys.o.date.clrOk(dateOvr);
   }
 
-  # nearly same for time
+  # Nearly same for time overlay
 
   if (sys.gui.getEventC(getTime) == EV_RELEASED) {
     timeOvr = sys.o.time.add();
@@ -31,7 +41,12 @@ function update {
   sys.o.time.update(timeOvr);
 
   if (sys.o.time.getOk(timeOvr)) {
-    sys.gui.setStr(getTime, "" + sys.o.time.getHr(timeOvr) + ":" + fmt(sys.o.time.getMin(timeOvr)));
+    sys.gui.setStr(
+      getTime,
+      sys.o.time.getHr(timeOvr)
+      + ":"
+      + fmt(sys.o.time.getMin(timeOvr))
+    );
     sys.o.time.clrOk(timeOvr);
   }
 }
