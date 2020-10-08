@@ -5,7 +5,7 @@ function init {
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.3.1", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.3.2", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -23,6 +23,8 @@ function init {
   bMkdir = sys.gui.addButton(0, 12, 3, 1, "MkDir", scr);
   #bView = sys.gui.addButton(3, 12, 3, 1, "View", scr);
   bRemove = sys.gui.addButton(3, 12, 4, 1, "Remove", scr);
+
+  sys.gui.setSelect(bData, 1);
 
   array fScrBtns[200];
   array path[30];
@@ -228,6 +230,8 @@ function update {
   if (sys.gui.getEventC(bData) == EV_RELEASED) {
     sys.fs.chDir();
     sys.gui.setGrayout(bUp, 1);
+    sys.gui.setSelect(bData, 1);
+    sys.gui.setSelect(bApps, 0);
     upCount = 0;
     rldFiles();
   }
@@ -235,6 +239,8 @@ function update {
   if (sys.gui.getEventC(bApps) == EV_RELEASED) {
     sys.fs.chDir(1);
     sys.gui.setGrayout(bUp, 1);
+    sys.gui.setSelect(bData, 0);
+    sys.gui.setSelect(bApps, 1);
     upCount = 0;
     rldFiles();
   }
