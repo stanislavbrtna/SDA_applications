@@ -1,6 +1,6 @@
 function init {
-  print("init: clock v 3.0");
-  sys.os.checkVer(700);
+  print("init: clock v 3.1");
+  sys.os.checkVer(800);
 
   scr = sys.gui.addScreen();
   s_budik = sys.gui.addScreen();
@@ -149,13 +149,11 @@ function exit {
 
 function init_budik {
 
-  bud_txt = sys.gui.addText(2, 1, 9, 4, "00:00", s_budik);
+  bud_txt = sys.gui.addText(2, 1, 9, 3, "00:00", s_budik);
 
   sys.gui.setTxtSize(bud_txt, 70);
 
   array btn_act_ar[7];
-
-  #sys.gui.setScreen(bud_dscr, s_budik);
 
   if (sys.os.getLang() == SVP_LANG_CZ) {
     sys.gui.addText(1, 0, 6, 1, "Budík:", s_budik);
@@ -204,11 +202,9 @@ function init_budik {
   if (bud_active == 0) {
     sys.gui.setValue(bud_act, 0);
     showDays(0);
-    #sys.gui.setVisible(bud_dscr, 0);
   } else {
     sys.gui.setValue(bud_act, 1);
     showDays(1);
-    #sys.gui.setVisible(bud_dscr, 1);
   }
 
   bud_setstr();
@@ -505,6 +501,9 @@ function upd_min {
 
   #budík
   if (m_run == 1 and m_time <= 0 and beeptimer <= 0) {
+
+    m_time = 0;
+    m_time_upd = 1;
 
     if (sys.gui.getVisible(m_txt) == 0) {
       sys.gui.setVisible(m_txt, 1);
