@@ -45,7 +45,7 @@ function init {
 
   sldT = sys.gui.addSliderV(6, 5, 7, 11, 1200, 250, scr);
 
-  sldF = sys.gui.addSliderV(8, 5, 9, 11, 130, 10, scr);
+  sldF = sys.gui.addSliderV(8, 5, 9, 11, 16000, 27, scr);
 
   if (sys.snd.getMute()) {
     sys.gui.setGrayout(sldT, 1);
@@ -84,7 +84,7 @@ function init {
 function init_runner {
   runscr = sys.gui.addScreen();
 
-  rtxt = sys.gui.addText(1, 1, 9, 2, text, runscr);
+  rselect = sys.gui.addButton(1, 1, 9, 2, "Choose file", runscr);
 
   rbtn = sys.gui.addButton(1, 3, 5, 4, "RUN!", runscr);
 
@@ -96,7 +96,11 @@ function init_runner {
 }
 
 function upd_runner {
-  rfname = sys.os.gui.handleText(rtxt, rfname);
+
+  if(sys.gui.getEventC(rselect) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &runhandle, 0, 0, 0);
+    return;
+  }
 
   if(sys.gui.getEventC(rbtn) == EV_RELEASED) {
     sys.gui.setValue(rtxt, 0);
@@ -108,6 +112,13 @@ function upd_runner {
     }
     return;
   }
+}
+
+function runhandle {
+  #if (arg1 == 1) {
+    rfname = arg0;
+    sys.gui.setStr(rselect, rfname);
+  #}
 }
 
 function runloop {
