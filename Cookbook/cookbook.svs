@@ -1,0 +1,74 @@
+ # calls the file select overlay app
+
+function init {
+  scr = sys.gui.addScreen();
+
+  btn = sys.gui.addButton(1, 1, 9, 2, "button", scr);
+
+  btn2 = sys.gui.addButton(1, 2, 9, 3, "text", scr);
+
+  btn3 = sys.gui.addButton(1, 3, 9, 4, "color button", scr);
+
+  btn4 = sys.gui.addButton(1, 4, 9, 5, "icon", scr);
+  
+  btn5 = sys.gui.addButton(1, 5, 9, 6, "check box", scr);
+  
+  btn6 = sys.gui.addButton(1, 6, 9, 7, "sub screen", scr);
+  
+  btn7 = sys.gui.addButton(1, 7, 9, 8, "frames", scr);
+  
+  btn8 = sys.gui.addButton(1, 8, 9, 9, "bars", scr);
+  
+  btn9 = sys.gui.addButton(1, 9, 9, 10, "sliders", scr);
+
+  sys.os.gui.setMainScr(scr);
+}
+
+function update {
+  if(sys.gui.getEventC(btn) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/button.svs", &callRet, 0, 0, 0);
+    return;
+  }
+
+  if(sys.gui.getEventC(btn2) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/text.svs", &callRet, 0, 0, 0);
+    return;
+  }
+
+  if(sys.gui.getEventC(btn3) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/cbutton.svs", &callRet, 0, 0, 0);
+    return;
+  }
+
+  if(sys.gui.getEventC(btn4) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/icon.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(btn5) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/checkbox.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(btn6) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/sub-screen.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(btn7) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/frames.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(btn8) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/bar.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(btn9) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/slider.svs", &callRet, 0, 0, 0);
+    return;
+  }
+}
+
+function callRet {}

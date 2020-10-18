@@ -1,0 +1,43 @@
+function init {
+    screen = sys.gui.addScreen();
+    sys.os.gui.setMainScr(screen);
+
+    # Element options
+    grayout = sys.gui.addCheckBox(1, 11, 9, 12,"grayout", screen);
+    ghost = sys.gui.addCheckBox(1, 12, 9, 13,"ghost", screen);
+    select = sys.gui.addCheckBox(1, 13, 9, 14,"select", screen);
+
+    # DUT
+    element = sys.gui.addIcon(2, 2, 8, 5, "icon", "none.p16", screen);
+}
+
+function update {
+    # Handle element options
+    if (sys.gui.getEventC(grayout)) {
+        sys.gui.setGrayout(element, sys.gui.getValue(grayout));
+    }
+
+    if (sys.gui.getEventC(ghost)) {
+        sys.gui.setGhost(element, sys.gui.getValue(ghost));
+    }
+
+    if (sys.gui.getEventC(select)) {
+        sys.gui.setSelect(element, sys.gui.getValue(select));
+    }
+
+    # Handle element events
+    if (sys.gui.getEvent(element) == EV_PRESSED) {
+        print("element pressed");
+    }
+
+    if (sys.gui.getEvent(element) == EV_HOLD) {
+        print("element hold");
+    }
+
+    if (sys.gui.getEvent(element) == EV_RELEASED) {
+        print("element released");
+    }
+
+    # Clear event
+    sys.gui.setEvent(element, EV_NONE);
+}

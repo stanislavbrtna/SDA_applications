@@ -1,0 +1,76 @@
+function init {
+    screen = sys.gui.addScreen();
+    sys.os.gui.setMainScr(screen);
+
+    # Element options
+    grayout = sys.gui.addCheckBox(1, 11, 9, 12,"grayout", screen);
+    ghost = sys.gui.addCheckBox(1, 12, 9, 13,"ghost", screen);
+    select = sys.gui.addCheckBox(1, 13, 9, 14,"select", screen);
+
+    editable = sys.gui.addCheckBox(1, 10, 9, 11,"editable", screen);
+    fit = sys.gui.addCheckBox(1, 9, 9, 10,"fit", screen);
+    pwd = sys.gui.addCheckBox(1, 8, 9, 9,"pwd", screen);
+
+    # DUT
+    element = sys.gui.addText(1, 2, 9, 3, "Text field", screen);
+
+    text = "";
+}
+
+function update {
+    # Handle element options
+    if (sys.gui.getEventC(grayout)) {
+        sys.gui.setGrayout(element, sys.gui.getValue(grayout));
+    }
+
+    if (sys.gui.getEventC(ghost)) {
+        sys.gui.setGhost(element, sys.gui.getValue(ghost));
+    }
+
+    if (sys.gui.getEventC(select)) {
+        sys.gui.setSelect(element, sys.gui.getValue(select));
+    }
+
+    if (sys.gui.getEventC(editable)) {
+        sys.gui.setTexEd(element, sys.gui.getValue(editable));
+    }
+
+    if (sys.gui.getValue(editable)) {
+        text = sys.os.gui.handleText(element, text);
+    }
+
+    if (sys.gui.getEventC(pwd)) {
+        sys.gui.setTexPwd(element, sys.gui.getValue(pwd));
+    }
+
+    if (sys.gui.getEventC(fit)) {
+        sys.gui.setTexFit(element, sys.gui.getValue(fit));
+        if (sys.gui.getValue(fit)) {
+            sys.gui.setStr(element,
+"Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
+Duis bibendum, lectus ut viverra rhoncus, dolor nunc faucibus libero,
+eget facilisis enim ipsum id lacus. Vivamus porttitor turpis ac leo.
+Phasellus rhoncus. Praesent dapibus."
+            );
+            sys.gui.setXYXY(element, 1, 2, 9, 8);
+        } else {
+            sys.gui.setXYXY(element, 1, 2, 9, 3);
+        }
+    }
+
+    # Handle element events
+    if (sys.gui.getEvent(element) == EV_PRESSED) {
+        print("element pressed");
+    }
+
+    if (sys.gui.getEvent(element) == EV_HOLD) {
+        print("element hold");
+    }
+
+    if (sys.gui.getEvent(element) == EV_RELEASED) {
+        print("element released");
+    }
+
+    # Clear event
+    sys.gui.setEvent(element, EV_NONE);
+}

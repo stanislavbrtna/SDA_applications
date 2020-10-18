@@ -1,0 +1,77 @@
+function init {
+    # main screen
+    screen = sys.gui.addScreen();
+
+    # buttons to switch frames
+    btn1 = sys.gui.addButton(1,1,3,2,"scr1", screen);
+    btn2 = sys.gui.addButton(3,1,5,2,"scr2", screen);
+    btn3 = sys.gui.addButton(5,1,7,2,"scr3", screen);
+    
+    # frame screens
+    scr1 = sys.gui.addScreen();
+    sys.gui.addText(1, 1, 8, 2, "Sub-screen 1", scr1);
+    sys.gui.addButton(1, 3, 7, 4, "Sub-screen 1", scr1);
+    
+    scr2 = sys.gui.addScreen();
+    sys.gui.addText(1, 1, 8, 2, "Sub-screen 2", scr2);
+    sys.gui.addButton(1, 3, 7, 4, "Sub-screen 2", scr2);
+    
+    scr3 = sys.gui.addScreen();
+    sys.gui.addText(1, 1, 8, 2, "Sub-screen 3", scr3);
+    sys.gui.addButton(1, 3, 7, 4, "Sub-screen 3", scr3);
+    
+    sys.os.gui.setMainScr(screen);
+    
+    # create frame on the main screen
+    element = sys.gui.addFrame(0, 2, 10, 10, scr1, screen);
+
+    # Element options
+    grayout = sys.gui.addCheckBox(1, 11, 9, 12,"grayout", screen);
+    ghost = sys.gui.addCheckBox(1, 12, 9, 13,"ghost", screen);
+    select = sys.gui.addCheckBox(1, 13, 9, 14,"select", screen);
+
+}
+
+function update {
+    # Handle element options
+    if (sys.gui.getEventC(grayout)) {
+        sys.gui.setGrayout(element, sys.gui.getValue(grayout));
+    }
+
+    if (sys.gui.getEventC(ghost)) {
+        sys.gui.setGhost(element, sys.gui.getValue(ghost));
+    }
+
+    if (sys.gui.getEventC(select)) {
+        sys.gui.setSelect(element, sys.gui.getValue(select));
+    }
+
+    # Handle element events
+    if (sys.gui.getEvent(element) == EV_PRESSED) {
+        print("element pressed");
+    }
+
+    if (sys.gui.getEvent(element) == EV_HOLD) {
+        print("element hold");
+    }
+
+    if (sys.gui.getEvent(element) == EV_RELEASED) {
+        print("element released");
+    }
+
+    # Clear event
+    sys.gui.setEvent(element, EV_NONE);
+    
+    # Handle switching
+    if (sys.gui.getEventC(btn1)) {
+        sys.gui.setValue(element, scr1);
+    }
+    
+    if (sys.gui.getEventC(btn2)) {
+        sys.gui.setValue(element, scr2);
+    }
+    
+    if (sys.gui.getEventC(btn3)) {
+        sys.gui.setValue(element, scr3);
+    }
+}

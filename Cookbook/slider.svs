@@ -1,0 +1,55 @@
+function init {
+    screen = sys.gui.addScreen();
+    sys.os.gui.setMainScr(screen);
+
+    # Element options
+    grayout = sys.gui.addCheckBox(1, 11, 9, 12,"grayout", screen);
+    ghost = sys.gui.addCheckBox(1, 12, 9, 13,"ghost", screen);
+    select = sys.gui.addCheckBox(1, 13, 9, 14,"select", screen);
+    
+    # Info text
+    info = sys.gui.addText(1, 10, 9, 11,"Info text", screen);
+
+    # DUT
+    element = sys.gui.addSliderH(1, 2, 9, 3, 100, 1, screen);
+    element2 = sys.gui.addSliderV(8, 4, 9, 10, 100, 1, screen);
+}
+
+function update {
+    # Handle element options
+    if (sys.gui.getEventC(grayout)) {
+        sys.gui.setGrayout(element, sys.gui.getValue(grayout));
+        sys.gui.setGrayout(element2, sys.gui.getValue(grayout));
+    }
+
+    if (sys.gui.getEventC(ghost)) {
+        sys.gui.setGhost(element, sys.gui.getValue(ghost));
+        sys.gui.setGhost(element2, sys.gui.getValue(ghost));
+    }
+
+    if (sys.gui.getEventC(select)) {
+        sys.gui.setSelect(element, sys.gui.getValue(select));
+        sys.gui.setSelect(element2, sys.gui.getValue(select));
+    }
+
+    # Handle element events
+    if (sys.gui.getEvent(element) == EV_PRESSED) {
+        print("element pressed");
+    }
+
+    if (sys.gui.getEvent(element) == EV_HOLD) {
+        print("element hold");
+    }
+
+    if (sys.gui.getEvent(element) == EV_RELEASED) {
+        print("element released");
+    }
+    
+    # Update info text
+    if (sys.gui.getEvent(element) == EV_HOLD or sys.gui.getEvent(element2) == EV_HOLD) {
+        sys.gui.setStr(info, "Slider1: " + sys.gui.getValue(element) + " Slider2: " + sys.gui.getValue(element2));
+    }
+
+    # Clear event
+    sys.gui.setEvent(element, EV_NONE);
+}
