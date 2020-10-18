@@ -62,6 +62,8 @@ function HS_init {
 
   hs_next = sys.gui.addButton(8, 1, 9, 2, ">", hs_scr);
 
+  sys.w.cal.highlight(1);
+
   hs_cal = sys.w.cal.init(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay());
 
   if (sys.os.getLang() == SVP_LANG_CZ) {
@@ -116,7 +118,7 @@ function HS_reload {
         break;
       }
 
-      if (p_year == hs_year and p_mon == hs_month and hs_day != p_day) {
+      if (p_year == hs_year and p_mon == hs_month) {
         sys.w.cal.mark(p_day);
       }
 
