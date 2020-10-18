@@ -9,7 +9,7 @@ function init {
 
 function update {
   if(sys.gui.getEventC(btn) == EV_RELEASED) {
-    sys.os.subProcess("dev/fsl.svs", &callRet, 123, 0, 0);
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
     return;
   }
 }
