@@ -38,7 +38,7 @@ function redrawMap {
   sys.ds.setArea(0, 64, 318, 318);
 
   if ((arg1 == 1) or xPos_o != xPos or yPos_o != yPos) {
-    sys.ds.drawPPM(0, 64, 1, "gps/worldMap.ppm");
+    sys.ds.drawPPM(0, 64, 1, "gps/worldMap.p16");
   }
 
   if (arg0) {
