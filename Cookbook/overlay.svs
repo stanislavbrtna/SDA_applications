@@ -1,0 +1,50 @@
+function init {
+    # Main aplication screen
+    screen = sys.gui.addScreen();
+    sys.os.gui.setMainScr(screen);
+    sys.gui.setRelInit(1);
+    
+    # Create overlay
+    b_create = sys.gui.addButton(1, 2, 5, 1, "Create overlay", screen);
+    ov_id = 0;
+}
+
+function update {
+
+    if (sys.gui.getEventC(b_create) == EV_RELEASED) {
+        # Overlay screen must be created right away before calling sys.o.setScr
+        init_overlay();
+        ov_id = sys.o.setScr(ov_screen);
+        sys.o.setY(200);
+        # Note: Only this works, calling init_overlay somewhere else and then setting the screen
+        # is somehow bugged.
+    }
+    
+    # Check if our overlay is the current one, if true, handle it
+    if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
+        handle_overlay();
+    }
+}
+
+function init_overlay {
+    ov_screen = sys.gui.addScreen();
+    sys.gui.addText(1, 1, 8, 1, "This is the overlay", ov_screen);
+    b_ok = sys.gui.addButton(5, 2, 2, 1, "Ok", ov_screen);
+    b_cancel = sys.gui.addButton(1, 2, 3, 1, "Cancel", ov_screen);
+}
+
+function handle_overlay {
+    if (sys.gui.getEventC(b_ok) == EV_RELEASED) {
+        # Do something 
+        sys.o.destroy();
+        # After calling this, the overlay screen is destroyed,
+        # so return is needed to prevent pscg invalid element (gui) error
+        return;
+    }
+    
+    if (sys.gui.getEventC(b_cancel) == EV_RELEASED) {
+        # Do something else
+        sys.o.destroy();
+        return;
+    }
+}

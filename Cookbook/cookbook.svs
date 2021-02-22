@@ -21,6 +21,8 @@ function init {
   
   btn9 = sys.gui.addButton(1, 9, 9, 10, "sliders", scr);
 
+  btn10 = sys.gui.addButton(1, 10, 9, 11, "overlays", scr);
+
   sys.os.gui.setMainScr(scr);
 }
 
@@ -67,6 +69,11 @@ function update {
   
   if(sys.gui.getEventC(btn9) == EV_RELEASED) {
     sys.os.subProcess("Cookbook/slider.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(btn10) == EV_RELEASED) {
+    sys.os.subProcess("Cookbook/overlay.svs", &callRet, 0, 0, 0);
     return;
   }
 }
