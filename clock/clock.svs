@@ -488,6 +488,7 @@ function upd_min {
     sys.gui.setVisible(m_txt, 0);
     sys.gui.setVisible(m_b_ok, 0);
     sys.gui.setVisible(m_b_del, 0);
+    sys.hw.btn.stdbyEn(0);
   }
 
   if (sys.gui.getEventC(m_b_start) == EV_RELEASED) {
@@ -495,6 +496,7 @@ function upd_min {
       m_run = 1;
       m_time_orig = m_time;
       m_time_u = sys.time.getUptime();
+      sys.hw.btn.stdbyEn(1);
     }
     m_time_upd = 1;
   }
@@ -519,6 +521,7 @@ function upd_min {
     m_time = m_time_orig;
     sys.gui.setVisible(m_txt, 0);
     sys.gui.setVisible(m_b_ok, 0);
+    sys.hw.btn.stdbyEn(0);
     m_time_upd = 1;
   }
 
