@@ -1,0 +1,169 @@
+function init {
+    screen = sys.gui.addScreen();
+    sys.os.gui.setMainScr(screen);
+    sys.gui.setRelInit(1);
+    sys.os.setSingular();
+    
+    b_time = sys.gui.addButton(1, 1, 5, 1, "Zadej čas", screen);
+    
+    b_start = sys.gui.addButton(6, 6, 3, 1, "Start", screen);
+    
+    b_stop = sys.gui.addButton(1, 6, 3, 1, "Stop", screen);
+    sys.gui.setGrayout(b_stop, 1);
+    
+    b_reset = sys.gui.addButton(1, 9, 3, 1, "Reset", screen);
+    
+    bar_progress = sys.gui.addBar(1, 3, 8, 1, 100, 0, screen);
+    
+    t_time = sys.gui.addText(1, 4, 8, 1, "0 m 0 s", screen);
+    
+    t_counter = sys.gui.addText(1, 8, 8, 1, "0. opakování", screen);
+    
+    ov_id = 0;
+    
+    ov_time = 0;
+    
+    time_overall = 0;
+    
+    time_current = 0;
+    
+    time_start = 0;
+    
+    running = 0;
+    
+    repetition = 0;
+    
+    beeper = 0;
+    
+    timestr = "";
+}
+
+
+function update {
+    if (sys.gui.getEventC(b_time) == EV_RELEASED) {
+        init_overlay();
+        ov_id = sys.o.setScr(ov_screen);
+        sys.o.setY(290);
+    }
+    
+    if (sys.gui.getEventC(b_start) == EV_RELEASED) {
+        if (running == 0) {
+          time_start = sys.time.get();
+        } else {
+          time_start = sys.time.get() - time_current;
+        }
+        beeper = 0;
+        running = 1;
+        sys.hw.lockSleep(1);
+        sys.gui.setGrayout(b_start, 1);
+        sys.gui.setGrayout(b_stop, 0);
+    }
+    
+    if (sys.gui.getEventC(b_stop) == EV_RELEASED) {
+        if (running == 1) {
+          running = 2;
+        } else {
+          running = 0;
+          time_current = 0;
+          update_time();
+        }
+        
+        sys.hw.lockSleep(0);
+        sys.gui.setGrayout(b_start, 0);
+    }
+    
+    if (sys.gui.getEventC(b_reset) == EV_RELEASED) {
+        repetition = 0;
+        sys.gui.setStr(t_counter, repetition + ". opakování");
+    }
+    
+    if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
+        update_overlay();
+    }
+    
+    if (running == 1) {
+        time_current = sys.time.get() - time_start;
+        update_time();
+        
+        if (time_current > time_overall and beeper == 0) {
+            repetition++;
+            sys.gui.setStr(t_counter,repetition + ". opakování");
+            beeper = sys.time.get() - 5;
+        }
+        
+        if (beeper < sys.time.get() and beeper != 0) {
+            sys.snd.beep();
+            beeper = sys.time.get() + 5;
+        }
+    }
+}
+
+
+function update_overlay {
+    if (sys.gui.getEventC(b_pm1) == EV_RELEASED) {
+        ov_time += 100 * 60;
+        update_ov_time();
+    }
+    
+    if (sys.gui.getEventC(b_pm2) == EV_RELEASED) {
+        ov_time += 10 * 60;
+        update_ov_time();
+    }
+    
+    if (sys.gui.getEventC(b_pm3) == EV_RELEASED) {
+        ov_time += 60;
+        update_ov_time();
+    }
+    
+    if (sys.gui.getEventC(b_ps1) == EV_RELEASED) {
+        ov_time += 10;
+        update_ov_time();
+    }
+    
+    if (sys.gui.getEventC(b_ok) == EV_RELEASED) {
+        time_overall = ov_time;
+        update_time();
+        sys.o.destroy();
+        return;
+    }
+    
+    if (sys.gui.getEventC(b_cancel) == EV_RELEASED) {
+        sys.o.destroy();
+        return;
+    }
+}
+
+
+function update_ov_time {
+    sys.gui.setStr(t_ov_time, ov_time/60 + " m " + ov_time%60 + " s");
+}
+
+
+function update_time {
+
+    if (time_current/60 + " m " + time_current%60 +" s ("+ time_overall/60 + " m " + time_overall%60 + " s)" != timestr) {
+      timestr = time_current/60 + " m " + time_current%60 +" s ("+ time_overall/60 + " m " + time_overall%60 + " s)";
+      sys.gui.setStr(t_time, timestr);
+    }
+    
+    sys.gui.setParam(bar_progress, time_overall);
+    sys.gui.setValue(bar_progress, time_current);
+}
+
+
+function init_overlay {
+    ov_screen = sys.gui.addScreen();
+
+    b_pm1 = sys.gui.addButton(1, 1, 1, 1, "+", ov_screen);
+    b_pm2 = sys.gui.addButton(2, 1, 1, 1, "+", ov_screen);
+    b_pm3 = sys.gui.addButton(3, 1, 1, 1, "+", ov_screen);
+    
+    b_ps1 = sys.gui.addButton(5, 1, 1, 1, "+", ov_screen);
+    t_ov_time = sys.gui.addText(2, 3, 5, 1, "0 m 0 s", ov_screen);
+
+    b_ok = sys.gui.addButton(5, 5, 2, 1, "Ok", ov_screen);
+    b_cancel = sys.gui.addButton(1, 5, 3, 1, "Cancel", ov_screen);
+    
+    ov_time = 0;
+    update_ov_time();
+}
