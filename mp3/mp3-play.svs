@@ -66,7 +66,7 @@ function ds_vol {
 }
 
 function init {
-  sys.os.checkVer(710);
+  sys.os.checkVer(900);
   sys.os.setSingular();
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
@@ -88,7 +88,7 @@ function init {
   sys.hw.iPinSet(16, 1);
 
   sys.fs.conf.open("mp3-list.dat");
-  array btnList[5];
+  array btnList[15];
   array prevSongs[15];
   numOfSongs = countSongs();
 
@@ -106,6 +106,11 @@ function init {
   }
 
   MoveList = 1;
+}
+
+function add_big_list {
+  big_list = sys.gui.addScreen();
+  big_list_in = sys.gui.addScreen();
 }
 
 function countSongs {
@@ -129,12 +134,13 @@ function addList {
   local b;
   b = 0;
   for(n = listBegin; n < (listBegin + 4); n++;) {
-    if(sys.fs.conf.exists(n + "")) {
-      btnList[b] = sys.gui.addButton(0, 0 + b, 7, 1, sys.fs.conf.read(n+"") , listScr);
-      b++;
-    } else {
+    local text;
+    text = sys.fs.conf.read(n + "");
+    if (text == "") {
       break;
     }
+    btnList[b] = sys.gui.addButton(0, 0 + b, 7, 1, text, listScr);
+    b++;
   }
 
   listMax = b;
@@ -160,6 +166,8 @@ function play_no {
   waitTime = num(sys.fs.conf.read(arg0-1+"_len")) + sys.time.get();
   startTime = sys.time.get();
   sys.gui.setParam(timeBar, waitTime -  sys.time.get());
+  
+  sys.time.setTimer((waitTime -  sys.time.get()) * 1000, &play_next);
 
   if (prevSongs[0] != currentSong and currentSong != 0) {
     local x;
@@ -220,9 +228,9 @@ function update {
     sys.gui.setValue(timeBar, sys.gui.getParam(timeBar) - (waitTime - sys.time.get()));
   }
 
-  if (sys.time.get() > waitTime and waitTime != 0 and play == 1 ) {
-    play_next();
-  }
+  #if (sys.time.get() > waitTime and waitTime != 0 and play == 1 ) {
+  #  play_next();
+  #}
 
   if (sys.gui.getEventC(btn) == EV_RELEASED) {
     if (play == 0) {
@@ -233,6 +241,7 @@ function update {
       sys.gui.setStr(btn, "Play");
       ds_pause();
       play = 0;
+      sys.time.clearTimer();
     }
   }
 
@@ -253,7 +262,7 @@ function update {
 
   if (sys.gui.getEventC(btn_p) == EV_RELEASED) {
     ds_vol(sys.gui.getValue(vol_sld));
-    if (sys.time.get() - startTime > 3) {
+    if (sys.time.get() - startTime > 10) {
       if (currentSong != 0) {
         play_no(currentSong);
       }
@@ -293,11 +302,15 @@ function update {
   }
   sys.hw.btn.clrEvent(BTN_UP);
   sys.hw.btn.clrEvent(BTN_DOWN);
+}
 
+function upd_list_scr {
+  #TODO: Add this
 }
 
 function exit {
-  sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld));
+  sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld) + " ");
+  sys.fs.conf.write("fixforbrokenConf", "" + sys.gui.getValue(vol_sld) + " ");
   ds_pause();
   sys.hw.iPinDef(15, PIN_IN, 0);
   sys.hw.iPinSet(16, 0);
