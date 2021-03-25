@@ -1,5 +1,8 @@
-# file selector overlay, heavily based on SDA Commander code.
-# returns filename with path in first argument and second argument specifies if the path is in data (0) or apps (1)
+ # file selector overlay, heavily based on SDA Commander code.
+ # returns filename with path in first argument and second argument specifies if the path is in data (0) or apps (1)
+ 
+ # v1.1 : Error when tapped outside overlay fixed.
+ #        Data and apps buttons have highlight now.
 
 function init {
   scr = sys.gui.addScreen();
@@ -22,6 +25,8 @@ function init {
   bUp = sys.gui.addButton(0, 1, 1, 1, "/\\", scr);
   bData = sys.gui.addButton(2, 1, 2, 1, "Data", scr);
   bApps = sys.gui.addButton(4, 1, 2, 1, "Apps", scr);
+  
+  sys.gui.setSelect(bData, 1);
 
   selfOvr = sys.o.setScr(scr);
   sys.o.setXYXY(16, 48, 304, 464);
@@ -173,7 +178,6 @@ function updFiles {
   local x;
   for (x = 0; x < numOfFiles; x++;) {
     if (sys.gui.getEventC(fScrBtns[x]) == EV_RELEASED) {
-
         if (selected == -1) {
           sys.gui.setSelect(fScrBtns[x], 1);
           selected = x;
@@ -201,6 +205,13 @@ function updFiles {
 
 
 function update {
+  # First thing is to check validity of the overlay
+  if (sys.o.getId() != selfOvr) {
+    # exit and return if not valid
+    sys.os.exit();
+    return;
+  }
+  
   updFiles();
 
   sys.gui.setYscroll(file_scr, sys.gui.getValue(scrollbar) - 8);
@@ -217,6 +228,8 @@ function update {
   if (sys.gui.getEventC(bData) == EV_RELEASED) {
     sys.fs.chDir();
     inApps = 0;
+    sys.gui.setSelect(bData, 1);
+    sys.gui.setSelect(bApps, 0);
     sys.gui.setGrayout(bUp, 1);
     upCount = 0;
     rldFiles();
@@ -225,16 +238,14 @@ function update {
   if (sys.gui.getEventC(bApps) == EV_RELEASED) {
     sys.fs.chDir(1);
     inApps = 1;
+    sys.gui.setSelect(bData, 0);
+    sys.gui.setSelect(bApps, 1);
     sys.gui.setGrayout(bUp, 1);
     upCount = 0;
     rldFiles();
   }
 
   if (sys.gui.getEventC(btnCancel) == EV_RELEASED) {
-    sys.os.exit();
-  }
-
-  if (sys.o.getId() != selfOvr) {
     sys.os.exit();
   }
 }
