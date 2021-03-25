@@ -1,0 +1,17 @@
+ # this is for testing the forced-cooperative multitasking
+
+function init {
+  scr = sys.gui.addScreen();
+  btn = sys.gui.addButton(3, 1, 7, 2, "lagme", scr);
+  sys.os.gui.setMainScr(scr);
+}
+
+function update{
+  if (sys.gui.getEvent(btn) == EV_RELEASED) {
+    while (1) {
+      # do infinite something...
+      a = 1;
+    }
+  }
+}
+

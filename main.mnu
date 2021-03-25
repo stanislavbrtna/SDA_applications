@@ -1,10 +1,10 @@
-calendar/calendar.svs|calendar/calendar.p16|Calendar
-checklist/checklist.svs|checklist/checklist.p16|Tasks
-utl.mnu|Icons/testoid.p16|Utils
-notepad/notepad.svs|notepad/notepad.p16|Notes
-clock/clock.svs|clock/clock.p16|Clock
-calc/Calc.svs|calc/Calc.p16|Calc
-hry.mnu|pong/pong.p16|Games
-reader/reader.svs|reader/reader.p16|Reader
-dev.mnu|Icons/testoid.p16|Dev
+Productivity/calendar/calendar.svs|Productivity/calendar/calendar.p16|Calendar
+Productivity/checklist/checklist.svs|Productivity/checklist/checklist.p16|Tasks
+Utils/utl.mnu|Icons/testoid.p16|Utils
+Productivity/notepad/notepad.svs|Productivity/notepad/notepad.p16|Notes
+Productivity/clock/clock.svs|Productivity/clock/clock.p16|Clock
+Productivity/calc/Calc.svs|Productivity/calc/Calc.p16|Calc
+Games/games.mnu|Games/pong/pong.p16|Games
+Productivity/reader/reader.svs|Productivity/reader/reader.p16|Reader
+Development/dev.mnu|Icons/testoid.p16|Dev
 

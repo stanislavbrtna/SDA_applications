@@ -1,0 +1,70 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(0, 0, 5, 1, "Direct-S demo", scr);
+  x_m = sys.gui.addButton(5, 0, 7, 1, "x-", scr);
+  x_p = sys.gui.addButton(8, 0, 10, 1, "x+", scr);
+  
+  y_m = sys.gui.addButton(5, 1, 7, 2, "y-", scr);
+  y_p = sys.gui.addButton(8, 1, 10, 2, "y+", scr);
+
+  draw_init = 3;
+
+  sx = 1;
+  sy = 1;
+  
+  redraw = 0;
+}
+
+
+
+function redraw {
+  redraw += arg0;
+
+  if (draw_init > 0) {
+    draw_init--;
+  } else {
+    redraw = 1;  
+  }
+
+  if (redraw == 0) {
+    return;
+  }
+
+  sys.ds.setArea(0, 128, 318, 440);
+
+  sys.ds.clearArea(sys.ds.mixColor(200, 200, 200));
+  sys.ds.drawImage(32, 128+32, sx, sy, "none.p16");
+
+  redraw = 0;
+}
+
+
+function update {
+
+  if (sys.os.getRedraw()){
+    redraw(1);
+  }
+
+  if(sys.gui.getEventC(x_p) == EV_RELEASED) {
+    sx++;
+    redraw = 1;
+  }
+  
+  if(sys.gui.getEventC(x_m) == EV_RELEASED) {
+    sx--;
+    redraw = 1;
+  }
+  if(sys.gui.getEventC(y_p) == EV_RELEASED) {
+    sy++;
+    redraw = 1;
+  }
+  
+  if(sys.gui.getEventC(y_m) == EV_RELEASED) {
+    sy--;
+    redraw = 1;
+  }
+  
+  redraw(0);
+
+}

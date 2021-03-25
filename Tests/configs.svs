@@ -1,0 +1,184 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(1,0,10,10,"Configtest 1.0", scr);
+  result = sys.gui.addText(1,1,10,10,"Result:", scr);
+  
+  progress = 0;
+  tested = 0;
+
+}
+
+function update {
+  if (tested == 0) {
+    test();
+    tested = 1;
+  }
+}
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+function add_result{
+  if (arg1 == 1)
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Failed");
+  else
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Passed");
+}
+
+function cleanup {
+  if (sys.fs.exists("test.cfg")) {
+     sys.fs.delete("test.cfg");
+  }
+}
+
+function test {
+  test_open();
+  test_rw();
+  test_rm_ex();
+  test_monkey();
+}
+
+function test_open {
+  local FAIL;
+  FAIL = 0;
+
+  # close on empty
+  if (sys.fs.conf.close() != 0) {
+    FAIL = 1;
+  }
+  
+  if (sys.fs.conf.open("test.cfg") != 1) {
+    FAIL = 1;
+  }
+  
+  if (sys.fs.conf.close() != 1) {
+    FAIL = 1;
+  }
+  
+  add_result("Open, Close", FAIL);
+}
+
+function test_rw {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  sys.fs.conf.open("test.cfg");
+  
+  sys.fs.conf.write("Key1", "value1");
+  sys.fs.conf.write("Key2", "value2");
+  sys.fs.conf.write("Key3", "value3");
+  
+  if (sys.fs.conf.read("Key1") != "value1" or sys.fs.conf.read("Key2") != "value2" or sys.fs.conf.read("Key3") != "value3") {
+    FAIL = 1;
+  }
+  
+  sys.fs.conf.write("Key_int", "123456");
+  
+  if (sys.fs.conf.readInt("Key_notInt", 8) != 8) {
+    FAIL = 1;
+  }
+  
+  if (sys.fs.conf.readInt("Key_int", 8) != 123456) {
+    FAIL = 1;
+  }
+  
+  sys.fs.conf.close();
+  add_result("Read, Write", FAIL);
+}
+
+function test_rm_ex {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  sys.fs.conf.open("test.cfg");
+  
+  sys.fs.conf.write("Key1", "value1");
+  sys.fs.conf.write("Key2", "value2");
+  sys.fs.conf.write("Key3", "value3");
+  
+  if (sys.fs.conf.exists("Key2") != 1) {
+    FAIL = 1;
+  }
+  
+  if (sys.fs.conf.exists("Key_not") != 0) {
+    FAIL = 1;
+  }
+  
+  sys.fs.conf.remove("Key2");
+  
+  if (sys.fs.conf.exists("Key2") != 0) {
+    FAIL = 1;
+  }
+  
+  sys.fs.conf.close();
+  add_result("Remove, Exists", FAIL);
+}
+
+
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+
+  return new_str;
+}
+
+function test_monkey {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  sys.fs.conf.open("test.cfg");
+  
+  array keys[100];
+  array values[100];
+  
+  for (i = 0; i < 100; i++;) {
+    keys[i] = random_str(10);
+    values[i] = random_str(10);
+    sys.fs.conf.write(keys[i], values[i]);
+    
+    progress = i;
+    upd_progress();
+  }
+  
+  for (i = 0; i < 300; i++;) {
+    val = sys.os.rnd() % 100;
+    
+    sys.fs.conf.remove(keys[val]);
+    
+    keys[val] = random_str(10);
+    values[val] = random_str(10);
+    sys.fs.conf.write(keys[val], values[val]);
+    
+    
+    progress = i/3;
+    upd_progress();
+  }
+  
+  
+  for (i = 0; i < 100; i++;) {
+    if (sys.fs.conf.read(keys[i]) != values[i]) {
+      FAIL = 1;
+    }
+    progress = i;
+    upd_progress();
+  }
+  
+  sys.fs.conf.close();
+  add_result("Monkeybasher", FAIL);
+}
