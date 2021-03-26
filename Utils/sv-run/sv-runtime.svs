@@ -29,17 +29,17 @@ function initSelect {
   selectScr = sys.gui.addScreen();
   sys.gui.addText(1, 1, 10, 2, "S! Runtime pro SDA", selectScr);
 
-  btn_ar = sys.arrayNew(10);
-  name_ar = sys.arrayNew(10);
+  array btn_ar[10];
+  array name_ar[10];
   x = 0;
   for(findfil = sys.fs.find("sva", "sv"); findfil != "" and x < 10; findfil = sys.fs.findNext();) {
     findfil = "sv/" + findfil;
     print("file: " + findfil);
-    sys.arraySet(name_ar, x, findfil);
+    name_ar[x] = findfil;
 
     sys.fs.conf.open(findfil);
 
-    sys.arraySet(btn_ar, x, sys.gui.addButton( 1, 2 + x, 7, 3 + x, sys.fs.conf.read("name"), selectScr));
+    btn_ar[x] = sys.gui.addButton( 1, 2 + x, 7, 3 + x, sys.fs.conf.read("name"), selectScr);
 
     sys.fs.conf.close();
 
@@ -51,8 +51,8 @@ function initSelect {
 function updateSelect {
 
   for (x = 0; x < progCount; x++;) {
-    if (sys.gui.getEventC(sys.arrayGet(btn_ar, x)) == EV_RELEASED) {
-      appToLoad = sys.arrayGet(name_ar, x);
+    if (sys.gui.getEventC(btn_ar[x]) == EV_RELEASED) {
+      appToLoad = name_ar[x];
       loadApp();
     }
   }
@@ -85,8 +85,8 @@ function redrawText {
 
   for(x = 0; x < OUT_LINES; x++;) {
     out = "";
-    string = sys.arrayGet(volOutLines_ar, x);
-    for (y = 0; y < len(sys.arrayGet(volOutLines_ar, x)) + 1; y++;) {
+    string = volOutLines_ar[x];
+    for (y = 0; y < len(volOutLines_ar[x]) + 1; y++;) {
 
       if (getcp(string, y) != "##" )
       {
@@ -107,22 +107,22 @@ function redrawText {
 function initRun {
   runScr = sys.gui.addScreen();
 
-  volBtn_ar = sys.arrayNew(7);
-  volLink_ar = sys.arrayNew(7);
-  volText_ar = sys.arrayNew(7);
+  array volBtn_ar[7];
+  array volLink_ar[7];
+  array volText_ar[7];
 
   OUT_LINES = 9;
   FLT_VARS = 5;
   STR_VARS = 5;
 
-  volOutLines_ar = sys.arrayNew(OUT_LINES);
+  array volOutLines_ar[OUT_LINES];
 
-  fltVar_ar = sys.arrayNew(FLT_VARS);
+  array fltVar_ar[FLT_VARS];
 
-  strVar_ar = sys.arrayNew(STR_VARS);
+  array strVar_ar[STR_VARS];
 
   for(x = 0; x < OUT_LINES; x++;) {
-    sys.arraySet(volOutLines_ar, x, "");
+    volOutLines_ar[x] = "";
   }
 
   linksBtn  = sys.gui.addButton(2, 13, 8, 14, "Volby", runScr);
@@ -201,12 +201,12 @@ function vmLoop {
   if (cmd == "cudl") {
     vmLink++;
     for(x = 0; x < 7; x++;) {
-      sys.arraySet(volText_ar, x, sys.fs.conf.read("" + vmLink));
+      volText_ar[x] = sys.fs.conf.read("" + vmLink);
       vmLink++;
     }
 
     for(x = 0; x < 7; x++;) {
-      sys.arraySet(volLink_ar, x, sys.fs.conf.read("" + vmLink));
+      volLink_ar[x] = sys.fs.conf.read("" + vmLink);
       vmLink++;
     }
     return;
@@ -228,7 +228,7 @@ function vmLoop {
     vmLink++;
     x = num (sys.fs.conf.read("" + vmLink));
     vmLink++;
-    sys.arraySet(volOutLines_ar, x - 1, sys.fs.conf.read("" + vmLink));
+    volOutLines_ar[x - 1] = sys.fs.conf.read("" + vmLink);
     redrawText();
     vmLink++;
     return;
@@ -248,7 +248,7 @@ function vmLoop {
     vmLink++;
 
     if (x >= 0 and x < FLT_VARS) {
-      sys.arraySet(fltVar_ar, x, float(sys.fs.conf.read("" + vmLink)));
+      fltVar_ar[x] = float(sys.fs.conf.read("" + vmLink));
       vmLink++;
     } else {
       print("error: nedostatek FLT VARs")
@@ -274,7 +274,7 @@ function vmLoop {
     vmLink++;
 
     if (x >= 0 and x < FLT_VARS) {
-      sys.arraySet(fltVar_ar, x, float(inText));
+      fltVar_ar[x] = float(inText);
     } else {
       print("error: nedostatek FLT VARs")
     }
@@ -287,7 +287,7 @@ function vmLoop {
     vmLink++;
 
     if (x >= 0 and x < STR_VARS) {
-      sys.arraySet(strVar_ar, x, sys.fs.conf.read("" + vmLink));
+      strVar_ar[x] = sys.fs.conf.read("" + vmLink);
       vmLink++;
     } else {
       print("error: nedostatek STR VARs");
@@ -313,7 +313,7 @@ function vmLoop {
     vmLink++;
 
     if (x >= 0 and x < STR_VARS) {
-      sys.arraySet(strVar_ar, x, inText);
+      strVar_ar[x] = inText;
     } else {
       print("error: nedostatek STR VARs");
     }
@@ -332,7 +332,7 @@ function vmLoop {
 
     print("x: " + x + " y: " + y + " z: " + z);
     if (x >= 0 and x < FLT_VARS and y >= 0 and y < FLT_VARS and z >= 0 and z < FLT_VARS) {
-      sys.arraySet(fltVar_ar, z, sys.arrayGet(fltVar_ar, x) + sys.arrayGet(fltVar_ar, y));
+      fltVar_ar[z] = fltVar_ar[x] + fltVar_ar[y];
     } else {
       print("error: nedostatek FLT VARs");
     }
@@ -351,7 +351,7 @@ function vmLoop {
 
     print("x: " + x + " y: " + y + " z: " + z);
     if (x >= 0 and x < FLT_VARS and y >= 0 and y < FLT_VARS and z >= 0 and z < FLT_VARS) {
-      sys.arraySet(fltVar_ar, z, sys.arrayGet(fltVar_ar, x) - sys.arrayGet(fltVar_ar, y));
+      fltVar_ar[z] = fltVar_ar[x] - fltVar_ar[y];
     } else {
       print("error: nedostatek FLT VARs");
     }
@@ -370,7 +370,7 @@ function vmLoop {
 
     print("x: " + x + " y: " + y + " z: " + z);
     if (x >= 0 and x < FLT_VARS and y >= 0 and y < FLT_VARS and z >= 0 and z < FLT_VARS) {
-      sys.arraySet(fltVar_ar, z, sys.arrayGet(fltVar_ar, x) * sys.arrayGet(fltVar_ar, y));
+      fltVar_ar[z] = fltVar_ar[x] * fltVar_ar[y];
     } else {
       print("error: nedostatek FLT VARs");
     }
@@ -389,7 +389,7 @@ function vmLoop {
 
     print("x: " + x + " y: " + y + " z: " + z);
     if (x >= 0 and x < FLT_VARS and y >= 0 and y < FLT_VARS and z >= 0 and z < FLT_VARS) {
-      sys.arraySet(fltVar_ar, z, sys.arrayGet(fltVar_ar, x) / sys.arrayGet(fltVar_ar, y));
+      fltVar_ar[z] = fltVar_ar[x] / fltVar_ar[y];
     } else {
       print("error: nedostatek FLT VARs");
     }
@@ -403,7 +403,7 @@ function vmLoop {
     vmLink++;
     y = num (sys.fs.conf.read("" + vmLink));
     vmLink++;
-    sys.arraySet(volOutLines_ar, x - 1, sys.fs.conf.read("" + vmLink) + sys.arrayGet(fltVar_ar, y));
+    volOutLines_ar[x - 1] = sys.fs.conf.read("" + vmLink) + fltVar_ar[y];
     redrawText();
     vmLink++;
     print("vikpr: end: "+vmLink);
@@ -420,8 +420,8 @@ function vmLoop {
     vmLink++;
 
     if (x >= 0 and x < STR_VARS and y >= 0 and y < STR_VARS) {
-      print("compare: "+ sys.arrayGet(strVar_ar, x)+ " a " + sys.arrayGet(strVar_ar, y));
-      if (("" + sys.arrayGet(strVar_ar, x)) == (""+sys.arrayGet(strVar_ar, y))) {
+      print("compare: "+ strVar_ar[x] + " a " + strVar_ar[y]);
+      if (("" + strVar_ar[x]) == ("" + strVar_ar[y])) {
         vmLink = num(z);
       }
       return;
@@ -436,7 +436,7 @@ function vmLoop {
     vmLink++;
     y = num (sys.fs.conf.read("" + vmLink));
     vmLink++;
-    sys.arraySet(volOutLines_ar, x - 1, sys.fs.conf.read("" + vmLink) + sys.arrayGet(strVar_ar, y));
+    volOutLines_ar[x - 1] = sys.fs.conf.read("" + vmLink) + strVar_ar[y];
     redrawText();
     vmLink++;
     print("vikstr: end: "+vmLink);
@@ -466,7 +466,7 @@ function vmLoop {
 function addOverlay {
   linkScr = sys.gui.addScreen();
   for(x = 0; x < 7; x++;) {
-    sys.arraySet(volBtn_ar, x, sys.gui.addButton(0, 1 + x, 8, 2 + x, "" + sys.arrayGet(volText_ar, x), linkScr));
+    volBtn_ar[x] = sys.gui.addButton(0, 1 + x, 8, 2 + x, "" + volText_ar[x], linkScr);
   }
   x++;
   linkBack = sys.gui.addButton(0, 1 + x, 8, 2 + x, "Zpět", linkScr);
@@ -481,9 +481,9 @@ function handleOverlay {
   }
 
   for(x = 0; x < 7; x++;) {
-    if (sys.gui.getEventC(sys.arrayGet(volBtn_ar, x)) == EV_RELEASED) {
+    if (sys.gui.getEventC(volBtn_ar[x]) == EV_RELEASED) {
       vmWait = 0;
-      vmLink = num(sys.arrayGet(volLink_ar, x));
+      vmLink = num(volLink_ar[x]);
       print("jump: " + vmLink);
       sys.o.destroy();
       return;
