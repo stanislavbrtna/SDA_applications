@@ -1,6 +1,6 @@
 function init {
-  sys.os.checkVer(109);
-  namP = sys.arrayNew(60);
+  sys.os.checkVer(900);
+  array namP[60];
   sys.os.setSingular();
   sys.fs.conf.open("reader.cfg");
 
@@ -8,11 +8,16 @@ function init {
   mode = 0;
   preload = -1;
 
+  sel_in = 0;
+  pos_down = 0;
+  pos_up = 0;
+  
+
   x = 0;
   while (sys.fs.conf.exists("nazev" + x)) {
-    sys.arraySet(namP, x, sys.fs.conf.read("nazev" + x));
+    namP[x] = sys.fs.conf.read("nazev" + x);
     if (sys.fs.conf.readInt("active" + x, 0) == 1) {
-      print("aktivace knihy" + sys.arrayGet(namP, x));
+      print("aktivace knihy" + namP[x]);
       preload = x;
     }
     x = x + 1;
@@ -48,11 +53,11 @@ function init_main {
   } else {
     sys.gui.addText(1, 1, 9, 2, "Book reader", scr);
   }
-  btnP = sys.arrayNew(60);
+  array btnP[60];
 
   x = 0;
   while (x < bkCnt) {
-    sys.arraySet(btnP, x, sys.gui.addButton(1, 1 + x*4, 8, 4 + x*4, sys.arrayGet(namP, x), scrS));
+    btnP[x] = sys.gui.addButton(1, 1 + x*4, 8, 4 + x*4, namP[x], scrS);
     x = x + 1;
   }
 
@@ -109,9 +114,9 @@ function upd_s {
   sys.gui.setYscroll(scrS, sys.gui.getValue(mainBar));
   x = 0;
   while (x < bkCnt) {
-    if (sys.gui.getEvent(sys.arrayGet(btnP, x)) == EV_RELEASED) {
+    if (sys.gui.getEvent(btnP[x]) == EV_RELEASED) {
       print("pressed" + x);
-      sys.gui.setStr(sel_txt, sys.arrayGet(namP, x));
+      sys.gui.setStr(sel_txt, namP[x]);
       sys.gui.setStr(sel_image, sys.fs.conf.read("title" + x));
       sel_id = x;
       sys.os.gui.setMainScr(scr1);
@@ -133,7 +138,7 @@ function upd_s {
 
       mode = 1;
     }
-    sys.gui.setEvent(sys.arrayGet(btnP, x), 0);
+    sys.gui.setEvent(btnP[x], 0);
     x = x + 1;
   }
 }
@@ -225,7 +230,4 @@ function upd_rd {
 function exit{
   sys.fs.close();
   sys.fs.conf.close();
-  sys.gui.destroy(scr);
-  sys.gui.destroy(scr1);
-  sys.gui.destroy(scr2);
 }
