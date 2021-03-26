@@ -5,8 +5,8 @@ function init {
   sys.gui.addText(0, 0, 5, 1, "Snake", scr);
   retry = sys.gui.addButton(5, 0, 8, 1, "Retry", scr);
 
-  arr_x = sys.arrayNew(199);
-  arr_y = sys.arrayNew(199);
+  array arr_x[199];
+  array arr_y[199];
 
   gray = sys.ds.mixColor(200, 200, 200);
   green = sys.ds.mixColor(24, 240, 20);
@@ -16,13 +16,13 @@ function init {
 
 function reset{
   snake_len = 3;
-  sys.arraySet(arr_x, 0, 3);
-  sys.arraySet(arr_x, 1, 4);
-  sys.arraySet(arr_x, 2, 5);
+  arr_x[0] = 3;
+  arr_x[1] = 4;
+  arr_x[2] = 5;
 
-  sys.arraySet(arr_y, 0, 5);
-  sys.arraySet(arr_y, 1, 5);
-  sys.arraySet(arr_y, 2, 5);
+  arr_y[0] = 5;
+  arr_y[1] = 5;
+  arr_y[2] = 5;
 
   food_x = 2;
   food_y = 2;
@@ -67,24 +67,24 @@ function redraw{
   }
 
   for(x = 1; x < snake_len; x = x + 1;) {
-    sys.ds.fillRect(  (sys.arrayGet(arr_x, x)) * 16,
-                    (sys.arrayGet(arr_y, x)) * 16,
-                    (sys.arrayGet(arr_x, x) + 1) * 16,
-                    (sys.arrayGet(arr_y, x) + 1) * 16,
+    sys.ds.fillRect(  (arr_x[x]) * 16,
+                    (arr_y[x]) * 16,
+                    (arr_x[x] + 1) * 16,
+                    (arr_y[x] + 1) * 16,
                     0xFFFF);
   }
 
-  sys.ds.fillRect(  (sys.arrayGet(arr_x, 0)) * 16,
-                  (sys.arrayGet(arr_y, 0)) * 16,
-                  (sys.arrayGet(arr_x, 0) +1) * 16,
-                  (sys.arrayGet(arr_y, 0) + 1) * 16,
+  sys.ds.fillRect(  (arr_x[0]) * 16,
+                  (arr_y[0]) * 16,
+                  (arr_x[0] +1) * 16,
+                  (arr_y[0] + 1) * 16,
                   gray);
 
   # remove the last bit
-  sys.ds.fillRect(  (sys.arrayGet(arr_x, x)) * 16,
-                  (sys.arrayGet(arr_y, x)) * 16,
-                  (sys.arrayGet(arr_x, x) + 1) * 16,
-                  (sys.arrayGet(arr_y, x) + 1) * 16,
+  sys.ds.fillRect(  (arr_x[x]) * 16,
+                  (arr_y[x]) * 16,
+                  (arr_x[x] + 1) * 16,
+                  (arr_y[x] + 1) * 16,
                   0);
 
   if (redraw_food) {
@@ -104,8 +104,8 @@ function redraw{
 function move_snake {
   # move
   for(x = snake_len + 1; x > 0; x = x - 1;) {
-    sys.arraySet(arr_x, x, sys.arrayGet(arr_x, x - 1));
-    sys.arraySet(arr_y, x, sys.arrayGet(arr_y, x - 1));
+    arr_x[x] = arr_x[x - 1];
+    arr_y[x] = arr_y[x - 1];
   }
   # 0 - left
   # 1 - right
@@ -114,51 +114,51 @@ function move_snake {
 
   # set direction
   if (arg0 == 0) {
-    sys.arraySet(arr_x, 0, sys.arrayGet(arr_x, 1) - 1);
-    sys.arraySet(arr_y, 0, sys.arrayGet(arr_y, 1));
+    arr_x[0] = arr_x[1] - 1;
+    arr_y[0] = arr_y[1];
   }
 
   if (arg0 == 1) {
-    sys.arraySet(arr_x, 0, sys.arrayGet(arr_x, 1) + 1);
-    sys.arraySet(arr_y, 0, sys.arrayGet(arr_y, 1));
+    arr_x[0] = arr_x[1] + 1;
+    arr_y[0] = arr_y[1];
   }
 
   if (arg0 == 2) {
-    sys.arraySet(arr_x, 0, sys.arrayGet(arr_x, 1));
-    sys.arraySet(arr_y, 0, sys.arrayGet(arr_y, 1) - 1);
+    arr_x[0] = arr_x[1];
+    arr_y[0] = arr_y[1] - 1;
   }
 
   if (arg0 == 3) {
-    sys.arraySet(arr_x, 0, sys.arrayGet(arr_x, 1));
-    sys.arraySet(arr_y, 0, sys.arrayGet(arr_y, 1) + 1);
+    arr_x[0] = arr_x[1];
+    arr_y[0] = arr_y[1] + 1;
   }
 
   # warp
-  if (sys.arrayGet(arr_x, 0) < 0) {
-    sys.arraySet(arr_x, 0, 19);
+  if (arr_x[0] < 0) {
+    arr_x[0] = 19;
   }
 
-  if (sys.arrayGet(arr_x, 0) > 19) {
-    sys.arraySet(arr_x, 0, 0);
+  if (arr_x[0] > 19) {
+    arr_x[0] = 0;
   }
 
-  if (sys.arrayGet(arr_y, 0) < 0) {
-    sys.arraySet(arr_y, 0, 19);
+  if (arr_y[0] < 0) {
+    arr_y[0] = 19;
   }
 
-  if (sys.arrayGet(arr_y, 0) > 19) {
-    sys.arraySet(arr_y, 0, 0);
+  if (arr_y[0] > 19) {
+    arr_y[0] = 0;
   }
 
   # check if snake has eaten itself
   for(x = 1; x < snake_len; x = x + 1;) {
-    if ((sys.arrayGet(arr_x, 0) == sys.arrayGet(arr_x, x)) *
-        (sys.arrayGet(arr_y, 0) == sys.arrayGet(arr_y, x))) {
+    if ((arr_x[0] == arr_x[x]) *
+        (arr_y[0] == arr_y[x])) {
       lost();
     }
   }
 
-  if ((food_x == sys.arrayGet(arr_x, 0)) * (food_y == sys.arrayGet(arr_y, 0))) {
+  if ((food_x == arr_x[0]) * (food_y == arr_y[0])) {
     snake_len = snake_len +1;
     # check if win
     if (snake_len == 199) {
@@ -186,7 +186,7 @@ function move_snake {
       food_x = sys.os.rnd() % 20;
       food_y = sys.os.rnd() % 20;
       for(x = 0; x < snake_len; x = x + 1;) {
-        if ((food_x == sys.arrayGet(arr_x, x)) * (food_y == sys.arrayGet(arr_y, x))){
+        if ((food_x == arr_x[x]) * (food_y == arr_y[x])){
           reload = 1;
         }
       }
