@@ -8,7 +8,7 @@ function init {
   redraw = 0;
   
   sys.fs.chDir(1);
-  sys.fs.chDir("Games/mines/gfx");
+  sys.fs.chDir(get_folder(sys.os.getAppPath())+"gfx");
   
   grey = sys.ds.mixColor(125, 125, 125);
   
@@ -20,6 +20,14 @@ function init {
   mines_n = 10;
 
   init_game();
+}
+
+function get_folder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
 }
 
 function init_game {
@@ -343,7 +351,7 @@ function update {
       for (y = 0; y < 16; y++;) {
         for (x = 0; x < 16; x++;) {
           if(touchX > 20*x and touchX < 20*(x+1) and touchY > 20*y + mines_y and touchY < 20*(y+1) + mines_y) {
-            print("touched: " + (y*16+x));
+            #print("touched: " + (y*16+x));
             if (not flag) {
               # stumbled upon a mine
               if (mf[y*16+x] == 12) {

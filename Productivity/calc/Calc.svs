@@ -1,5 +1,6 @@
 function init {
-  #calc3 v1.0
+  #calc3 v1.1
+  sys.os.checkVer(1000);
   scr = sys.gui.addScreen();
 
   sys.os.gui.setMainScr(scr);
@@ -30,7 +31,7 @@ function init {
 
   sys.gui.setDefFont(scr, 32); # keypad has larger font
 
-  disp = sys.gui.addText(4, 1, 20, 3, "0", scr);
+  disp = sys.gui.addText(1, 1, 18, 3, "0", scr);
 
   btn1 = sys.gui.addButton(7, 10, 4, 4, "1", scr);
   btn2 = sys.gui.addButton(11, 10, 4, 4, "2", scr);
@@ -49,6 +50,14 @@ function init {
   btn_sign = sys.gui.addButton(15, 22, 4, 4, "+/-", scr);
 
   btn_solve = sys.gui.addButton(1, 22, 4, 4, "=", scr);
+  
+  # actually why not...
+  for(x = btn_plus; x <= btn_solve; x++;) {
+    sys.gui.setTexAlign(x, ALIGN_CENTER);
+    sys.gui.setParam(x, 6);
+  }
+  
+  sys.gui.setTexAlign(disp, ALIGN_RIGHT);
 
   DEG = 1;
 
