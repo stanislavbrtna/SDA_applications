@@ -24,56 +24,69 @@ function init {
   btn10 = sys.gui.addButton(1, 10, 9, 11, "overlays", scr);
 
   sys.os.gui.setMainScr(scr);
+  
+  # get executable directory
+  path = get_folder(sys.os.getAppPath());
 }
+
+
+function get_folder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+}
+
 
 function update {
   if(sys.gui.getEventC(btn) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/button.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "button.svs", &callRet, 0, 0, 0);
     return;
   }
 
   if(sys.gui.getEventC(btn2) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/text.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "text.svs", &callRet, 0, 0, 0);
     return;
   }
 
   if(sys.gui.getEventC(btn3) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/cbutton.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "cbutton.svs", &callRet, 0, 0, 0);
     return;
   }
 
   if(sys.gui.getEventC(btn4) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/icon.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "icon.svs", &callRet, 0, 0, 0);
     return;
   }
   
   if(sys.gui.getEventC(btn5) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/checkbox.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "checkbox.svs", &callRet, 0, 0, 0);
     return;
   }
   
   if(sys.gui.getEventC(btn6) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/sub-screen.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "sub-screen.svs", &callRet, 0, 0, 0);
     return;
   }
   
   if(sys.gui.getEventC(btn7) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/frames.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "frames.svs", &callRet, 0, 0, 0);
     return;
   }
   
   if(sys.gui.getEventC(btn8) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/bar.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "bar.svs", &callRet, 0, 0, 0);
     return;
   }
   
   if(sys.gui.getEventC(btn9) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/slider.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "slider.svs", &callRet, 0, 0, 0);
     return;
   }
   
   if(sys.gui.getEventC(btn10) == EV_RELEASED) {
-    sys.os.subProcess("Cookbook/overlay.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess(path + "overlay.svs", &callRet, 0, 0, 0);
     return;
   }
 }
