@@ -15,7 +15,7 @@
 
 function init {
   print("init: cal v.3.1");
-  sys.os.checkVer(700);
+  sys.os.checkVer(1000);
   sys.os.setSingular();
   #sys.profiler(1);
   #sys.dbg(1);
@@ -25,6 +25,11 @@ function init {
 
   sys.os.gui.setMainScr(hs_scr);
   mode = 1;
+  #*
+  mode: 1 - month
+        2 - day
+        3 - edit
+  *#
 
   if (not sys.fs.exists("cal.dat")) {
     sys.fs.conf.open("cal.dat");
@@ -132,6 +137,7 @@ function HS_reload {
     }
   }
 }
+
 
 function next_id {
   cfg_first = sys.fs.conf.readInt("first", 0);
@@ -735,12 +741,7 @@ function update {
   }
 }
 
-function exit{
-  sys.gui.destroy(hs_scr);
-  sys.gui.destroy(day_scr);
-  sys.gui.destroy(day_scr_l);
-  sys.gui.destroy(edit_scr);
-  sys.gui.destroy(ed_rm_scr);
+function exit {
   sys.fs.conf.close();
 }
 
