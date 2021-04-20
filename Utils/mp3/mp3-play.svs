@@ -70,12 +70,12 @@ function init {
   sys.os.setSingular();
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
-  sys.gui.addText(1,0,7,1, "SDA Player", scr);
+  sys.gui.addText(1,1,7,1, "SDA Player", scr);
   btn = sys.gui.addButton(4,11,2,2, "Play", scr);
   btn_n = sys.gui.addButton(7,11,2,2, ">>", scr);
   btn_p = sys.gui.addButton(1,11,2,2, "<<", scr);
   btn_rnd = sys.gui.addCheckBox(1,8,4,1, "Random", scr);
-  fnameText = sys.gui.addText(1,1,7,1, "Current: None", scr);
+  fnameText = sys.gui.addText(1,2,7,2, "Current:\nNone", scr);
   sys.gui.addText(1,9,3,1, "Vol:", scr);
   vol_sld = sys.gui.addSliderH(4,9,5,1, 30, 15, scr);
   timeBar = sys.gui.addBar(1, 7, 8, 1, 0, 10, scr);
@@ -88,16 +88,13 @@ function init {
   sys.hw.iPinSet(16, 1);
 
   sys.fs.conf.open("mp3-list.dat");
-  array btnList[15];
+  array btnList[30];
+  array btnListSng[30];
   array prevSongs[15];
   numOfSongs = countSongs();
 
-  listScr = 0;
-  addList();
-  btnUp = sys.gui.addButton(8,2,1,2, "\n/\\", scr);
-  btnDn = sys.gui.addButton(8,4,1,2, "\n\\/", scr);
+  current = sys.gui.addButton(1,5,4,1, "All songs", scr);
 
-  listBegin = 0;
   prevSong = 0;
 
   if (sys.fs.conf.exists("volume")) {
@@ -106,11 +103,42 @@ function init {
   }
 
   MoveList = 1;
+  
+  add_big_list();
 }
 
 function add_big_list {
   big_list = sys.gui.addScreen();
   big_list_in = sys.gui.addScreen();
+  
+  sys.gui.setScreen(big_list_in, big_list);
+  sys.gui.setXYXY(big_list_in, 1, 2, 7, 9);
+  
+  #scrollbar, searchfield,
+  
+  bl_current = sys.gui.addButton(1, 1, 4, 1, "To current", big_list);
+  
+  bl_back = sys.gui.addButton(1, 12, 2, 1, "<", big_list);
+  bl_slider = sys.gui.addSliderV(8, 2, 1, 9, numOfSongs*32, 0, big_list);
+  
+  bl_up = sys.gui.addButton(9, 2, 1, 3, "/\\", big_list);
+  bl_dn = sys.gui.addButton(9, 5, 1, 3, "\n\n\n\\/", big_list);
+  
+  bl_search_b = sys.gui.addButton(6, 12, 3, 1, "search", big_list);
+  
+  bl_search = sys.gui.addText(1, 20, 7, 1, "", big_list);
+  sys.gui.setTexEd(bl_search, 1);
+  
+  bl_pre_active = 0;
+  bl_search_str = "";
+  
+  listBegin = 0;
+  
+  list_filter = "";
+  list_filter_pr = "";
+  list_search = 0;
+  
+  reload_list();
 }
 
 function countSongs {
@@ -122,6 +150,7 @@ function countSongs {
   return n;
 }
 
+#*
 function addList {
   if (listScr != 0){
     sys.gui.destroy(listScr);
@@ -143,26 +172,27 @@ function addList {
     b++;
   }
 
-  listMax = b;
+  listEnd = b;
 }
+
 
 function upd_list {
   local b;
-  for(b = 0; b < listMax; b++;) {
+  for(b = 0; b < listEnd; b++;) {
     if (sys.gui.getEventC(btnList[b]) == EV_RELEASED){
       MoveList = 0;
       play_no(listBegin + b + 1);
       MoveList = 1;
     }
   }
-}
+}*#
 
 function play_no {
   play = 1;
   sys.gui.setStr(btn, "Stop");
   ds_play_s(arg0);
   print("play: " + arg0);
-  sys.gui.setStr(fnameText, "Current: " + sys.fs.conf.read(arg0-1+""));
+  sys.gui.setStr(fnameText, "Current: \n" + sys.fs.conf.read(arg0-1+""));
   waitTime = num(sys.fs.conf.read(arg0-1+"_len")) + sys.time.get();
   startTime = sys.time.get();
   sys.gui.setParam(timeBar, waitTime -  sys.time.get());
@@ -179,11 +209,13 @@ function play_no {
   }
   currentSong = arg0;
 
+  #*
   # Move the list
   if (MoveList) {
     listBegin = arg0 - 1;
     addList();
   }
+  *#
 }
 
 function play_next {
@@ -208,8 +240,8 @@ function update {
     }
   }
 
-  upd_list();
-
+  upd_list_scr();
+#*
   if (sys.gui.getEventC(btnUp) == EV_RELEASED) {
     if (listBegin >= 4) {
       listBegin = listBegin - 4;
@@ -223,14 +255,10 @@ function update {
       addList();
     }
   }
-
+*#
   if (play == 1) {
     sys.gui.setValue(timeBar, sys.gui.getParam(timeBar) - (waitTime - sys.time.get()));
   }
-
-  #if (sys.time.get() > waitTime and waitTime != 0 and play == 1 ) {
-  #  play_next();
-  #}
 
   if (sys.gui.getEventC(btn) == EV_RELEASED) {
     if (play == 0) {
@@ -248,6 +276,10 @@ function update {
   if (sys.gui.getEventC(btn_n) == EV_RELEASED) {
     ds_vol(sys.gui.getValue(vol_sld));
     play_next();
+  }
+  
+  if (sys.gui.getEventC(current) == EV_RELEASED) {
+    sys.os.gui.setMainScr(big_list);
   }
 
   if (sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
@@ -306,7 +338,170 @@ function update {
 
 function upd_list_scr {
   #TODO: Add this
+  if (sys.gui.getEventC(bl_back) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr);
+  }
+  
+  if (sys.gui.getEventC(bl_current) == EV_RELEASED) {
+    # reload to current on top
+    sys.gui.setValue(bl_slider, (currentSong - 1)*32);
+  }
+
+  if (sys.gui.getEventC(bl_search_b) == EV_RELEASED) {
+    sys.gui.setTexAct(bl_search);
+    sys.gui.setXYXY(bl_search, 1, 8, 7, 1);
+    sys.gui.setXYXY(big_list_in, 1, 2, 7, 6);
+    sys.gui.setXYXY(bl_slider, 8, 2, 1, 6);
+    sys.gui.setGrayout(bl_current, 1);
+    sys.os.showKbd();
+    
+    list_search = 1;
+    list_filter = "";
+    list_filter_pr = "";
+    
+    listBegin_prev = listBegin;
+    listBegin = 0;
+    
+    
+    slider_val_pre = sys.gui.getValue(bl_slider);
+    sys.gui.setValue(bl_slider, 0);
+  }
+  
+  if (bl_pre_active == 1 and sys.gui.getTexAct(bl_search) == 0) {
+    #hide stuff
+    sys.gui.setXYXY(bl_search, 1, 20, 7, 1);
+    sys.gui.setXYXY(big_list_in, 1, 2, 7, 9);
+    sys.gui.setXYXY(bl_slider, 8, 2, 1, 9);
+    sys.gui.setGrayout(bl_current, 0);
+    
+    sys.gui.setValue(bl_slider, slider_val_pre);
+    listBegin = listBegin_prev;
+    list_search = 0;
+    reload_list();
+  }
+  
+  bl_pre_active = sys.gui.getTexAct(bl_search);
+  
+  if (sys.gui.getEventC(bl_up) == EV_RELEASED) {
+    if (sys.gui.getValue(bl_slider) > 5*32) {
+      sys.gui.setValue(bl_slider, sys.gui.getValue(bl_slider) - 5*32);
+    } else {
+      sys.gui.setValue(bl_slider, 0);
+    }
+  }
+  
+  if (sys.gui.getEventC(bl_dn) == EV_RELEASED) {
+    sys.gui.setValue(bl_slider, sys.gui.getValue(bl_slider) + 5*32);
+  }
+ 
+  sys.gui.setYscroll(big_list_in, sys.gui.getValue(bl_slider));
+
+  if (list_search == 0) {
+    if (sys.gui.getValue(bl_slider)/32 < listBegin) {
+      if (sys.gui.getValue(bl_slider)/32 > 5) {
+        listBegin = sys.gui.getValue(bl_slider)/32 - 5;
+      } else {
+        listBegin = 0;
+      }
+      print("reload1: "+listBegin);
+      reload_list();
+    }
+    
+    if (sys.gui.getValue(bl_slider)/32 > listEnd - 9) {
+      if (sys.gui.getValue(bl_slider)/32 > 5) {
+        listBegin = sys.gui.getValue(bl_slider)/32 - 5;
+      } else {
+        listBegin = 0;
+      }
+      print("reload2: "+listBegin);
+      reload_list();
+    }
+  } else {
+    list_filter = sys.os.gui.handleText(bl_search, list_filter);
+    if (list_filter != list_filter_pr) {
+      reload_list();
+    }
+    
+    list_filter_pr = list_filter;
+  }
+  
+  update_list();
 }
+
+
+function update_list {
+  local b;
+  for(b = 0; b < listMax; b++;) {
+    if (sys.gui.getEventC(btnList[b]) == EV_RELEASED) {
+      
+      if (currentSong >= listBegin and currentSong <= listEnd) {
+        sys.gui.setSelect(btnList[currentSong - listBegin - 1], 0);
+      }
+      sys.gui.setSelect(btnList[b], 1);
+      play_no(btnListSng[b]);
+      reload_list();
+    }
+  }
+}
+
+
+function reload_list {
+  local b;
+  local n;
+  local a;
+  for(b = 0; b < len(btnList); b++;) {
+    sys.gui.destroy(btnList[b]);
+  }
+
+  b = 0;
+  a = 0;
+  if (list_search == 0) {
+    for(n = listBegin; n < (listBegin + len(btnList)); n++;) {
+      local text;
+      #if (sys.fs.conf.exists(n + "") == 0) {
+      #  break;
+      #}
+      text = sys.fs.conf.read(n + "");
+      if (text == "") {
+        break;
+      }
+      
+      btnList[b] = sys.gui.addButton(0, listBegin + b, 7, 1, text, big_list_in);
+      btnListSng[b] = listBegin + b + 1;
+      if (listBegin + b + 1 == currentSong) {
+        sys.gui.setSelect(btnList[b], 1);
+      }
+     
+      
+      b++;
+    }
+  } else {
+    for(n = 0; b < len(btnList); n++;) {
+      local text;
+      #if (sys.fs.conf.exists(n + "") == 0) {
+      #  break;
+      #}
+      text = sys.fs.conf.read(n + "");
+      if (text == "") {
+        break;
+      }
+      
+      if (instr(text, list_filter)) {
+        btnList[b] = sys.gui.addButton(0, b, 7, 1, text, big_list_in);
+        btnListSng[b] = n + 1;
+        if (n + 1 == currentSong) {
+          sys.gui.setSelect(btnList[b], 1);
+        }
+        b++;
+      }
+    }
+  }
+
+  listEnd = n;
+  listMax = b;
+  
+}
+
 
 function exit {
   sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld) + " ");
