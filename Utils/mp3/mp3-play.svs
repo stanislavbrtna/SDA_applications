@@ -66,7 +66,7 @@ function ds_vol {
 }
 
 function init {
-  sys.os.checkVer(900);
+  sys.os.checkVer(1000);
   sys.os.setSingular();
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
@@ -75,7 +75,8 @@ function init {
   btn_n = sys.gui.addButton(7,11,2,2, ">>", scr);
   btn_p = sys.gui.addButton(1,11,2,2, "<<", scr);
   btn_rnd = sys.gui.addCheckBox(1,8,4,1, "Random", scr);
-  fnameText = sys.gui.addText(1,2,7,2, "Current:\nNone", scr);
+  sys.gui.addText(1,3,4,1, "Current:", scr);
+  fnameText = sys.gui.addText(1,4,7,2, "None", scr);
   sys.gui.addText(1,9,3,1, "Vol:", scr);
   vol_sld = sys.gui.addSliderH(4,9,5,1, 30, 15, scr);
   timeBar = sys.gui.addBar(1, 7, 8, 1, 0, 10, scr);
@@ -87,22 +88,34 @@ function init {
   sys.hw.iPinDef(16, PIN_OUT, 0);
   sys.hw.iPinSet(16, 1);
 
+  # load settings
+  sys.fs.conf.open("mp3-play.cfg");
+  
+  if (sys.fs.conf.exists("volume")) {
+    sys.gui.setValue(vol_sld, num(sys.fs.conf.read("volume")));
+    setInitVolFlag = 40;
+  }
+  if (sys.fs.conf.exists("random")) {
+    sys.gui.setValue(btn_rnd, num(sys.fs.conf.read("random")));
+  }
+
+  sys.fs.conf.close();
+  
+  # load list of songs
   sys.fs.conf.open("mp3-list.dat");
   array btnList[30];
   array btnListSng[30];
   array prevSongs[15];
   numOfSongs = countSongs();
 
-  current = sys.gui.addButton(1,5,4,1, "All songs", scr);
+  current = sys.gui.addButton(5,3,4,1, "All songs", scr);
 
   prevSong = 0;
-
-  if (sys.fs.conf.exists("volume")) {
-    sys.gui.setValue(vol_sld, num(sys.fs.conf.read("volume")));
-    setInitVolFlag = 40;
-  }
+  currentSong = 0;
 
   MoveList = 1;
+  
+  play = 0;
   
   add_big_list();
 }
@@ -119,7 +132,7 @@ function add_big_list {
   bl_current = sys.gui.addButton(1, 1, 4, 1, "To current", big_list);
   
   bl_back = sys.gui.addButton(1, 12, 2, 1, "<", big_list);
-  bl_slider = sys.gui.addSliderV(8, 2, 1, 9, numOfSongs*32, 0, big_list);
+  bl_slider = sys.gui.addSliderV(8, 2, 1, 9, (numOfSongs - 9)*32 + 15, 0, big_list);
   
   bl_up = sys.gui.addButton(9, 2, 1, 3, "/\\", big_list);
   bl_dn = sys.gui.addButton(9, 5, 1, 3, "\n\n\n\\/", big_list);
@@ -150,49 +163,14 @@ function countSongs {
   return n;
 }
 
-#*
-function addList {
-  if (listScr != 0){
-    sys.gui.destroy(listScr);
-  }
-
-  listScr = sys.gui.addScreen();
-  sys.gui.setScreen(listScr, scr);
-  sys.gui.setXYXY(listScr, 1, 2, 7, 4);
-
-  local b;
-  b = 0;
-  for(n = listBegin; n < (listBegin + 4); n++;) {
-    local text;
-    text = sys.fs.conf.read(n + "");
-    if (text == "") {
-      break;
-    }
-    btnList[b] = sys.gui.addButton(0, 0 + b, 7, 1, text, listScr);
-    b++;
-  }
-
-  listEnd = b;
-}
-
-
-function upd_list {
-  local b;
-  for(b = 0; b < listEnd; b++;) {
-    if (sys.gui.getEventC(btnList[b]) == EV_RELEASED){
-      MoveList = 0;
-      play_no(listBegin + b + 1);
-      MoveList = 1;
-    }
-  }
-}*#
 
 function play_no {
   play = 1;
   sys.gui.setStr(btn, "Stop");
   ds_play_s(arg0);
+  update_song(arg0);
   print("play: " + arg0);
-  sys.gui.setStr(fnameText, "Current: \n" + sys.fs.conf.read(arg0-1+""));
+  sys.gui.setStr(fnameText, "" + sys.fs.conf.read(arg0-1+""));
   waitTime = num(sys.fs.conf.read(arg0-1+"_len")) + sys.time.get();
   startTime = sys.time.get();
   sys.gui.setParam(timeBar, waitTime -  sys.time.get());
@@ -208,14 +186,8 @@ function play_no {
     prevSongs[0] = currentSong;
   }
   currentSong = arg0;
-
-  #*
-  # Move the list
-  if (MoveList) {
-    listBegin = arg0 - 1;
-    addList();
-  }
-  *#
+  
+  
 }
 
 function play_next {
@@ -241,21 +213,7 @@ function update {
   }
 
   upd_list_scr();
-#*
-  if (sys.gui.getEventC(btnUp) == EV_RELEASED) {
-    if (listBegin >= 4) {
-      listBegin = listBegin - 4;
-      addList();
-    }
-  }
 
-  if (sys.gui.getEventC(btnDn) == EV_RELEASED) {
-    if (listBegin < numOfSongs) {
-      listBegin = listBegin + 4;
-      addList();
-    }
-  }
-*#
   if (play == 1) {
     sys.gui.setValue(timeBar, sys.gui.getParam(timeBar) - (waitTime - sys.time.get()));
   }
@@ -336,8 +294,8 @@ function update {
   sys.hw.btn.clrEvent(BTN_DOWN);
 }
 
+
 function upd_list_scr {
-  #TODO: Add this
   if (sys.gui.getEventC(bl_back) == EV_RELEASED) {
     sys.os.gui.setMainScr(scr);
   }
@@ -362,7 +320,7 @@ function upd_list_scr {
     listBegin_prev = listBegin;
     listBegin = 0;
     
-    
+    slider_p_pre = sys.gui.getParam(bl_slider);
     slider_val_pre = sys.gui.getValue(bl_slider);
     sys.gui.setValue(bl_slider, 0);
   }
@@ -375,6 +333,7 @@ function upd_list_scr {
     sys.gui.setGrayout(bl_current, 0);
     
     sys.gui.setValue(bl_slider, slider_val_pre);
+    sys.gui.setParam(bl_slider, slider_p_pre);
     listBegin = listBegin_prev;
     list_search = 0;
     reload_list();
@@ -403,7 +362,7 @@ function upd_list_scr {
       } else {
         listBegin = 0;
       }
-      print("reload1: "+listBegin);
+      #print("reload1: "+listBegin);
       reload_list();
     }
     
@@ -413,13 +372,16 @@ function upd_list_scr {
       } else {
         listBegin = 0;
       }
-      print("reload2: "+listBegin);
+      #print("reload2: "+listBegin);
       reload_list();
     }
   } else {
     list_filter = sys.os.gui.handleText(bl_search, list_filter);
     if (list_filter != list_filter_pr) {
       reload_list();
+      sys.gui.setParam(bl_slider, listMax*32);
+      sys.gui.setValue(bl_slider, 0);
+      sys.gui.setModif(bl_slider);  
     }
     
     list_filter_pr = list_filter;
@@ -433,14 +395,18 @@ function update_list {
   local b;
   for(b = 0; b < listMax; b++;) {
     if (sys.gui.getEventC(btnList[b]) == EV_RELEASED) {
-      
-      if (currentSong >= listBegin and currentSong <= listEnd) {
-        sys.gui.setSelect(btnList[currentSong - listBegin - 1], 0);
-      }
-      sys.gui.setSelect(btnList[b], 1);
       play_no(btnListSng[b]);
       reload_list();
     }
+  }
+}
+
+function update_song #* new current *# {
+  if (currentSong >= listBegin and currentSong <= listEnd) {
+    sys.gui.setSelect(btnList[currentSong - listBegin - 1], 0);
+  }
+  if (arg0 >= listBegin and arg0 <= listEnd) {
+    sys.gui.setSelect(btnList[arg0 - listBegin - 1], 1);
   }
 }
 
@@ -472,7 +438,6 @@ function reload_list {
         sys.gui.setSelect(btnList[b], 1);
       }
      
-      
       b++;
     }
   } else {
@@ -486,7 +451,7 @@ function reload_list {
         break;
       }
       
-      if (instr(text, list_filter)) {
+      if (instr(lower(text), lower(list_filter))) {
         btnList[b] = sys.gui.addButton(0, b, 7, 1, text, big_list_in);
         btnListSng[b] = n + 1;
         if (n + 1 == currentSong) {
@@ -499,13 +464,16 @@ function reload_list {
 
   listEnd = n;
   listMax = b;
-  
 }
 
 
 function exit {
+  sys.fs.conf.close();
+  sys.fs.conf.open("mp3-play.cfg");
   sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld) + " ");
+  sys.fs.conf.write("random", "" + sys.gui.getValue(btn_rnd) + " ");
   sys.fs.conf.write("fixforbrokenConf", "" + sys.gui.getValue(vol_sld) + " ");
+  sys.fs.conf.close();
   ds_pause();
   sys.hw.iPinDef(15, PIN_IN, 0);
   sys.hw.iPinSet(16, 0);
