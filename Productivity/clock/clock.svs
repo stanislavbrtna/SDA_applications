@@ -446,6 +446,7 @@ function init_min {
   m_time = 0;
   m_time_orig = 0;
   m_time_upd = 0;
+  sys.time.clearTimer();
 }
 
 function upd_min {
@@ -489,6 +490,7 @@ function upd_min {
     sys.gui.setVisible(m_b_ok, 0);
     sys.gui.setVisible(m_b_del, 0);
     sys.hw.btn.stdbyEn(0);
+    sys.time.clearTimer();
   }
 
   if (sys.gui.getEventC(m_b_start) == EV_RELEASED) {
@@ -497,6 +499,7 @@ function upd_min {
       m_time_orig = m_time;
       m_time_u = sys.time.getUptime();
       sys.hw.btn.stdbyEn(1);
+      sys.time.setTimer(m_time*1000, &timerCb);
     }
     m_time_upd = 1;
   }
@@ -548,4 +551,8 @@ function upd_min {
     sys.gui.setStr(min_txt, hr + ":" + min + ":" + sec);
     m_time_upd = 0;
   }
+}
+
+function timerCb {
+  sys.os.arise();
 }
