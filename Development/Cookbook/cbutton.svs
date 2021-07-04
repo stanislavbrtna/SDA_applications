@@ -3,9 +3,13 @@ function init {
     sys.os.gui.setMainScr(screen);
 
     # Element options
-    grayout = sys.gui.addCheckBox(1, 11, 9, 12,"grayout", screen);
-    ghost = sys.gui.addCheckBox(1, 12, 9, 13,"ghost", screen);
-    select = sys.gui.addCheckBox(1, 13, 9, 14,"select", screen);
+    grayout = sys.gui.addCheckBox(1, 11, 5, 12,"grayout", screen);
+    ghost = sys.gui.addCheckBox(1, 12, 5, 13,"ghost", screen);
+    select = sys.gui.addCheckBox(1, 13, 5, 14,"select", screen);
+    
+    al_center = sys.gui.addCheckBox(5, 11, 9, 12,"Center", screen);
+    al_left = sys.gui.addCheckBox(5, 12, 9, 13,"Left", screen);
+    al_right = sys.gui.addCheckBox(5, 13, 9, 14,"Right", screen);
 
     r = sys.gui.addSliderH(1, 8, 9, 9, 255, 200, screen);
     g = sys.gui.addSliderH(1, 9, 9, 10, 255, 200, screen);
@@ -31,6 +35,24 @@ function update {
 
     if (sys.gui.getEvent(r) != EV_NONE or sys.gui.getEvent(g) != EV_NONE or sys.gui.getEvent(b) != EV_NONE) {
         sys.gui.setValue(element, sys.ds.mixColor(sys.gui.getValue(r), sys.gui.getValue(g), sys.gui.getValue(b)));
+    }
+    
+    if (sys.gui.getEventC(al_left) == EV_RELEASED) {
+      sys.gui.setTexAlign(element, ALIGN_LEFT);
+      sys.gui.setValue(al_right, 0);
+      sys.gui.setValue(al_center, 0);
+    }
+    
+    if (sys.gui.getEventC(al_center) == EV_RELEASED) {
+      sys.gui.setTexAlign(element, ALIGN_CENTER);
+      sys.gui.setValue(al_right, 0);
+      sys.gui.setValue(al_left, 0);
+    }
+    
+    if (sys.gui.getEventC(al_right) == EV_RELEASED) {
+      sys.gui.setTexAlign(element, ALIGN_RIGHT);
+      sys.gui.setValue(al_center, 0);
+      sys.gui.setValue(al_left, 0);
     }
 
     # Handle element events
