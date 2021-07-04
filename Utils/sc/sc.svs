@@ -5,7 +5,7 @@ function init {
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.3.2", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.4", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -16,13 +16,15 @@ function init {
   bData = sys.gui.addButton(2, 1, 2, 1, "Data", scr);
   bApps = sys.gui.addButton(4, 1, 2, 1, "Apps", scr);
 
+  tPath = sys.gui.addText(0, 11, 8, 1, "Dir: /", scr);
+
   # move, mkdir, launch, view, edit
-  bCopy = sys.gui.addButton(0, 11, 3, 1, "Copy", scr);
-  #bMove = sys.gui.addButton(3, 11, 3, 1, "Move", scr);
-  bRename = sys.gui.addButton(3, 11, 4, 1, "Rename", scr);
-  bMkdir = sys.gui.addButton(0, 12, 3, 1, "MkDir", scr);
-  #bView = sys.gui.addButton(3, 12, 3, 1, "View", scr);
-  bRemove = sys.gui.addButton(3, 12, 4, 1, "Remove", scr);
+  bCopy = sys.gui.addButton(0, 12, 3, 1, "Copy", scr);
+  #bMove = sys.gui.addButton(3, 12, 3, 1, "Move", scr);
+  bRename = sys.gui.addButton(3, 12, 4, 1, "Rename", scr);
+  bMkdir = sys.gui.addButton(0, 13, 3, 1, "MkDir", scr);
+  #bView = sys.gui.addButton(3, 13, 3, 1, "View", scr);
+  bRemove = sys.gui.addButton(3, 13, 4, 1, "Remove", scr);
 
   sys.gui.setSelect(bData, 1);
 
@@ -157,6 +159,7 @@ function getPath {
   local i;
   local pathStr;
   pathStr = "";
+  print("uc " + upCount);
   for (i = 0; i < upCount; i++;) {
     pathStr += path[i] + "/";
   }
@@ -175,7 +178,8 @@ function tryOpen {
 
   if (extension == "txt") {
     sys.os.subProcCWD(0);
-    sys.os.subProcess("notepad/notepad.svs", "", getPath()+arg0, 0, 0);
+    sys.os.subProcess("Productivity/notepad/notepad.svs", "", getPath()+arg0, 0, 0);
+    print("opening: notepad/notepad.svs " + getPath()+arg0);
   }
 
   if (extension == "ppm" or extension == "p16") {
@@ -199,6 +203,7 @@ function updFiles {
             rldFiles();
             sys.gui.setGrayout(bUp, 0);
             upCount++;
+            sys.gui.setStr(tPath, "Dir: /" + getPath());
           } else {
             print ("clicked:" + sys.gui.getStr(fScrBtns[x]));
             tryOpen(sys.gui.getStr(fScrBtns[x]));
@@ -222,6 +227,7 @@ function update {
     sys.fs.chDir("..");
     rldFiles();
     upCount--;
+    sys.gui.setStr(tPath, "Dir: /" + getPath());
     if (upCount == 0){
       sys.gui.setGrayout(bUp, 1);
     }
