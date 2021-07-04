@@ -168,6 +168,16 @@ function updateRun {
   }
 }
 
+function escapeHashes {
+  local x;
+  for (x = 0; x < len(arg0); x++;) {
+    if (getcp(arg0, x) == "#") {
+      arg0 = substr(arg0, 0, x - 1) + "\n" + substr(arg0, x + 1, len(arg0));
+    }
+  }
+  
+  return arg0;
+}
 
 #*
   Implementuje sub-set originálního S! jazyka.
@@ -228,7 +238,7 @@ function vmLoop {
     vmLink++;
     x = num (sys.fs.conf.read("" + vmLink));
     vmLink++;
-    volOutLines_ar[x - 1] = sys.fs.conf.read("" + vmLink);
+    volOutLines_ar[x - 1] = escapeHashes(sys.fs.conf.read("" + vmLink));
     redrawText();
     vmLink++;
     return;
@@ -403,7 +413,7 @@ function vmLoop {
     vmLink++;
     y = num (sys.fs.conf.read("" + vmLink));
     vmLink++;
-    volOutLines_ar[x - 1] = sys.fs.conf.read("" + vmLink) + fltVar_ar[y];
+    volOutLines_ar[x - 1] = escapeHashes(sys.fs.conf.read("" + vmLink)) + fltVar_ar[y];
     redrawText();
     vmLink++;
     print("vikpr: end: "+vmLink);
