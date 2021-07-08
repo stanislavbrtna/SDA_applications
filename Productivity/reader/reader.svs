@@ -1,5 +1,5 @@
 function init {
-  sys.os.checkVer(900);
+  sys.os.checkVer(1000);
   array namP[60];
   sys.os.setSingular();
   sys.fs.conf.open("reader.cfg");
@@ -195,7 +195,7 @@ function upd_rd {
   }
 
   if (sys.gui.getEventC(rd_dn) == EV_RELEASED or sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
-    pos_down = 3;
+    pos_down = 4;
   }
   sys.hw.btn.clrEvent(BTN_DOWN);
 
@@ -217,7 +217,7 @@ function upd_rd {
   }
 
   if (pos_down > 0) {
-    line = line + 50;
+    line = line + sys.gui.getParam(txt);
     sys.fs.seekFill(txt, line);
     pos_down = pos_down - 1;
 
