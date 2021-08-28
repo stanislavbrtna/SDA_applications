@@ -118,6 +118,7 @@ function init {
   play = 0;
   
   add_big_list();
+  upd_sleep();
 }
 
 function add_big_list {
@@ -150,6 +151,7 @@ function add_big_list {
   list_filter = "";
   list_filter_pr = "";
   list_search = 0;
+  list_filter_t = 0;
   
   reload_list();
 }
@@ -161,6 +163,10 @@ function countSongs {
   }
 
   return n;
+}
+
+function upd_sleep {
+  sleep_timer = sys.time.get();
 }
 
 
@@ -186,11 +192,18 @@ function play_no {
     prevSongs[0] = currentSong;
   }
   currentSong = arg0;
-  
-  
 }
 
+
 function play_next {
+  if ((sleep_timer + 60*60) < sys.time.get()) {
+    sys.gui.setStr(btn, "Play");
+    ds_pause();
+    play = 0;
+    sys.time.clearTimer();
+    return;
+  }
+
   if (sys.gui.getValue(btn_rnd)) {
     local rndSong;
     while (rndSong == currentSong) {
@@ -202,8 +215,8 @@ function play_next {
   }
 }
 
-function update {
 
+function update {
   # wait few cycles before setting the initial volume to let the DFPlayer boot
   if (setInitVolFlag != 0) {
     setInitVolFlag--;
@@ -219,6 +232,7 @@ function update {
   }
 
   if (sys.gui.getEventC(btn) == EV_RELEASED) {
+    upd_sleep();
     if (play == 0) {
       sys.gui.setStr(btn, "Stop");
       ds_vol(sys.gui.getValue(vol_sld));
@@ -232,25 +246,30 @@ function update {
   }
 
   if (sys.gui.getEventC(btn_n) == EV_RELEASED) {
+    upd_sleep();
     ds_vol(sys.gui.getValue(vol_sld));
     play_next();
   }
   
   if (sys.gui.getEventC(current) == EV_RELEASED) {
+    upd_sleep();
     sys.os.gui.setMainScr(big_list);
   }
 
   if (sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
+    upd_sleep();
     sys.os.wake();
     sys.gui.setEvent(btn_n, EV_RELEASED);
   }
 
   if (sys.hw.btn.getEvent(BTN_LEFT) == EV_PRESSED) {
+    upd_sleep();
     sys.os.wake();
     sys.gui.setEvent(btn_p, EV_RELEASED);
   }
 
   if (sys.gui.getEventC(btn_p) == EV_RELEASED) {
+    upd_sleep();
     ds_vol(sys.gui.getValue(vol_sld));
     if (sys.time.get() - startTime > 10) {
       if (currentSong != 0) {
@@ -273,9 +292,11 @@ function update {
 
   if (sys.gui.getEventC(vol_sld)) {
     ds_vol(sys.gui.getValue(vol_sld));
+    upd_sleep();
   }
 
   if (sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+    upd_sleep();
     sys.os.wake();
     if (sys.gui.getValue(vol_sld) < 30) {
       sys.gui.setValue(vol_sld, sys.gui.getValue(vol_sld) + 1);
@@ -284,6 +305,7 @@ function update {
   }
 
   if (sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+    upd_sleep();
     sys.os.wake();
     if (sys.gui.getValue(vol_sld) > 0) {
       sys.gui.setValue(vol_sld, sys.gui.getValue(vol_sld) - 1);
@@ -298,14 +320,17 @@ function update {
 function upd_list_scr {
   if (sys.gui.getEventC(bl_back) == EV_RELEASED) {
     sys.os.gui.setMainScr(scr);
+    upd_sleep();
   }
   
   if (sys.gui.getEventC(bl_current) == EV_RELEASED) {
     # reload to current on top
     sys.gui.setValue(bl_slider, (currentSong - 1)*32);
+    upd_sleep();
   }
 
   if (sys.gui.getEventC(bl_search_b) == EV_RELEASED) {
+    upd_sleep();
     sys.gui.setTexAct(bl_search);
     sys.gui.setXYXY(bl_search, 1, 8, 7, 1);
     sys.gui.setXYXY(big_list_in, 1, 2, 7, 6);
@@ -314,6 +339,7 @@ function upd_list_scr {
     sys.os.showKbd();
     
     list_search = 1;
+    list_filter_t = 0;
     list_filter = "";
     list_filter_pr = "";
     
@@ -378,10 +404,15 @@ function upd_list_scr {
   } else {
     list_filter = sys.os.gui.handleText(bl_search, list_filter);
     if (list_filter != list_filter_pr) {
+      list_filter_t = sys.time.getUptime() + 1;
+    }
+    
+    if (sys.time.getUptime() >= list_filter_t and list_filter_t != 0) {
       reload_list();
       sys.gui.setParam(bl_slider, listMax*32);
       sys.gui.setValue(bl_slider, 0);
-      sys.gui.setModif(bl_slider);  
+      sys.gui.setModif(bl_slider);
+      list_filter_t = 0;
     }
     
     list_filter_pr = list_filter;
@@ -395,6 +426,7 @@ function update_list {
   local b;
   for(b = 0; b < listMax; b++;) {
     if (sys.gui.getEventC(btnList[b]) == EV_RELEASED) {
+      upd_sleep();
       play_no(btnListSng[b]);
       reload_list();
     }
