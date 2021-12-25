@@ -236,7 +236,11 @@ function update {
     if (play == 0) {
       sys.gui.setStr(btn, "Stop");
       ds_vol(sys.gui.getValue(vol_sld));
-      play_next();
+      if (currentSong != 0) {
+        play_no(currentSong);
+      } else {
+        play_next();
+      }
     } else {
       sys.gui.setStr(btn, "Play");
       ds_pause();
@@ -404,10 +408,10 @@ function upd_list_scr {
   } else {
     list_filter = sys.os.gui.handleText(bl_search, list_filter);
     if (list_filter != list_filter_pr) {
-      list_filter_t = sys.time.getUptime() + 1;
+      list_filter_t = sys.time.getAppUptime() + 700;
     }
     
-    if (sys.time.getUptime() >= list_filter_t and list_filter_t != 0) {
+    if (sys.time.getAppUptime() >= list_filter_t and list_filter_t != 0) {
       reload_list();
       sys.gui.setParam(bl_slider, listMax*32);
       sys.gui.setValue(bl_slider, 0);
