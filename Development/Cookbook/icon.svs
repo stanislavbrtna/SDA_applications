@@ -50,7 +50,6 @@ function update {
     # Handle element events
     if (sys.gui.getEvent(element) == EV_PRESSED) {
         print("element pressed");
-        sys.gui.setTexAlign(element, ALIGN_CENTER);
     }
 
     if (sys.gui.getEvent(element) == EV_HOLD) {
