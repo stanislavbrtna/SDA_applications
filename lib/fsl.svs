@@ -1,6 +1,9 @@
  # file selector overlay, heavily based on SDA Commander code.
+ # arg0 - [str]default path
+ # arg1 - [num] 1 - APPS 0 - DATA
  # returns filename with path in first argument and second argument specifies if the path is in data (0) or apps (1)
  
+ # v1.2 : Arguments added
  # v1.1 : Error when tapped outside overlay fixed.
  #        Data and apps buttons have highlight now.
 
@@ -40,6 +43,64 @@ function init {
   inApps = 0;
   selectedFile = "";
   upCount = 0;
+  
+  if (typeof (arg1) == TYPE_NUM) {
+    if (arg1 == 1) {
+      sys.fs.chDir(1);
+      sys.gui.setSelect(bData, 0);
+      sys.gui.setSelect(bApps, 1);
+      inApps = 1;
+      rldFiles();
+    } else {
+      sys.fs.chDir();
+      sys.gui.setSelect(bData, 1);
+      sys.gui.setSelect(bApps, 0);
+      inApps = 0;
+      rldFiles();
+    }
+  }
+  
+  if (typeof (arg0) == TYPE_STR) {
+    print("defdir: " + arg0 + "(" + getFolder(arg0) + ")");
+    sys.fs.chDir(getFolder(arg0));
+    print(getPath(arg0));
+    updatePath(arg0);
+    upCount = getUpCount(arg0);
+    rldFiles();
+    sys.gui.setGrayout(bUp, 0);
+  }
+}
+
+function getFolder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+}
+
+function getUpCount {
+  arg4 = 0;
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      arg4++;
+    }
+  }
+  return arg4;
+}
+
+
+function updatePath {
+  arg4 = 0;
+  arg5 = 0;
+  for(arg2 = 0; arg2 < len(arg0); arg2++;) {
+    if (getcp(arg0, arg2) == "/") {
+      path[arg5] = substr(arg0, arg4, arg2 - 1);
+      arg5++;
+      arg4 = arg2 + 1;
+    }
+  }
+  return arg4;
 }
 
 
@@ -162,6 +223,7 @@ function getPath {
   pathStr = "";
   for (i = 0; i < upCount; i++;) {
     pathStr += path[i] + "/";
+    print("" + path[i]);
   }
 
   return pathStr;
