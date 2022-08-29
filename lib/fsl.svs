@@ -63,7 +63,6 @@ function init {
   if (typeof (arg0) == TYPE_STR) {
     print("defdir: " + arg0 + "(" + getFolder(arg0) + ")");
     sys.fs.chDir(getFolder(arg0));
-    print(getPath(arg0));
     updatePath(arg0);
     upCount = getUpCount(arg0);
     rldFiles();
@@ -223,7 +222,6 @@ function getPath {
   pathStr = "";
   for (i = 0; i < upCount; i++;) {
     pathStr += path[i] + "/";
-    print("" + path[i]);
   }
 
   return pathStr;
