@@ -1,0 +1,96 @@
+function init {
+  scr = sys.gui.addScreen();
+  getTime = sys.gui.addButton(1, 3, 5, 4, "Get Time", scr);
+  
+  setAlarm = sys.gui.addButton(1, 5, 5, 6, "Set once", scr);
+  setAlarmR = sys.gui.addButton(5, 5, 10, 6, "Set repeating", scr);
+  
+  removeAlarm = sys.gui.addButton(1, 7, 7, 8, "Remove alarm", scr);
+  
+  okB = sys.gui.addButton(1, 9, 5, 10, "Alarm!", scr);
+  sys.gui.setVisible(okB, 0);
+  sys.gui.setGrayout(removeAlarm, 1);
+  
+  sys.os.gui.setMainScr(scr);
+  
+  currentAlarm = 0;
+  timeOvr = 0;
+}
+
+
+function update {
+
+  # get time for the alarm
+
+  if (sys.gui.getEventC(getTime) == EV_RELEASED) {
+    timeOvr = sys.o.time.add();
+    sys.o.time.set(timeOvr, sys.time.getHr(), (sys.time.getMin() + 2) % 60);
+  }
+
+  sys.o.time.update(timeOvr);
+
+  if (sys.o.time.getOk(timeOvr)) {
+    sys.gui.setStr(
+      getTime,
+      sys.o.time.getHr(timeOvr)
+      + ":"
+      + fmt(sys.o.time.getMin(timeOvr))
+    );
+    
+    hour = sys.o.time.getHr(timeOvr);
+    min = sys.o.time.getMin(timeOvr);
+    sys.o.time.clrOk(timeOvr);
+  }
+  
+  # alarm handler
+  # this also can be in the init function
+  
+  if (sys.alarm.getFlag()) {
+    print("Alarm: id:" + sys.alarm.getId() + " param: " + sys.alarm.getPar());
+    currentAlarm = sys.alarm.getId();
+    
+    sys.hw.wakeLcd();
+    sys.gui.setVisible(okB, 1);
+    sys.gui.setGrayout(removeAlarm, 0);
+    
+    sys.alarm.clrFlag();
+  }
+  
+  
+  # setting the alarm
+  if (sys.gui.getEventC(setAlarm) == EV_RELEASED) {
+    ts = sys.time.setTs(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay(), hour, min, 0);
+    if (ts > sys.time.get()) {
+      currentAlarm = sys.alarm.setFixed(ts, 0);
+      sys.gui.setGrayout(removeAlarm, 0);
+    }
+  }
+  
+  if (sys.gui.getEventC(setAlarmR) == EV_RELEASED) {
+    # sys.alarm.setRep([num]hour, [num]min, [num]wkday, [num]day, [num]month,[num]param);
+    # zero value in wkday/day/month means repeat every wkday/day/month
+    currentAlarm = sys.alarm.setRep(hour, min, 0, 0, 0, 0);
+    # alarm id is better to be stored in a config file
+    sys.gui.setGrayout(removeAlarm, 0);
+  }
+  
+  
+  if (sys.gui.getEventC(okB) == EV_RELEASED) {
+    sys.gui.setVisible(okB, 0);
+  }
+  
+  if (sys.gui.getEventC(removeAlarm) == EV_RELEASED) {
+    if (sys.alarm.destroy(currentAlarm) == 0) {
+      sys.gui.setGrayout(removeAlarm, 1);
+    }
+  }
+
+}
+
+
+function fmt { # to get the leading zero if needed
+  if (arg0 < 10)
+    return "0" + arg0;
+  else
+    return arg0;
+}

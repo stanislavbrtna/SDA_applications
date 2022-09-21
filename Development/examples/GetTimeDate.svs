@@ -12,6 +12,7 @@ function update {
 
   # Launch overlay
   if (sys.gui.getEventC(getDate) == EV_RELEASED) {
+    # set defaults from current date
     dateOvr = sys.o.date.add(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay());
   }
 
@@ -36,8 +37,6 @@ function update {
   if (sys.gui.getEventC(getTime) == EV_RELEASED) {
     timeOvr = sys.o.time.add();
     sys.o.time.set(timeOvr, sys.time.getHr(), sys.time.getMin());
-    # TODO: this will be unified in future version (0.8+) to:
-    # timeOvr = sys.o.time.add(sys.time.getHr(), sys.time.getMin());
   }
 
   sys.o.time.update(timeOvr);
