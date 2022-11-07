@@ -9,6 +9,7 @@
 
 function init {
   scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(0);
   sys.gui.setRelInit(1);
 
   if (sys.os.getLang() == SVP_LANG_CZ) {
@@ -60,7 +61,7 @@ function init {
     }
   }
   
-  if (typeof (arg0) == TYPE_STR) {
+  if (typeof(arg0) == TYPE_STR) {
     print("defdir: " + arg0 + "(" + getFolder(arg0) + ")");
     sys.fs.chDir(getFolder(arg0));
     updatePath(arg0);
@@ -68,6 +69,9 @@ function init {
     rldFiles();
     sys.gui.setGrayout(bUp, 0);
   }
+  
+  sys.os.gui.setMainScr(0);
+  sys.os.hideKbd();
 }
 
 function getFolder {

@@ -1,11 +1,11 @@
  #sda commander
- # todo: move, view
+ # todo: move
 function init {
   sys.os.checkVer(1000);
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.5", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.6", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -23,10 +23,11 @@ function init {
   #bMove = sys.gui.addButton(3, 12, 3, 1, "Move", scr);
   bRename = sys.gui.addButton(3, 12, 4, 1, "Rename", scr);
   bMkdir = sys.gui.addButton(0, 13, 3, 1, "MkDir", scr);
-  #bView = sys.gui.addButton(3, 13, 3, 1, "View", scr);
+  bEdit = sys.gui.addButton(7, 12, 3, 1, "Edit", scr);
   bRemove = sys.gui.addButton(3, 13, 4, 1, "Remove", scr);
 
   sys.gui.setSelect(bData, 1);
+  sys.gui.setGrayout(bEdit, 1);
 
   array fScrBtns[200];
   array path[30];
@@ -41,6 +42,7 @@ function init {
 
   pasteOvr = -1;
   remOvr = -1;
+  inApps = 0;
 }
 
 function getsize {
@@ -197,11 +199,15 @@ function updFiles {
   local x;
   for (x = 0; x < numOfFiles; x++;) {
     if (sys.gui.getEventC(fScrBtns[x]) == EV_RELEASED) {
-
-        if (selected == -1) {
-          sys.gui.setSelect(fScrBtns[x], 1);
-          selected = x;
-        } else {
+      if(sys.fs.isDir(sys.gui.getStr(fScrBtns[x]))) {
+        sys.gui.setGrayout(bEdit, 1);
+      } else {
+        sys.gui.setGrayout(bEdit, 0);
+      }
+      if (selected == -1) {
+        sys.gui.setSelect(fScrBtns[x], 1);
+        selected = x;
+      } else {
         if (selected == x) {
           if (sys.fs.isDir(sys.gui.getStr(fScrBtns[x]))) {
             sys.fs.chDir(sys.gui.getStr(fScrBtns[x]));
@@ -239,6 +245,7 @@ function update {
   }
 
   if (sys.gui.getEventC(bData) == EV_RELEASED) {
+    inApps = 0;
     sys.fs.chDir();
     sys.gui.setGrayout(bUp, 1);
     sys.gui.setSelect(bData, 1);
@@ -246,9 +253,11 @@ function update {
     sys.gui.setStr(tPath, "Dir: /");
     upCount = 0;
     rldFiles();
+    sys.gui.setGrayout(bEdit, 1);
   }
 
   if (sys.gui.getEventC(bApps) == EV_RELEASED) {
+    inApps = 1;
     sys.fs.chDir(1);
     sys.gui.setGrayout(bUp, 1);
     sys.gui.setSelect(bData, 0);
@@ -256,6 +265,7 @@ function update {
     sys.gui.setStr(tPath, "Dir: /");
     upCount = 0;
     rldFiles();
+    sys.gui.setGrayout(bEdit, 1);
   }
 
   if (sys.gui.getEventC(bCopy) == EV_RELEASED) {
@@ -274,6 +284,14 @@ function update {
     if (selected != -1) {
       remName = sys.gui.getStr(fScrBtns[selected]);
       remOvrInit();
+    }
+  }
+  
+  if (sys.gui.getEventC(bEdit) == EV_RELEASED) {
+    if (selected != -1 and not sys.fs.isDir(sys.gui.getStr(fScrBtns[selected]))) {
+      sys.os.subProcCWD(0);
+      sys.os.subProcess("Development/proged/proged.svs", "", getPath() + sys.gui.getStr(fScrBtns[selected]), inApps, 0);
+      print("opening: proged" + getPath() + sys.gui.getStr(fScrBtns[selected]));
     }
   }
 

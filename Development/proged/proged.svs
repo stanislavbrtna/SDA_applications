@@ -1,0 +1,142 @@
+ # this is still more-less proof of concept
+
+function init {
+  scr = sys.gui.addScreen();
+
+  sys.os.gui.setMainScr(scr);
+
+  sys.gui.setRelInit(1);
+
+  sys.gui.addText(0, 10, 6, 1,"SDA Script edit", scr);
+
+  btn_run = sys.gui.addButton(5, 12, 3, 1, "Run", scr);
+
+  btn_store = sys.gui.addButton(1, 12, 3, 1, "Save", scr);
+  
+  btn_new =  sys.gui.addButton(6, 10, 2, 1, "New", scr);
+  
+  btn_open =  sys.gui.addButton(8, 10, 2, 1, "Open", scr);
+
+  scrollscr = sys.gui.addScreen();
+
+  sys.gui.setXYXY(scrollscr, 0, 0, 9, 9);
+
+  sys.gui.setScreen(scrollscr, scr);
+
+  txt = sys.gui.addText(0, 0, 20, 400, "", scrollscr);
+
+  sld = sys.gui.addSliderV(9, 0, 1, 9, 7000, 1, scr);
+  sld2 = sys.gui.addSliderH(0, 9, 9, 1, 320, 1, scr);
+
+  sys.gui.setTexEd(txt, 1);
+  sys.gui.setTxtSize(txt, 12);
+
+  program = "";
+  filename = "";
+  fileRoot = 0; # root in /DATA
+
+  if (typeof(arg0) == TYPE_STR) {
+    if (arg0 != "") {
+      filename = arg0;
+      fileRoot = arg1;
+    } else {
+      filename = "";
+    }
+  } else {
+    filename = "";
+  }
+  
+  if (filename != "") {
+    sys.fs.chDir(fileRoot);
+    if (sys.fs.exists(filename)) {
+      program = sys.fs.readStr(filename);
+    }
+  }
+
+  fnameT = sys.gui.addText(0, 11, 10, 1,"Editing: " + filename, scr);
+
+  
+  
+  textOvr = 0;
+}
+
+function update {
+  program = sys.os.gui.handleText(txt, program);
+
+  newOvrUpdate();
+
+  if (sys.gui.getEventC(btn_run) == EV_RELEASED) {
+    sys.fs.chDir(fileRoot); # goto apps
+    sys.fs.writeStr(program, filename);
+    if (fileRoot == 1) {
+      sys.os.subProcess(filename, "", 0, 0, 0);
+    }
+  }
+
+  if (sys.gui.getEventC(btn_store) == EV_RELEASED) {
+    sys.fs.writeStr(program, filename);
+  }
+
+  if (sys.gui.getEventC(btn_open) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if (sys.gui.getEventC(btn_new) == EV_RELEASED) {
+    newOvInit();
+  }
+
+  sys.gui.setYscroll(scrollscr, sys.gui.getValue(sld));
+  sys.gui.setXscroll(scrollscr, sys.gui.getValue(sld2));
+}
+
+
+function callRet {
+  filename = arg0;
+  sys.fs.chDir(arg1);
+  fileRoot = arg1;
+  if (sys.fs.exists(filename)) {
+    program = sys.fs.readStr(filename);
+    sys.gui.setStr(fnameT, "Editing: " + filename);
+  }
+}
+
+
+function newOvInit {
+  textScr = sys.gui.addScreen();
+  sys.gui.addText(1, 0, 8, 1, "New file:", textScr);
+  textTxt = sys.gui.addText(1, 1, 6, 1, "", textScr);
+  textOk = sys.gui.addButton(1, 2, 2, 1, "Ok", textScr);
+  textCancel = sys.gui.addButton(4, 2, 3, 1, "Cancel", textScr);
+  newFileName = "";
+  sys.gui.setTexEd(textTxt, 1);
+  textOvr = sys.o.setScr(textScr);
+  sys.o.setXYXY(32, 64, 278, 190);
+  sys.os.showKbd();
+  sys.gui.setTexAct(textTxt);
+  return textOvr;
+}
+
+function newOvrUpdate {
+  if (sys.o.getId() != textOvr or sys.o.getId() == 0) {
+    return;
+  }
+  
+  newFileName = sys.os.gui.handleText(textTxt, newFileName);
+
+  if (sys.gui.getEventC(textOk) == EV_RELEASED and (newFileName != "")) {
+    filename = newFilename;
+    fileRoot = 0;
+    program = "";
+    sys.os.hideKbd();
+    sys.o.destroy();
+    return;
+  }
+
+  if (sys.gui.getEventC(textCancel) == EV_RELEASED) {
+    sys.os.hideKbd();
+    sys.o.destroy();
+    return;
+  }
+}
+
