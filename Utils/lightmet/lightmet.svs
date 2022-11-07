@@ -1,0 +1,215 @@
+ # Exposure meter for the SDA
+ # needs hardware expansion for it to work
+
+function init_iso {
+  array isoStr[13];
+  isoStr[0]  = "ISO 6";
+  isoStr[1]  = "ISO 12";
+  isoStr[2]  = "ISO 25";
+  isoStr[3]  = "ISO 50";
+  isoStr[4]  = "ISO 100";
+  isoStr[5]  = "ISO 200";
+  isoStr[6]  = "ISO 400";
+  isoStr[7]  = "ISO 800";
+  isoStr[8]  = "ISO 1600";
+  isoStr[9]  = "ISO 3200";
+  isoStr[10] = "ISO 6400";
+  isoStr[11] = "ISO 12500";
+  isoStr[12] = "ISO 25000";
+}
+
+
+function ov_init {
+  isoScr = sys.gui.addScreen();
+  isoTxt = sys.gui.addText(2, 1, 4, 1, isoStr[iso], isoScr);
+  bIsoM = sys.gui.addButton(1, 1, 1, 1, "-", isoScr);
+  bIsoP = sys.gui.addButton(6, 1, 1, 1, "+", isoScr);
+  bIsoCanc = sys.gui.addButton(1, 3, 3, 1, "Zrušit", isoScr);
+  bIsoOk = sys.gui.addButton(5, 3, 2, 1, "OK", isoScr);
+  sys.gui.setTexAlign(isoTxt, ALIGN_CENTER);
+  isoPrac = iso;
+  return isoScr;
+}
+
+
+function ov_handle {
+  if(sys.gui.getEventC(bIsoM) == EV_RELEASED) {
+    if (isoPrac > 0) {
+      isoPrac--;
+    }
+    sys.gui.setStr(isoTxt, isoStr[isoPrac]);
+  }
+  
+  if(sys.gui.getEventC(bIsoP) == EV_RELEASED) {
+    if (isoPrac < 12) {
+      isoPrac++;
+    }
+    sys.gui.setStr(isoTxt, isoStr[isoPrac]);
+  }
+  
+  if(sys.gui.getEventC(bIsoOk) == EV_RELEASED) {
+    iso = isoPrac;
+    dial_upd();
+    sys.gui.setStr(bIso, isoStr[iso]);
+    sys.o.destroy();
+    return;
+  }
+  
+  if(sys.gui.getEventC(bIsoCanc) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }  
+}
+
+
+function init {
+  sys.gui.setRelInit(1);
+  scr = sys.gui.addScreen();
+  bIso = sys.gui.addButton(5, 1, 4, 1, "ISO ???", scr);
+  bExpP = sys.gui.addButton(8, 3, 1, 1, "+", scr);
+  bExpM = sys.gui.addButton(5, 3, 1, 1, "-", scr);
+  tExp = sys.gui.addText(6, 3, 2, 1, "+0", scr);
+  sys.gui.setTexAlign(tExp, ALIGN_CENTER);
+  sys.gui.setTexAlign(bIso, ALIGN_CENTER);
+  
+  sys.gui.addText(0, 0, 1, 1, "f", scr);
+  sys.gui.addText(2, 0, 1, 1, "t", scr);
+  
+  bMeasure = sys.gui.addButton(5, 5, 4, 2, "Měřit", scr);
+  sys.gui.setTexAlign(bMeasure, ALIGN_CENTER);
+  
+  scr2 = sys.gui.addScreen();
+  sys.gui.setXYXY(scr2, 0, 1, 4, 8);
+  sys.gui.setScreen(scr2, scr);
+  sys.gui.setYcell(scr2, 18);
+  sys.gui.setTexAlign(sys.gui.addText(0, 0, 2, 20, "0.5\n0.7\n1\n1.4\n2\n2.8\n4\n5.6\n8\n11\n16\n22\n45", scr2), ALIGN_RIGHT);
+  tFstop = sys.gui.addText(2, 0, 2, 20, "'4000\n'2000\n'1000\n'500\n'250\n'125\n'60\n'30\n'15\n'8\n'4\n'2\n1s\n2s\n4s\n8s\n15s\n30s\n1m\n2m\n4m\n8m\n15m\n30m\n1h\n2h\n4h\n8h", scr2);
+  
+  sys.os.gui.setMainScr(scr);
+  
+  tTest = sys.gui.addText(0, 11, 10, 2, "test", scr);
+  
+  init_iso();
+  
+  
+  exp = 0;
+  
+  iso = 0; # 0 ~ ISO6
+  
+  sys.fs.conf.open("settings/lightmet.cfg");
+  iso = sys.fs.conf.readInt("iso", 0);
+  exp = sys.fs.conf.readInt("exp", 0);
+  sys.fs.conf.close();
+  sys.gui.setStr(bIso, isoStr[iso]);
+  exp_upd();
+  
+  measure = 0;
+  measureTim = 0;
+  
+  array values [10];
+  cur_val = 0;
+  measuredU = 0;
+  measuredN = 0;
+  
+  ov_id = 0;
+}
+
+
+function update {
+
+  if(sys.gui.getEventC(bIso) == EV_RELEASED) {
+    ov_id = sys.o.setScr(ov_init());
+    sys.o.setY(225);
+  }
+  
+  if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
+     ov_handle();
+  }
+
+  if(sys.gui.getEventC(bExpP) == EV_RELEASED) {
+    exp += 1;
+    exp_upd();
+  }
+  
+  if(sys.gui.getEventC(bExpM) == EV_RELEASED) {
+    exp -= 1;
+    exp_upd();
+  }
+  
+  if(sys.gui.getEvent(bMeasure) == EV_PRESSED){
+    measure = 1;
+    measureTim = sys.time.getAppUptime();
+  }
+  
+  if(sys.gui.getEvent(bMeasure) == EV_RELEASED){
+    measure = 0;
+  }
+  
+  sys.gui.clrScrEv(bMeasure);
+  
+  if (measure) {
+    if (measureTim + 50 < sys.time.getAppUptime()) {
+      print("measurement");
+      
+      # measure 10 values
+      values[cur_val] = sys.hw.eADCRead();
+      cur_val++;
+      if (cur_val == 10) {
+        cur_val = 0;
+        
+        local i;
+        measuredU = 0.0;
+        for(i = 0; i < 10; i++;) {
+          measuredU += values[i];
+        }
+        measuredU /= 10.0;
+        measuredN = get_number(measuredU);
+        
+        sys.gui.setStr(tTest, "U="+measuredU+"V n="+num(measuredN));
+        
+        # nastavit čas podle stupnice, iso a modifikátoru expozice
+        dial_upd();
+      }
+      
+      measureTim = sys.time.getAppUptime();
+    }
+  }
+}
+
+
+function dial_upd {
+  sys.gui.setXYXY(tFstop, 2, -19 + iso + num(measuredN) - exp, 2, 40);
+}
+
+
+function exp_upd {
+  if (exp >= 0) {
+    sys.gui.setStr(tExp, "+" + exp);
+  } else {
+    sys.gui.setStr(tExp, "" + exp);
+  }
+  dial_upd();
+}
+
+
+function get_number {
+  # thx very much https://planetcalc.com/5992/
+  # 0.012 0.0137 0.06 0.09 0.15 0.27 1.04 1.7 2.2 3.03
+  # 3.5 5.5 7 8 9 10 14 16 18 22
+  if (arg0 > 0.05) {
+    return (-0.8825006041)*arg0*arg0 + 7.6326498938*arg0 + 6.3594211455;
+  } else if (arg0 > 0.012) {
+    print("f2");
+    return (-338.2359)*(arg0*arg0) + 80.0827*arg0 + 3.4998;
+  } else {
+    return 1;
+  }
+}
+
+
+function exit {
+  sys.fs.conf.open("settings/lightmet.cfg");
+  sys.fs.conf.write("iso", "" + iso);
+  sys.fs.conf.write("exp", "" + exp);
+  sys.fs.conf.close();
+}
