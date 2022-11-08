@@ -1,0 +1,61 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.setRelInit(1);
+  
+  bFsl = sys.gui.addButton(1, 1, 5, 1, "Choose file", scr);
+
+  bOverlay = sys.gui.addButton(1, 3, 5, 1, "Create overlay", scr);
+  ov_id = 0;
+}
+
+function callRet {
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+}
+
+
+function init_overlay {
+  ov_screen = sys.gui.addScreen();
+  sys.gui.addText(1, 1, 8, 1, "This is the overlay", ov_screen);
+  ov_ok = sys.gui.addButton(5, 2, 2, 1, "Ok", ov_screen);
+  ov_cancel = sys.gui.addButton(1, 2, 3, 1, "Cancel", ov_screen);
+}
+
+
+function handle_overlay {
+  if (sys.gui.getEventC(ov_ok) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+    
+  if (sys.gui.getEventC(ov_cancel) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+}
+
+
+function update {
+  # fsl
+  if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  # overlay
+  if (sys.gui.getEventC(bOverlay) == EV_RELEASED) {
+    init_overlay();
+    ov_id = sys.o.setScr(ov_screen);
+    sys.o.setY(200);
+  }
+  
+  if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
+    handle_overlay();
+  }
+}
+
+
+function exit {
+
+}
