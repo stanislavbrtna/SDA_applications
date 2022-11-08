@@ -8,9 +8,7 @@ function init {
     select = sys.gui.addCheckBox(1, 13, 9, 14,"select", screen);
 
     # DUT
-    element = sys.gui.addScreen();
-    sys.gui.setXYXY(element, 1, 2, 9, 7);
-    sys.gui.setScreen(element, screen);
+    element = sys.gui.addScreen(1, 2, 9, 7, screen);
     sys.gui.addCheckBox(1, 1, 7, 2,"inner element", element);
     sys.gui.addButton(1, 3, 6, 4,"inner element 2", element);
 }

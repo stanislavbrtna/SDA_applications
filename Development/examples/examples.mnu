@@ -1,3 +1,5 @@
-examples/HelloWorld.svs|Icons/testoid.p16|Hello World
-examples/GetTimeDate.svs|Icons/testoid.p16|Get date
-examples/ScreenScroll.svs|Icons/testoid.p16|Scrolling
+examples/HelloWorld.svs|Icons/testoid.p16|Hello World|
+examples/GetTimeDate.svs|Icons/testoid.p16|Get date|
+examples/ScreenScroll.svs|Icons/testoid.p16|Scrolling|
+Development/examples/fileSelector.svs|Icons/testoid.p16|file select|
+Development/examples/timer.svs|Icons/testoid.p16|timer|
