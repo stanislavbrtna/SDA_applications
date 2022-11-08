@@ -1,0 +1,93 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(1,0,10,10,"GR2 test 0.1", scr);
+  result = sys.gui.addText(1,1,10,10,"Result:", scr);
+  
+  progress = 0;
+  tested = 0;
+  GLOB_FAIL = 0;
+  
+  ignore_glob = 0;
+
+}
+
+function update {
+  if (tested == 0) {
+    test();
+    if (not ignore_glob) add_result("Final result", GLOB_FAIL);
+    tested = 1;
+  }
+}
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+function add_result{
+  if (arg1 == 1) {
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Failed");
+    if (not ignore_glob) GLOB_FAIL = 1;
+  } else
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Passed");
+}
+
+
+function test {
+  if (not GLOB_FAIL) test_get_set();
+}
+
+function test_get_set {
+  local FAIL;
+  FAIL = 0;
+
+  local scr;
+  local dut;
+  scr = sys.gui.addScreen();
+  
+  dut = sys.gui.addButton(0,0,0,0, "test", scr);
+  
+  sys.gui.setX1(dut, 1);
+  sys.gui.setX2(dut, 2);
+  sys.gui.setY1(dut, 3);
+  sys.gui.setY2(dut, 4);
+  
+  if (sys.gui.getX1(dut) != 1 or sys.gui.getX2(dut) != 2 or sys.gui.getY1(dut) != 3 or sys.gui.getY2(dut) != 4) {
+    FAIL = 1;
+  }
+  
+  sys.gui.setXYXY(dut, 4, 2, 3, 1);
+  
+  if (sys.gui.getX1(dut) != 4 or sys.gui.getX2(dut) != 3 or sys.gui.getY1(dut) != 2 or sys.gui.getY2(dut) != 1) {
+    FAIL = 1;
+  }
+  
+  sys.gui.setValue(dut, 444);
+  sys.gui.setParam(dut, 555);
+  
+  if (sys.gui.getValue(dut) != 444 or sys.gui.getParam(dut) != 555) {
+    FAIL = 1;
+  }
+  
+  sys.gui.setEvent(dut, EV_PRESSED);
+  
+  if (sys.gui.getEvent(dut) != EV_PRESSED) {
+    FAIL = 1;
+  }
+  
+  if (sys.gui.getEventC(dut) != EV_PRESSED) {
+    FAIL = 1;
+  }
+  
+  if (sys.gui.getEvent(dut) != EV_NONE) {
+    FAIL = 1;
+  }
+  
+  add_result("Getters, setters", FAIL);
+}
+
