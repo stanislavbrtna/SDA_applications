@@ -7,33 +7,33 @@ function init {
 
   sys.gui.setRelInit(1);
 
-  sys.gui.addText(0, 10, 6, 1,"SDA Script edit", scr);
-
-  btn_run = sys.gui.addButton(5, 12, 3, 1, "Run", scr);
-
-  btn_store = sys.gui.addButton(1, 12, 3, 1, "Save", scr);
-  
-  btn_new =  sys.gui.addButton(6, 10, 2, 1, "New", scr);
-  
-  btn_open =  sys.gui.addButton(8, 10, 2, 1, "Open", scr);
-
   scrollscr = sys.gui.addScreen();
 
-  sys.gui.setXYXY(scrollscr, 0, 0, 9, 9);
+  sys.gui.setXYXY(scrollscr, 0, 0, 9, 12);
 
   sys.gui.setScreen(scrollscr, scr);
 
   txt = sys.gui.addText(0, 0, 20, 400, "", scrollscr);
 
-  sld = sys.gui.addSliderV(9, 0, 1, 9, 7000, 1, scr);
-  sld2 = sys.gui.addSliderH(0, 9, 9, 1, 320, 1, scr);
+  sld = sys.gui.addSliderV(9, 1, 1, 7, 7000, 1, scr);
+  sld2 = sys.gui.addSliderH(3, 12, 6, 1, 320, 1, scr);
+  
+  btn_up = sys.gui.addButton(9, 0, 1, 1, "/\\", scr);
+  btn_dn = sys.gui.addButton(9, 8, 1, 1, "\\/", scr);
+  
+  btn_menu = sys.gui.addButton(0, 12, 2, 1, "Menu", scr);
 
   sys.gui.setTexEd(txt, 1);
   sys.gui.setTxtSize(txt, 12);
 
+  kbdDriver = 0;
+  cPosOld = 0;
+
   program = "";
   filename = "";
   fileRoot = 0; # root in /DATA
+  
+  rcv_init();
 
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 != "") {
@@ -53,37 +53,66 @@ function init {
     }
   }
 
-  fnameT = sys.gui.addText(0, 11, 10, 1,"Editing: " + filename, scr);
-
-  
+  fnameT = sys.gui.addText(0, 13, 10, 1,"Editing: " + filename, scr);
   
   textOvr = 0;
+  
+  menuOvr = 0;
 }
 
 function update {
   program = sys.os.gui.handleText(txt, program);
+  
+  if (kbdDriver) {
+    if (sys.com.uartGetRd() == 2) {
+      gc(0);
+      local x = sys.com.uartGetStr();
+      if (x != "") {
+        local s = decode(x);
 
-  newOvrUpdate();
+        if (s != "") {
+          if (sys.os.gui.getCPos(txt) == len(program)) {
+            program = substr(program, 1, sys.os.gui.getCPos(txt)) + s;
+          } else {
+            program = substr(program, 1, sys.os.gui.getCPos(txt)) + s + substr(program, sys.os.gui.getCPos(txt) + 1, len(program));          
+          }
 
-  if (sys.gui.getEventC(btn_run) == EV_RELEASED) {
-    sys.fs.chDir(fileRoot); # goto apps
-    sys.fs.writeStr(program, filename);
-    if (fileRoot == 1) {
-      sys.os.subProcess(filename, "", 0, 0, 0);
+          sys.gui.setStr(txt, program);
+          sys.os.gui.setCPos(txt, sys.os.gui.getCPos(txt) + len(s)); 
+        } else {
+          gc(0);
+          decode_arrows(x, txt);
+        }
+      }
     }
   }
-
-  if (sys.gui.getEventC(btn_store) == EV_RELEASED) {
-    sys.fs.writeStr(program, filename);
+  
+  if (cPosOld != sys.gui.getParam(txt)) {
+    gc(100000);
+    cPosOld = sys.gui.getParam(txt);
   }
 
-  if (sys.gui.getEventC(btn_open) == EV_RELEASED) {
-    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
-    return;
+  newOvrUpdate();
+  menuOvUpdate();
+  
+  if (sys.gui.getEventC(btn_menu) == EV_RELEASED) {
+    menuOvInit();
   }
   
-  if (sys.gui.getEventC(btn_new) == EV_RELEASED) {
-    newOvInit();
+  if (sys.gui.getEventC(btn_up) == EV_RELEASED) {
+    if (sys.gui.getValue(sld) > 16) {
+      sys.gui.setValue(sld, sys.gui.getValue(sld) - 16);
+    } else {
+      sys.gui.setValue(sld, 0);
+    }
+  }
+  
+  if (sys.gui.getEventC(btn_dn) == EV_RELEASED) {
+    if (sys.gui.getValue(sld) < 7000) {
+      sys.gui.setValue(sld, sys.gui.getValue(sld) + 16);
+    } else {
+      sys.gui.setValue(sld, 7000);
+    }
   }
 
   sys.gui.setYscroll(scrollscr, sys.gui.getValue(sld));
@@ -102,16 +131,91 @@ function callRet {
 }
 
 
+function menuOvInit {
+  menuScr = sys.gui.addScreen();
+  
+  sys.gui.addText(0, 0, 6, 1,"   SDA Script edit", menuScr);
+  
+  btn_new =  sys.gui.addButton(1, 1, 4, 1, "New", menuScr);
+  
+  btn_open =  sys.gui.addButton(1, 2, 4, 1, "Open", menuScr);
+
+  btn_run = sys.gui.addButton(1, 4, 4, 1, "Run", menuScr);
+
+  btn_store = sys.gui.addButton(1, 5, 4, 1, "Save", menuScr);
+  
+  btn_close = sys.gui.addButton(6, 1, 1, 1, "X", menuScr);
+  
+  btn_kbd = sys.gui.addCheckBox(1, 7, 10, 1, "Keyboard Driver", menuScr);
+  
+  menuOvr = sys.o.setScr(menuScr);
+  
+  if (fileRoot == 0) {
+    sys.gui.setGrayout(btn_run, 1);
+  }
+  
+  #sys.o.setXYXY(32, 64, 278, 190);
+
+  return menuOvr;
+}
+
+
+function menuOvUpdate {
+  if (sys.o.getId() != menuOvr or sys.o.getId() == 0) {
+    return;
+  }
+  
+  if (sys.gui.getEventC(btn_run) == EV_RELEASED) {
+    sys.fs.chDir(fileRoot); # goto apps
+    sys.fs.writeStr(program, filename);
+    if (fileRoot == 1) {
+      sys.os.subProcess(filename, "", 0, 0, 0);
+    }
+    sys.o.destroy();
+    return;
+  }
+
+  if (sys.gui.getEventC(btn_store) == EV_RELEASED) {
+    sys.fs.writeStr(program, filename);
+    sys.o.destroy();
+    return;
+  }
+
+  if (sys.gui.getEventC(btn_open) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if (sys.gui.getEventC(btn_new) == EV_RELEASED) {
+    newOvInit();
+    return;
+  }
+  
+  if (sys.gui.getEventC(btn_kbd) == EV_RELEASED) {
+    kbdDriver = sys.gui.getValue(btn_kbd);
+  }
+  
+  if (sys.gui.getEventC(btn_close) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+}
+
 function newOvInit {
   textScr = sys.gui.addScreen();
   sys.gui.addText(1, 0, 8, 1, "New file:", textScr);
   textTxt = sys.gui.addText(1, 1, 6, 1, "", textScr);
-  textOk = sys.gui.addButton(1, 2, 2, 1, "Ok", textScr);
-  textCancel = sys.gui.addButton(4, 2, 3, 1, "Cancel", textScr);
+  
+  textExt1 = sys.gui.addButton(3, 2, 2, 1, ".txt", textScr);
+  textExt2 = sys.gui.addButton(5, 2, 2, 1, ".svs", textScr);
+  
+  textOk = sys.gui.addButton(1, 3, 2, 1, "Ok", textScr);
+  textCancel = sys.gui.addButton(4, 3, 3, 1, "Cancel", textScr);
+  
   newFileName = "";
   sys.gui.setTexEd(textTxt, 1);
   textOvr = sys.o.setScr(textScr);
-  sys.o.setXYXY(32, 64, 278, 190);
+  sys.o.setXYXY(32, 64, 278, 222);
   sys.os.showKbd();
   sys.gui.setTexAct(textTxt);
   return textOvr;
@@ -121,16 +225,24 @@ function newOvrUpdate {
   if (sys.o.getId() != textOvr or sys.o.getId() == 0) {
     return;
   }
-  
   newFileName = sys.os.gui.handleText(textTxt, newFileName);
 
-  if (sys.gui.getEventC(textOk) == EV_RELEASED and (newFileName != "")) {
-    filename = newFilename;
+  if ((sys.gui.getEventC(textOk) == EV_RELEASED) and (newFileName != "") ) {
+    filename = newFileName;
     fileRoot = 0;
     program = "";
+    sys.gui.setStr(fnameT, "Editing: " + filename);
     sys.os.hideKbd();
     sys.o.destroy();
     return;
+  }
+  
+  if (sys.gui.getEventC(textExt1) == EV_RELEASED) {
+    newFileName += ".txt";
+  }
+  
+  if (sys.gui.getEventC(textExt2) == EV_RELEASED) {
+    newFileName += ".svs";
   }
 
   if (sys.gui.getEventC(textCancel) == EV_RELEASED) {
@@ -138,5 +250,143 @@ function newOvrUpdate {
     sys.o.destroy();
     return;
   }
+}
+
+function rcv_init {
+  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+  sys.com.uartRcvIT(); # start the rcv
+}
+
+function decode {
+  local i = 1;
+  local b = 1;
+  local id = 0;
+  local type = "";
+  
+  while(getcp(arg0, i) != "$") {
+    i++;
+  }
+  i++;
+  
+  if (getcp(arg0, i) != "P") {
+    return "";
+  }
+  
+  type = getcp(arg0, i); # P - pressed, R - released, H - hold
+  
+  i++;
+  
+  id = num(substr(arg0, i, i + 1));
+  
+  # special characters
+  if (id == 52) {
+    return "\n";
+  }
+  
+  if (id == 28) {
+    return "  ";
+  }
+  
+  if (id == 53 or id == 56){ # shifts
+    if (type == "P") {
+      kbd_shift = 1;
+    }
+    
+    if (type == "R") {
+      kbd_shift = 0;
+    }
+    return "";
+  }
+  
+  while(getcp(arg0, i) != "$") {
+    i++;
+  }
+  i++;
+  
+  # regular char.
+  if (getcp(arg0, i + 1) == "!" and type == "P") {
+    return getcp(arg0, i);
+  }
+  
+  b = i;
+  while(getcp(arg0, b) != "!") {
+    b++;
+  }
+  kbd_spec = substr(arg0, i, b);  
+  return "";
+}
+
+function decode_arrows #*(str, gr2_id )*# {
+  local i = 1;
+  local b = 1;
+  local id = 0;
+  local type = "";
+  
+  while(getcp(arg0, i) != "$") {
+    i++;
+  }
+  i++;
+  
+  if (getcp(arg0, i) != "P") {
+    return "";
+  }
+  
+  type = getcp(arg0, i); # P - pressed, R - released, H - hold
+  i++;
+  id = num(substr(arg0, i, i + 1));
+  
+  # special characters
+  if (id == 77 and sys.os.gui.getCPos(arg1) > 0) {
+    sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) - 1);
+  }
+  
+  if (id == 79 and sys.os.gui.getCPos(arg1) < len(sys.gui.getStr(arg1))) {
+    sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) + 1);
+  }
+  
+  if (id == 27 and sys.os.gui.getCPos(arg1) > 0) {
+    if(sys.os.gui.getCPos(arg1) == 1) {
+      if (len(program) == 1) {
+        program = "";
+      } else {
+        program = substr(program, 2, len(program));
+      } 
+      sys.os.gui.setCPos(arg1, 0);
+    } else if (sys.os.gui.getCPos(arg1) == len(program)) {
+      program = substr(program, 1, sys.os.gui.getCPos(arg1) - 1);
+    } else {
+      program = substr(program, 1, sys.os.gui.getCPos(arg1) - 1) + substr(program, sys.os.gui.getCPos(arg1) + 1, len(program));
+      sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) - 1); 
+    }
+    sys.gui.setStr(txt, program);
+  }
+  
+  if (id == 14 and sys.os.gui.getCPos(arg1) < len(program)) {
+    if(sys.os.gui.getCPos(arg1) == 0) {
+      if (len(program) == 1) {
+        program = "";
+      } else {
+        program = substr(program, 2, len(program));
+      } 
+    } else if (sys.os.gui.getCPos(arg1) == len(program) - 1) {
+      program = substr(program, 1, sys.os.gui.getCPos(arg1));
+    } else {
+      program = substr(program, 1, sys.os.gui.getCPos(arg1)) + substr(program, sys.os.gui.getCPos(arg1) + 2, len(program)); 
+    }
+    sys.gui.setStr(txt, program);
+  }
+  
+  if (id == 73) {
+    if (keyb_stat == 1) {
+      sys.os.hideKbd();
+    } else {
+      sys.os.showKbd();
+    }
+    keyb_stat = 1 - keyb_stat;
+  }
+  
+  gc(100000);
+  return "";
 }
 
