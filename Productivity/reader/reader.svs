@@ -2,7 +2,7 @@ function init {
   sys.os.checkVer(1000);
   array namP[60];
   sys.os.setSingular();
-  sys.fs.conf.open("reader.cfg");
+  sys.fs.conf.open("settings/reader.cfg");
 
   bkCnt = 0;
   mode = 0;
