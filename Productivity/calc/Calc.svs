@@ -299,7 +299,8 @@ function update {
     val_b = to_deg(atan(val_b));
     sys.gui.setStr(disp, "" + val_b);
   }
-
+  
+  sys.os.gui.btnCtrl(scr, 0);
 }
 
 function to_deg {
