@@ -1,6 +1,6 @@
 function init {
   print("init: clock v 3.1");
-  sys.os.checkVer(800);
+  sys.os.checkVer(1020);
 
   scr = sys.gui.addScreen();
   s_budik = sys.gui.addScreen();
@@ -59,24 +59,6 @@ function update {
   if (sys.gui.getEventC(btn_min) == EV_RELEASED) {
     mode = 3;
   }
-
-  if(sys.hw.btn.getEvent(BTN_RIGHT) == 1) {
-    if (mode < 3) {
-      mode = mode + 1;
-    } else {
-      mode = 1;
-    }
-  }
-  sys.hw.btn.clrEvent(BTN_RIGHT);
-
-  if(sys.hw.btn.getEvent(BTN_LEFT) == 1) {
-    if (mode > 1) {
-      mode = mode - 1;
-    } else {
-      mode = 3;
-    }
-  }
-  sys.hw.btn.clrEvent(BTN_LEFT);
 
   if(mode != modeprev) {
     sys.gui.setSelect(btn_budik, 0);
@@ -139,6 +121,8 @@ function update {
       }
     }
   }
+  
+  sys.os.gui.btnCtrl(scr, 0);
 }
 
 function exit {
@@ -188,7 +172,7 @@ function init_budik {
   sys.gui.setVisible(bud_ok, 0);
   sys.gui.setVisible(bud_snooze, 0);
 
-  sys.fs.conf.open("clock.dat");
+  sys.fs.conf.open("settings/clock.dat");
 
   bud_min = sys.fs.conf.readInt("min", 0);
   bud_hour = sys.fs.conf.readInt("hour", 0);
@@ -213,7 +197,7 @@ function init_budik {
 }
 
 function resetAlarm {
-  sys.fs.conf.open("clock.dat");
+  sys.fs.conf.open("settings/clock.dat");
 
   sys.fs.conf.write("act_" + arg0 + 1 , "" + arg1);
 
@@ -253,7 +237,7 @@ function upd_bud {
       }
     }
 
-    sys.fs.conf.open("clock.dat");
+    sys.fs.conf.open("settings/clock.dat");
 
     sys.fs.conf.write("active" , "" + bud_active);
 
@@ -304,7 +288,7 @@ function upd_bud {
     }
 
     sys.o.time.clrOk(tim_ov);
-    sys.fs.conf.open("clock.dat");
+    sys.fs.conf.open("settings/clock.dat");
 
     sys.fs.conf.write("min", "" + bud_min);
     sys.fs.conf.write("hour", "" + bud_hour);
