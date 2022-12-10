@@ -6,12 +6,22 @@ function init {
   bar = sys.gui.addBar(0, 0, 7, 1, 25, 0, scr);
 
   sys.os.gui.setMainScr(scr);
+  sys.fs.chDir(1);
+  sys.fs.chDir(get_folder(sys.os.getAppPath()));
 
   update = 1;
   redrawMap = 3;
   fix = "";
 
  # sys.profiler(1);
+}
+
+function get_folder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
 }
 
 function getDeg {
@@ -38,7 +48,7 @@ function redrawMap {
   sys.ds.setArea(0, 64, 318, 318);
 
   if ((arg1 == 1) or xPos_o != xPos or yPos_o != yPos) {
-    sys.ds.drawPPM(0, 64, 1, "gps/worldMap.p16");
+    sys.ds.drawPPM(0, 64, 1, "worldMap.p16");
   }
 
   if (arg0) {
