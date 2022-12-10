@@ -1,6 +1,6 @@
 function init {
   verze = "v. 3.2";
-  sys.os.checkVer(700);
+  sys.os.checkVer(1020);
   sys.os.setSingular();
   print("Cecklist " + verze);
   scr = sys.gui.addScreen();
@@ -29,7 +29,7 @@ function init {
     showComplete = sys.gui.addCheckBox(1, 12, 10, 13, "Hide done", scr);
   }
 
-  sys.fs.conf.open("check.dat");
+  sys.fs.conf.open("settings/check.dat");
 
   hide_done = sys.fs.conf.readInt("hideDone", 0);
 
@@ -111,7 +111,7 @@ function store {
 
   sys.fs.conf.write("hideDone", "" + hide_done);
   sys.fs.conf.close();
-  sys.fs.conf.open("check.dat");
+  sys.fs.conf.open("settings/check.dat");
 }
 
 function add {
@@ -218,7 +218,8 @@ function update {
     }
     reload_scr2();
   }
-
+  
+  #*
   if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
     if (sys.gui.getValue(sld) > 10) {
       sys.gui.setValue(sld, sys.gui.getValue(sld) - 10);
@@ -236,6 +237,9 @@ function update {
     }
   }
   sys.hw.btn.clrEvent(BTN_DOWN);
+  *#
+  sys.os.gui.btnCtrl(scr, 0);
+  
   sys.gui.setYscroll(scr2, sys.gui.getValue(sld) * 5);
 }
 
