@@ -1,0 +1,174 @@
+ # Following bashscript can be used to send text files to the SDA
+
+#*
+#!/bin/bash
+INPUT="$1"
+#set the terminal parameters
+stty 0:4:cbd:8a30:3:1c:7f:15:4:64:1:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0 -F /dev/ttyUSB0
+
+SIZE=$( stat --printf="%s" $1)
+NAME=$( basename $1)
+
+#send file size and name
+printf "Sending %s (%s bytes)\n" $NAME $SIZE 
+printf "TRANSMIT!N:%s!S:%s!\n" $NAME $SIZE  > /dev/ttyUSB0
+sleep 0.7
+
+# sending file
+while IFS= read -r line
+do
+	printf "%s\n" "$line" > /dev/ttyUSB0
+	printf "."
+	sleep 0.001
+done < "$INPUT"
+printf "\nDone\n"
+
+*#
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  
+  rcv = sys.gui.addButton(1, 1, 5, 1, "Recieve", scr);
+  run = sys.gui.addButton(1, 2, 5, 1, "Run", scr);
+  
+  bar = sys.gui.addBar(1, 5, 8, 1, 0, 0, scr);
+  
+  txt = sys.gui.addText(1, 3, 8, 2, "", scr);
+  
+  sys.os.gui.setMainScr(scr);
+
+  sys.gui.setGrayout(run, 1);
+  sys.gui.setVisible(bar, 0);
+
+  uart_str = "";
+  x = "";
+  get = 0;
+  len = 0;
+  maxlen = 0;
+  rfname = "tmp.svs";
+  r = 0;
+}
+
+function status {
+  sys.gui.setStr(txt, arg0);
+}
+
+
+function get_param {
+  local i;
+  local a;
+  local b;
+
+  for (i = 0; i < len(arg0); i++;) {
+    if (getcp(arg0, i) == "!") {
+      i++;
+      arg1--;
+      if (arg1 == 0) {
+        break;
+      }
+    }
+  }
+  a = i;
+
+  for (i = a; i < len(arg0) - 1; i++;) {
+    if (getcp(arg0, i) == "!") {
+      i--;
+      break;
+    }
+  }
+
+  b = i;
+  return substr(arg0, a, b);
+}
+
+
+function update {
+
+  if (sys.gui.getEventC(rcv) == EV_RELEASED) {
+    get = 1;
+    sys.gui.setSelect(rcv, get);
+    sys.com.usbRcvIT(); # start the rcv
+    
+    sys.gui.setGrayout(run, 1);
+    gc(0);
+    sys.cnt.set(100000);
+    status("Waiting...");
+    r = 0;
+    len = 0;
+    maxlen = 0;
+    sys.gui.setVisible(bar, 0);
+  }
+  
+  if (sys.gui.getEventC(run) == EV_RELEASED) {
+    sys.os.subProcess("Received/" + rfname, "", 0, 0, 0);
+  }
+  
+  if (get == 1) {
+    if (sys.com.usbGetRd() == 2) {
+      x = sys.com.usbGetStr();
+      if (x != "") {
+      
+        if (getcp(get_param(x, 1), 1) == "N") {
+          rfname = substr(get_param(x, 1), 3, len(get_param(x, 1)));
+        }
+        
+        if (getcp(get_param(x, 2), 1) == "S") {
+          maxlen = num(substr(get_param(x, 2), 3, len(get_param(x, 2))));
+        }
+      } 
+    }
+    
+    if (maxlen != 0) {
+      sys.fs.chDir(1);
+      
+      if (not sys.fs.exists("Received/")) {
+        sys.fs.mkDir("Received/");
+      }
+      
+      if (sys.fs.exists("Received/" + rfname)) {
+        sys.fs.delete("Received/" + rfname);
+      }
+      sys.fs.open("Received/" + rfname);
+      get = 2;
+      status("Receiving:\n" + rfname);
+      sys.cnt.set(2000);
+      sys.com.usbGetStr();
+      sys.gui.setParam(bar, maxlen);
+      sys.gui.setVisible(bar, 1);
+    }
+  }
+
+  if (get == 2) {
+    local i;
+    for (i = 0; i < 30; i++;) {
+      if (sys.com.usbGetRd()) {
+        x = sys.com.usbGetBytes();
+        if (x != 0) {
+          local i;
+          for(i = 0; i < x; i++;) {
+            sys.fs.writeByte(sys.com.usbGetByte(i));
+            len++;
+          }
+          sys.cnt.set(200);
+          sys.gui.setValue(bar, len);
+        }
+      }
+      gc(512); 
+    }
+    
+    if (sys.cnt.get() == 0) {
+      sys.fs.close();
+      sys.gui.setVisible(bar, 1);
+      get = 0;
+      sys.gui.setSelect(rcv, get);
+      status("Timed out!");
+      if (len == maxlen) {
+        sys.gui.setGrayout(run, 0);
+        status("Done! Got " + len + " bytes.");
+      } else {
+        status("ERROR!\nSize mismatch:\n" + len + " of " + maxlen + " bytes.");
+      }
+    }
+  }
+}
