@@ -1,11 +1,12 @@
  #sda commander
- # todo: move
+ # todo: - multi select
+ #       - rmdir
 function init {
   sys.os.checkVer(1000);
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.6", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.7", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -22,18 +23,23 @@ function init {
   bCopy = sys.gui.addButton(0, 12, 3, 1, "Copy", scr);
   #bMove = sys.gui.addButton(3, 12, 3, 1, "Move", scr);
   bRename = sys.gui.addButton(3, 12, 4, 1, "Rename", scr);
+  bMove = sys.gui.addButton(3, 12, 4, 1, "Move", scr);
   bMkdir = sys.gui.addButton(0, 13, 3, 1, "MkDir", scr);
   bEdit = sys.gui.addButton(7, 12, 3, 1, "Edit", scr);
   bRemove = sys.gui.addButton(3, 13, 4, 1, "Remove", scr);
 
   sys.gui.setSelect(bData, 1);
   sys.gui.setGrayout(bEdit, 1);
+  sys.gui.setVisible(bMove, 0);
 
   array fScrBtns[200];
   array path[30];
 
   rldFiles();
   copyFname = "";
+  copyPath = 0;
+  copyInApps = 0;
+  copyMove = 0;
   renameOp  = -1;
   mkdirOp   = -1;
   ppmOvr = -1;
@@ -53,6 +59,32 @@ function getsize {
 
   return x;
 }
+
+
+function getUpCount {
+  arg4 = 0;
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      arg4++;
+    }
+  }
+  return arg4;
+}
+
+
+function updatePath {
+  arg4 = 0;
+  arg5 = 0;
+  for(arg2 = 0; arg2 < len(arg0); arg2++;) {
+    if (getcp(arg0, arg2) == "/") {
+      path[arg5] = substr(arg0, arg4, arg2 - 1);
+      arg5++;
+      arg4 = arg2 + 1;
+    }
+  }
+  return arg4;
+}
+
 
 function rldFiles {
   sys.gui.destroy(file_scr);
@@ -188,9 +220,14 @@ function tryOpen {
     sys.os.subProcess("Utils/med/med.svs", "", getPath()+arg0, 0, 0);
     print("opening: med.svs " + getPath()+arg0);
   }
+  
+  if (extension == "p16") {
+    sys.os.subProcCWD(0);
+    sys.os.subProcess("Utils/imageview/imageview.svs", "", getPath()+arg0, inApps, 0);
+    print("opening: imageview.svs " + getPath()+arg0);
+  }
 
-
-  if (extension == "ppm" or extension == "p16") {
+  if (extension == "ppm") {
     showPpm(arg0);
   }
 }
@@ -272,12 +309,22 @@ function update {
     if (copyFname == "") {
       if (selected != -1) {
         copyFname = sys.gui.getStr(fScrBtns[selected]);
+        copyPath = getPath();
+        copyInApps = inApps;
         sys.fs.copySource(copyFname);
         sys.gui.setStr(bCopy, "Paste");
+        sys.gui.setVisible(bMove, 1);
+        sys.gui.setVisible(bRename, 0);
+        copyMove = 0;
       }
     } else {
       pasteOvInit();
     }
+  }
+  
+  if (sys.gui.getEventC(bMove) == EV_RELEASED) {
+    copyMove = 1;
+    pasteOvInit();
   }
 
   if (sys.gui.getEventC(bRemove) == EV_RELEASED) {
@@ -413,18 +460,19 @@ function pasteOvUpd {
       sys.gui.setStr(pasteTx2, "File exists! replace?");
       pasteReplace = 0;
     } else {
-    sys.gui.setStr(pasteTx2, "Copy: " + pasteName);
-    sys.gui.setVisible(pasteTxt, 0);
-    sys.gui.setVisible(pasteOk, 0);
-    sys.os.hideKbd();
-    sys.gui.setVisible(pasteBar, 1);
-    sys.fs.copyStart(pasteName, 2048);
-    sys.gui.setParam(pasteBar, sys.fs.copyStat(1));
-    print("copy: "+sys.fs.copyStat(1)+"bytes");
-    copyRun = 1;
-    sys.os.setRedraw();
-    sys.gui.setStr(bCopy, "Copy");
-    copyFname = "";
+      sys.gui.setStr(pasteTx2, "Copy: " + pasteName);
+      sys.gui.setVisible(pasteTxt, 0);
+      sys.gui.setVisible(pasteOk, 0);
+      sys.os.hideKbd();
+      sys.gui.setVisible(pasteBar, 1);
+      sys.fs.copyStart(pasteName, 2048);
+      sys.gui.setParam(pasteBar, sys.fs.copyStat(1));
+      print("copy: "+sys.fs.copyStat(1)+"bytes");
+      copyRun = 1;
+      sys.os.setRedraw();
+      sys.gui.setStr(bCopy, "Copy");
+      sys.gui.setVisible(bMove, 0);
+      sys.gui.setVisible(bRename, 1);
     }
   }
 
@@ -442,6 +490,23 @@ function pasteOvUpd {
       rldFiles();
       sys.o.destroy();
       copyRun = 0;
+      
+      if (copyMove) {
+        local oldPath = getPath();
+        local oldInApps = inApps;
+        
+        sys.fs.chDir(copyInApps);
+        sys.fs.chDir(copyPath);
+        print("remove: " + copyInApps + ":" + copyPath + copyFname);
+        sys.fs.delete(copyFname);
+        sys.fs.chDir(oldInApps);
+        sys.fs.chDir(oldPath);
+        updatePath(oldPath);
+        upCount = getUpCount(oldPath);
+        rldFiles();
+      }
+      
+      copyFname = "";
       return;
     }
   }
@@ -449,6 +514,8 @@ function pasteOvUpd {
 
 function cancelCopy {
   sys.gui.setStr(bCopy, "Copy");
+  sys.gui.setVisible(bMove, 0);
+  sys.gui.setVisible(bRename, 1);
   sys.fs.copyStop();
   copyFname = "";
 }
