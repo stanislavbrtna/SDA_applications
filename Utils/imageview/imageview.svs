@@ -1,0 +1,245 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  simg = sys.gui.addScreen(0, 1, 9, 12, scr);
+  
+  bFsl = sys.gui.addButton(0, 0, 3, 1, "Open", scr);
+  
+  bp = sys.gui.addButton(3, 0, 1, 1, "+", scr);
+  bf = sys.gui.addButton(4, 0, 1, 1, "[]", scr);
+  bm = sys.gui.addButton(5, 0, 1, 1, "-", scr);
+  
+  bl = sys.gui.addButton(6, 0, 2, 1, "<-", scr);
+  br = sys.gui.addButton(8, 0, 2, 1, "->", scr);
+
+  barv = sys.gui.addSliderV(9, 2, 1, 10, 100, 0, scr);
+  barh = sys.gui.addSliderH(0, 13, 8, 1, 100, 0, scr);
+  
+  binfo = sys.gui.addButton(9, 13, 1, 1, "i", scr);
+
+  size = 1;
+  xpos = 0;
+  ypos = 0;
+  init = 0;
+  
+  fname = "";
+  inApps = 0;
+  if (typeof(arg0) == TYPE_STR) {
+    set_img_clb(arg0, arg1);
+  }
+  
+  ov_id = 0;
+  init = 2;
+  sys.cnt.set(200);
+}
+
+function getFolder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+  return ".";
+}
+
+function get_fname {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, arg2 + 1, len(arg0));
+    }
+  }
+  return arg0;
+}
+
+function set_img_clb {
+  print("folder: " + getFolder(arg0) + " (" + arg1 + ") Fname: " + get_fname(arg0));
+  inApps = arg1;
+  sys.fs.chDir(inApps);
+  sys.fs.chDir(getFolder(arg0));
+  set_img(get_fname(arg0));
+}
+
+function set_img {
+  fname = arg0;
+  init = 0;
+  size = 1;
+  size_adjust();
+  set_sizes();
+}
+
+function set_sizes {
+  if(size > 0) {
+    sys.gui.setParam(barh, sys.ds.getImageW(fname)*size - 286);
+    sys.gui.setParam(barv, sys.ds.getImageH(fname)*size - 382);
+  } else {
+    if(size == 0) {
+      sys.gui.setParam(barh, sys.ds.getImageW(fname)/2 - 286);
+      sys.gui.setParam(barv, sys.ds.getImageH(fname)/2 - 382);
+    }
+    if(size == -1) {
+      sys.gui.setParam(barh, sys.ds.getImageW(fname)/4 - 286);
+      sys.gui.setParam(barv, sys.ds.getImageH(fname)/4 - 382);
+    }
+    if(size == -2) {
+      sys.gui.setParam(barh, sys.ds.getImageW(fname)/8 - 286);
+      sys.gui.setParam(barv, sys.ds.getImageH(fname)/8 - 382);
+    }
+    if(size == -3) {
+      sys.gui.setParam(barh, sys.ds.getImageW(fname)/16 - 286);
+      sys.gui.setParam(barv, sys.ds.getImageH(fname)/16 - 382);
+    }
+  }
+  sys.gui.setValue(barh, sys.gui.getParam(barh)/2);
+  sys.gui.setValue(barv, sys.gui.getParam(barv)/2);
+  sys.gui.setModif(barv);
+  sys.gui.setModif(barh);
+  xpos = - sys.gui.getValue(barh);
+  ypos = - sys.gui.getValue(barv);
+}
+
+
+function img_redraw {
+  sys.ds.setArea(2, 65, 286, 382 + 64);
+
+  sys.ds.clearArea(sys.gui.getColor(COL_BACKGROUND));
+  sys.ds.drawImage(xpos, ypos, size, size, fname);
+}
+
+function update {
+
+  if (sys.os.getRedraw() or init == 0 or (init == 2 and sys.cnt.get() == 0)) {
+    img_redraw();
+    init = 1;
+  }
+  
+  if(sys.gui.getEventC(barh) == EV_RELEASED) {
+    xpos = - sys.gui.getValue(barh);
+    img_redraw();
+  }
+  
+  if(sys.gui.getEventC(barv) == EV_RELEASED) {
+    ypos = - sys.gui.getValue(barv);
+    img_redraw();
+  }
+  
+  if(sys.gui.getEventC(bl) == EV_RELEASED) {
+    local findfil;
+    local pre = "";
+    for(findfil = sys.fs.find("p16", "."); findfil != ""; findfil = sys.fs.findNext();) {
+      if (findfil == fname) {
+        if (pre != "") {
+          set_img(pre, inApps);
+          sys.gui.setGrayout(br, 0);
+          break;
+        }
+        sys.gui.setGrayout(bl, 1);
+        break;
+      } else {
+        pre = findfil;
+      }
+    }
+  }
+  
+  if(sys.gui.getEventC(br) == EV_RELEASED) {
+    local findfil;
+    for(findfil = sys.fs.find("p16", "."); findfil != ""; findfil = sys.fs.findNext();) {
+      if (findfil == fname) {
+        findfil = sys.fs.findNext();
+        if (findfil != "") {
+          set_img(findfil);
+          sys.gui.setGrayout(bl, 0);
+          break;
+        }
+        sys.gui.setGrayout(br, 1);
+        break;
+      }
+    }
+  }
+  
+  if(sys.gui.getEventC(bf) == EV_RELEASED) {
+  
+    size_adjust();
+    
+    xpos = 0;
+    ypos = 0;
+    set_sizes();
+    img_redraw();
+  }
+  
+  if(sys.gui.getEventC(bp) == EV_RELEASED) {
+    size++;
+    set_sizes();
+    img_redraw();
+  }
+
+  if(sys.gui.getEventC(bm) == EV_RELEASED and size > (-3)) {
+    size--;
+    set_sizes();
+    img_redraw();
+  }
+  
+  # fsl
+  if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
+    sys.gui.setGrayout(bl, 0);
+    sys.gui.setGrayout(br, 0);
+    sys.os.subProcess("lib/fsl.svs", &set_img_clb, 0, 0, 0);
+    return;
+  }
+  
+  if (sys.gui.getEventC(binfo) == EV_RELEASED) {
+    init_overlay();
+    ov_id = sys.o.setScr(ov_screen);
+    sys.o.setY(320);
+  }
+  
+  handle_overlay();
+}
+
+function cmp_siz {
+  if(arg0 > 0) {
+    return arg1*arg0;
+  } else {
+    return arg1/((arg0*(-1)) +2);
+  }
+}
+
+function size_adjust {
+  siz_w = sys.ds.getImageW(fname);
+  siz_h = sys.ds.getImageH(fname);
+
+  size = -3;
+
+  if (siz_w >= siz_h) {
+    while (cmp_siz(size, siz_w) < 250) {
+      size++;
+    }
+  } else {
+    while (cmp_siz(size, siz_h) < 320) {
+      size++;
+    }
+  }
+}
+
+function init_overlay {
+  ov_screen = sys.gui.addScreen();
+  sys.fs.open(fname);
+  local f_size = sys.fs.size();
+  sys.fs.close();
+  
+  sys.gui.addText(1, 1, 8, 5, "File:\n" + fname + "\n\nSize:\n" + f_size + " bytes\n\nResolution:\n" + siz_w +"x" +siz_h, ov_screen);
+  b_ok = sys.gui.addButton(5, 6, 2, 1, "Ok", ov_screen);
+}
+
+function handle_overlay {
+  if(sys.o.getId() != ov_id or sys.o.getId() == 0) {
+    return;
+  }
+  
+  if (sys.gui.getEventC(b_ok) == EV_RELEASED) {
+    sys.o.destroy();
+    init = 2;
+    return;
+  }
+}
