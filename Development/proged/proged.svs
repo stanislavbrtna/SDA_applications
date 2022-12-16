@@ -13,7 +13,9 @@ function init {
 
   sys.gui.setScreen(scrollscr, scr);
 
-  txt = sys.gui.addText(0, 0, 20, 400, "", scrollscr);
+  txt = sys.gui.addText(1, 0, 20, 400, "", scrollscr);
+  
+  liner = sys.gui.addText(0, 0, 1, 40, "", scrollscr);
 
   sld = sys.gui.addSliderV(9, 1, 1, 7, 7000, 1, scr);
   sld2 = sys.gui.addSliderH(3, 12, 6, 1, 320, 1, scr);
@@ -25,6 +27,7 @@ function init {
 
   sys.gui.setTexEd(txt, 1);
   sys.gui.setTxtSize(txt, 12);
+  sys.gui.setTxtSize(liner, 12);
 
   kbdDriver = 0;
   cPosOld = 0;
@@ -58,6 +61,8 @@ function init {
   textOvr = 0;
   
   menuOvr = 0;
+  
+  sld_old = -1;
 }
 
 function update {
@@ -117,6 +122,27 @@ function update {
 
   sys.gui.setYscroll(scrollscr, sys.gui.getValue(sld));
   sys.gui.setXscroll(scrollscr, sys.gui.getValue(sld2));
+  
+  upd_liner();
+}
+
+function upd_liner {
+
+  if (sys.gui.getYscroll(scrollscr) == sld_old or sys.gui.getVisible(liner) == 0)
+    return;
+
+  sld_old = sys.gui.getYscroll(scrollscr);
+
+  local s = "";
+  local i;
+  
+  sys.gui.setY1(liner, sys.gui.getYscroll(scrollscr) / 32);
+  sys.gui.setY2(liner, sys.gui.getYscroll(scrollscr) / 32 + 80);
+  
+  for (i = 1; i < 20; i++;) {
+    s += sys.gui.getYscroll(scrollscr)/14 + i + "\n";
+  }
+  sys.gui.setStr(liner, s);
 }
 
 
@@ -124,9 +150,15 @@ function callRet {
   filename = arg0;
   sys.fs.chDir(arg1);
   fileRoot = arg1;
+  
+  program = "";
+  sys.gui.setStr(liner, "");
+  sys.gui.setStr(txt, "");
+  gc(10000);
   if (sys.fs.exists(filename)) {
     program = sys.fs.readStr(filename);
     sys.gui.setStr(fnameT, "Editing: " + filename);
+    upd_liner();
   }
 }
 
@@ -145,6 +177,10 @@ function menuOvInit {
   btn_store = sys.gui.addButton(1, 5, 4, 1, "Save", menuScr);
   
   btn_close = sys.gui.addButton(6, 1, 1, 1, "X", menuScr);
+  
+  btn_lines = sys.gui.addCheckBox(1, 6, 10, 1, "Show lines", menuScr);
+  
+  sys.gui.setValue(btn_lines, sys.gui.getVisible(liner));
   
   btn_kbd = sys.gui.addCheckBox(1, 7, 10, 1, "Keyboard Driver", menuScr);
   
@@ -194,6 +230,12 @@ function menuOvUpdate {
   if (sys.gui.getEventC(btn_kbd) == EV_RELEASED) {
     kbdDriver = sys.gui.getValue(btn_kbd);
   }
+  
+  if (sys.gui.getEventC(btn_lines) == EV_RELEASED) {
+    sys.gui.setX1(txt, sys.gui.getValue(btn_lines));
+    sys.gui.setVisible(liner, sys.gui.getValue(btn_lines));
+  }
+  
   
   if (sys.gui.getEventC(btn_close) == EV_RELEASED) {
     sys.o.destroy();
