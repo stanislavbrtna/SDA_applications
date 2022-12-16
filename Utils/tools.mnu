@@ -1,0 +1,5 @@
+Utils/usb-runner/usb-runner.svs|Utils/usb-runner/usb-runner.p16|USB Rcv|
+Utils/sender/sender.svs|Utils/sender/sender.p16|Sender|
+Utils/gps/gps.svs|Utils/gps/gps.p16|GPS|
+Utils/darkclock/darkclock.svs|Utils/darkclock/darkclock.p16|darkclock|
+|Utils/lightmet/lightmet.p16|LightMet
