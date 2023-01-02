@@ -212,7 +212,13 @@ function menuOvUpdate {
   }
 
   if (sys.gui.getEventC(btn_store) == EV_RELEASED) {
-    sys.fs.writeStr(program, filename);
+    if (filename != "") {
+      sys.fs.writeStr(program, filename);
+    } else {
+      new_store = 1;
+      newOvInit();
+      return;
+    }
     sys.o.destroy();
     return;
   }
@@ -223,6 +229,7 @@ function menuOvUpdate {
   }
   
   if (sys.gui.getEventC(btn_new) == EV_RELEASED) {
+    new_store = 0;
     newOvInit();
     return;
   }
@@ -270,12 +277,23 @@ function newOvrUpdate {
   newFileName = sys.os.gui.handleText(textTxt, newFileName);
 
   if ((sys.gui.getEventC(textOk) == EV_RELEASED) and (newFileName != "") ) {
-    filename = newFileName;
-    fileRoot = 0;
-    program = "";
-    sys.gui.setStr(fnameT, "Editing: " + filename);
-    sys.os.hideKbd();
-    sys.o.destroy();
+    if (new_store) {
+      filename = newFileName;
+      fileRoot = 0;
+      if (filename != "") {
+        sys.fs.writeStr(program, filename);
+        sys.gui.setStr(fnameT, "Editing: " + filename);
+        sys.os.hideKbd();
+        sys.o.destroy();
+      }
+    } else {
+      filename = newFileName;
+      fileRoot = 0;
+      program = "";
+      sys.gui.setStr(fnameT, "Editing: " + filename);
+      sys.os.hideKbd();
+      sys.o.destroy();
+    }
     return;
   }
   
@@ -293,6 +311,9 @@ function newOvrUpdate {
     return;
   }
 }
+
+ ##############################################################################
+ # Keyboard stuff
 
 function rcv_init {
   sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
