@@ -11,20 +11,22 @@ function init {
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(0);
   sys.gui.setRelInit(1);
+  
+  local l = sys.os.gui.getLandscape()*5;
 
   if (sys.os.getLang() == SVP_LANG_CZ) {
     sys.gui.addText(0, 0, 8, 1, "Vyber soubor:", scr);
-    btnCancel = sys.gui.addButton(6, 12, 3, 1, "Zrušit", scr);
+    btnCancel = sys.gui.addButton(6, 12 - l, 3, 1, "Zrušit", scr);
   } else {
     sys.gui.addText(0, 0, 8, 1, "Choose file:", scr);
-    btnCancel = sys.gui.addButton(6, 12, 3, 1, "Cancel", scr);
+    btnCancel = sys.gui.addButton(6, 12 - l, 3, 1, "Cancel", scr);
   }
 
   file_scr = sys.gui.addScreen();
-  scrollbar = sys.gui.addSliderV(8, 2, 1, 10, 100, 0, scr);
+  scrollbar = sys.gui.addSliderV(8, 2, 1, 10 - l, 100, 0, scr);
 
   sys.gui.setScreen(file_scr, scr);
-  sys.gui.setXYXY(file_scr, 0, 2, 8, 10);
+  sys.gui.setXYXY(file_scr, 0, 2, 8, 10 - l);
 
   bUp = sys.gui.addButton(0, 1, 1, 1, "/\\", scr);
   bData = sys.gui.addButton(2, 1, 2, 1, "Data", scr);
@@ -33,7 +35,7 @@ function init {
   sys.gui.setSelect(bData, 1);
 
   selfOvr = sys.o.setScr(scr);
-  sys.o.setXYXY(16, 48, 304, 464);
+  sys.o.setXYXY(16 + sys.os.gui.getLandscape()*80, 48, 304  + sys.os.gui.getLandscape()*80, 464 - sys.os.gui.getLandscape()*160);
   array fScrBtns[200];
   array path[30];
 
@@ -53,7 +55,7 @@ function init {
       inApps = 1;
       rldFiles();
     } else {
-      sys.fs.chDir();
+      sys.fs.chDir(0);
       sys.gui.setSelect(bData, 1);
       sys.gui.setSelect(bApps, 0);
       inApps = 0;
@@ -125,7 +127,7 @@ function rldFiles {
   file_scr = sys.gui.addScreen();
 
   sys.gui.setScreen(file_scr, scr);
-  sys.gui.setXYXY(file_scr, 0, 2, 8, 10);
+  sys.gui.setXYXY(file_scr, 0, 2, 8, 10 - sys.os.gui.getLandscape()*5);
 
   i = 0;
 
