@@ -1,7 +1,7 @@
 function init {
   verze = "1.7";
   print("Notepad v." + verze);
-  sys.os.checkVer(700);
+  sys.os.checkVer(1000);
 
   if (typeof (arg0) == TYPE_STR) {
     openFile = arg0;
