@@ -1,12 +1,12 @@
  #sda commander
  # todo: - multi select
- #       - rmdir
+ #
 function init {
   sys.os.checkVer(1000);
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.7", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.8", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -26,6 +26,7 @@ function init {
   bMove = sys.gui.addButton(3, 12, 4, 1, "Move", scr);
   bMkdir = sys.gui.addButton(0, 13, 3, 1, "MkDir", scr);
   bEdit = sys.gui.addButton(7, 12, 3, 1, "Edit", scr);
+  bInfo = sys.gui.addButton(7, 13, 3, 1, "Info", scr);
   bRemove = sys.gui.addButton(3, 13, 4, 1, "Remove", scr);
 
   sys.gui.setSelect(bData, 1);
@@ -43,6 +44,7 @@ function init {
   renameOp  = -1;
   mkdirOp   = -1;
   ppmOvr = -1;
+  infoOvr = 0;
 
   sys.gui.setGrayout(bUp, 1);
 
@@ -85,6 +87,87 @@ function updatePath {
   return arg4;
 }
 
+function dir_list {
+  if (sys.fs.isDir(arg0)) {
+    local findfil;
+    local n = 0;
+
+    for(findfil = sys.fs.find("", arg0); findfil != ""; findfil = sys.fs.findNext();) {
+      if (sys.fs.isDir(arg0 + "/" + findfil)) {
+        dir_list(arg0 + "/" + findfil);
+        findfil = sys.fs.find("", arg0);
+        local x;
+        for (x = 0; x<n; x++;) {
+          findfil = sys.fs.findNext();
+        }
+      } else {
+        fScrBtns[dir_n] = arg0 + "/" + findfil;
+        dir_n++;
+      }
+      n++;
+    }
+  }
+  fScrBtns[dir_n] = arg0;
+  dir_n++;
+}
+
+function infoDir {
+  dir_n = 0;
+  local files = 0;
+  local dirs = 0;
+  local size = 0;
+  dir_list(arg0);
+  
+  for(local x = 0; x < dir_n; x++;) {
+    if (sys.fs.isDir(fScrBtns[x])) {
+      dirs++;
+    } else {
+      files++;
+      size += getsize(fScrBtns[x]);
+    }
+  }
+  
+  if (dirs) {
+    return dirs + " directories\n" + files + " files\n" +  size + " bytes total.";
+  } else {
+    return size + " bytes."
+  }
+}
+
+function rmDir {
+  dir_n = 0;
+  
+  dir_list(arg0);
+  print("Removing:");
+  for(local x = 0; x < dir_n; x++;) {
+    print(""+fScrBtns[x]);
+    sys.fs.delete(fScrBtns[x]);
+  }
+}
+
+function ls {
+  local findfil;
+  local n = 0;
+  print(arg0);
+  for(findfil = sys.fs.find("", arg0); findfil != ""; findfil = sys.fs.findNext();) {
+    if (sys.fs.isDir(arg0 + "/" + findfil)) {
+      ls(arg0 + "/" + findfil);
+      findfil = sys.fs.find("", arg0);
+      local x;
+      for (x = 0; x<n; x++;) {
+        findfil = sys.fs.findNext();
+      }
+    } else {
+      print(arg0 + "/" + findfil);
+      #sys.fs.delete(arg0 + "/" + findfil);
+    }
+    n++;
+  }  
+}
+
+function wakeup {
+  rldFiles(1);
+}
 
 function rldFiles {
   sys.gui.destroy(file_scr);
@@ -176,8 +259,10 @@ function rldFiles {
       sys.gui.addText(6, i, 4, 1, "" + getsize(findfil) + "B", file_scr);
     }
   }
-
-  sys.gui.setValue(scrollbar, 0);
+  
+  if (arg0 == 0) {
+    sys.gui.setValue(scrollbar, 0);
+  }
 
   if (i > 9) {
     sys.gui.setParam(scrollbar, 32 * i - 8 * 32);
@@ -249,7 +334,7 @@ function updFiles {
           if (sys.fs.isDir(sys.gui.getStr(fScrBtns[x]))) {
             sys.fs.chDir(sys.gui.getStr(fScrBtns[x]));
             path[upCount] = sys.gui.getStr(fScrBtns[x]);
-            rldFiles();
+            rldFiles(0);
             sys.gui.setGrayout(bUp, 0);
             upCount++;
             sys.gui.setStr(tPath, "Dir: /" + getPath());
@@ -273,7 +358,7 @@ function update {
 
   if (sys.gui.getEventC(bUp) == EV_RELEASED) {
     sys.fs.chDir("..");
-    rldFiles();
+    rldFiles(0);
     upCount--;
     sys.gui.setStr(tPath, "Dir: /" + getPath());
     if (upCount == 0){
@@ -289,7 +374,7 @@ function update {
     sys.gui.setSelect(bApps, 0);
     sys.gui.setStr(tPath, "Dir: /");
     upCount = 0;
-    rldFiles();
+    rldFiles(0);
     sys.gui.setGrayout(bEdit, 1);
   }
 
@@ -301,7 +386,7 @@ function update {
     sys.gui.setSelect(bApps, 1);
     sys.gui.setStr(tPath, "Dir: /");
     upCount = 0;
-    rldFiles();
+    rldFiles(0);
     sys.gui.setGrayout(bEdit, 1);
   }
 
@@ -341,6 +426,15 @@ function update {
       print("opening: proged" + getPath() + sys.gui.getStr(fScrBtns[selected]));
     }
   }
+  
+  if (sys.gui.getEventC(bInfo) == EV_RELEASED) {
+    local txt = "";
+    
+    txt += "Name: " + sys.gui.getStr(fScrBtns[selected]) + "\n" + infoDir(sys.gui.getStr(fScrBtns[selected]));
+    
+    infoOvr = infoOvrInit(txt);
+    rldFiles(1);
+  }
 
   if (sys.gui.getEventC(bRename) == EV_RELEASED) {
     if (selected != -1) {
@@ -360,6 +454,8 @@ function update {
   if (sys.o.getId() == pasteOvr and sys.o.getId() != 0) {
     pasteOvUpd();
   }
+  
+  infoOvrUpdate();
 
   remOvrUpdate();
 
@@ -407,7 +503,7 @@ function handleRename {
       sys.fs.rename(renameFile, renameName);
       sys.o.destroy();
       sys.os.hideKbd();
-      rldFiles();
+      rldFiles(1);
       return;
     }
   }
@@ -425,7 +521,7 @@ function handleMkdir {
     sys.fs.mkDir(mkdirName);
     sys.o.destroy();
     sys.os.hideKbd();
-    rldFiles();
+    rldFiles(1);
     return;
   }
 
@@ -487,7 +583,7 @@ function pasteOvUpd {
 
     if (sys.fs.copyStat(0) == 0) {
       print("copy: "+sys.fs.copyStat(2)+"bytes done");
-      rldFiles();
+      rldFiles(1);
       sys.o.destroy();
       copyRun = 0;
       
@@ -503,7 +599,7 @@ function pasteOvUpd {
         sys.fs.chDir(oldPath);
         updatePath(oldPath);
         upCount = getUpCount(oldPath);
-        rldFiles();
+        rldFiles(1);
       }
       
       copyFname = "";
@@ -535,9 +631,10 @@ function remOvrUpdate {
   }
 
   if (sys.gui.getEventC(rmOk) == EV_RELEASED) {
-    sys.fs.delete(remName);
+    #sys.fs.delete(remName);
+    rmDir(remName);
     sys.o.destroy();
-    rldFiles();
+    rldFiles(1);
     return;
   }
 
@@ -561,6 +658,28 @@ function textOvInit {
   sys.o.setXYXY(32, 64, 278, 190);
   return textOvr;
 }
+
+function infoOvrInit {
+  infoScr = sys.gui.addScreen();
+  infoLbl = sys.gui.addText(1, 0, 8, 1, "Info", infoScr);
+  infoTxt = sys.gui.addText(1, 1, 6, 3, arg0, infoScr);
+  infoOk = sys.gui.addButton(1, 4, 2, 1, "Ok", infoScr);
+  infoOvr = sys.o.setScr(infoScr);
+  sys.o.setXYXY(32, 64, 278, 240);
+  return infoOvr;
+}
+
+function infoOvrUpdate {
+  if (sys.o.getId() != infoOvr or sys.o.getId() == 0) {
+    return;
+  }
+
+  if (sys.gui.getEventC(infoOk) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+}
+
 
 function showPpm {
   ppmScr = sys.gui.addScreen();
