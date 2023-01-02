@@ -21,7 +21,6 @@ function init {
 function update {
 
   # get time for the alarm
-
   if (sys.gui.getEventC(getTime) == EV_RELEASED) {
     timeOvr = sys.o.time.add();
     sys.o.time.set(timeOvr, sys.time.getHr(), (sys.time.getMin() + 2) % 60);

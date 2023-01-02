@@ -1,7 +1,6 @@
 function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
-  
   btn = sys.gui.addButton(1, 1, 8, 1, "Choose file", scr);
 
   sys.os.gui.setMainScr(scr);
@@ -19,6 +18,5 @@ function update {
 function callRet {
   print("callback returned");
   print("argument0: " + arg0);
-
   sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
 }
