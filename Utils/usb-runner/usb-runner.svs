@@ -83,21 +83,29 @@ function get_param {
 }
 
 
+function rcv_start {
+  get = 1;
+  sys.gui.setSelect(rcv, get);
+  sys.com.usbRcvIT(); # start the rcv
+  
+  sys.gui.setGrayout(run, 1);
+  gc(0);
+  sys.cnt.set(100000);
+  status("Waiting...");
+  r = 0;
+  len = 0;
+  maxlen = 0;
+  sys.gui.setVisible(bar, 0);
+}
+
 function update {
 
+  if (get == 0 and sys.hw.getUsbState() == 1) {
+    rcv_start();
+  }
+
   if (sys.gui.getEventC(rcv) == EV_RELEASED) {
-    get = 1;
-    sys.gui.setSelect(rcv, get);
-    sys.com.usbRcvIT(); # start the rcv
-    
-    sys.gui.setGrayout(run, 1);
-    gc(0);
-    sys.cnt.set(100000);
-    status("Waiting...");
-    r = 0;
-    len = 0;
-    maxlen = 0;
-    sys.gui.setVisible(bar, 0);
+    rcv_start();
   }
   
   if (sys.gui.getEventC(run) == EV_RELEASED) {
@@ -166,6 +174,9 @@ function update {
       if (len == maxlen) {
         sys.gui.setGrayout(run, 0);
         status("Done! Got " + len + " bytes.");
+        if (sys.hw.getUsbState() == 1) {
+          rcv_start();
+        }
       } else {
         status("ERROR!\nSize mismatch:\n" + len + " of " + maxlen + " bytes.");
       }
