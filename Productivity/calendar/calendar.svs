@@ -31,11 +31,11 @@ function init {
         3 - edit
   *#
 
-  if (not sys.fs.exists("cal.dat")) {
-    sys.fs.conf.open("cal.dat");
+  if (not sys.fs.exists("settings/cal.dat")) {
+    sys.fs.conf.open("settings/cal.dat");
     sys.fs.conf.write("first", "-1");
   } else {
-    sys.fs.conf.open("cal.dat");
+    sys.fs.conf.open("settings/cal.dat");
   }
 
 
@@ -739,6 +739,8 @@ function update {
   if(mode == 3) {
     edit_update();
   }
+  
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
 }
 
 function exit {
