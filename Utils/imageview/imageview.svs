@@ -201,7 +201,14 @@ function cmp_siz {
   if(arg0 > 0) {
     return arg1*arg0;
   } else {
-    return arg1/((arg0*(-1)) +2);
+    if (arg0 == 0)
+      return arg1/2;
+    if (arg0 == -1)
+      return arg1/4;
+    if (arg0 == -2)
+      return arg1/8;
+    if (arg0 == -3)
+      return arg1/16;
   }
 }
 
@@ -212,11 +219,11 @@ function size_adjust {
   size = -3;
 
   if (siz_w >= siz_h) {
-    while (cmp_siz(size, siz_w) < 250) {
+    while (cmp_siz(size, siz_w) < 220) {
       size++;
     }
   } else {
-    while (cmp_siz(size, siz_h) < 320) {
+    while (cmp_siz(size, siz_h) < 280) {
       size++;
     }
   }
