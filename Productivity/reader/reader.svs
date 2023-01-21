@@ -20,7 +20,7 @@ function init {
       print("aktivace knihy" + namP[x]);
       preload = x;
     }
-    x = x + 1;
+    x++;
   }
   bkCnt = x;
 
@@ -58,7 +58,7 @@ function init_main {
   x = 0;
   while (x < bkCnt) {
     btnP[x] = sys.gui.addButton(1, 1 + x*4, 8, 4 + x*4, namP[x], scrS);
-    x = x + 1;
+    x++;
   }
 
 }
@@ -86,14 +86,35 @@ function init_sel {
 
 function init_read {
   scr2 = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
   txt = sys.gui.addText(0, 0, 10, 12, "Empty", scr2);
   if (sys.os.getLang() == SVP_LANG_CZ) {
-    rd_back = sys.gui.addButton(1, 12, 3, 14, "Zpět", scr2);
+    rd_back = sys.gui.addButton(0, 12, 2, 2, "Zpět", scr2);
   } else {
-    rd_back = sys.gui.addButton(1, 12, 3, 14, "Back", scr2);
+    rd_back = sys.gui.addButton(0, 12, 2, 2, "Back", scr2);
   }
-  rd_up = sys.gui.addButton(5, 12, 7, 14, "/\\", scr2);
-  rd_dn = sys.gui.addButton(8, 12, 10, 14, "\\/", scr2);
+  rd_r  = sys.gui.addButton(3, 12, 1, 1, "R", scr2);
+  rd_up = sys.gui.addButton(5, 12, 2, 2, "/\\", scr2);
+  rd_dn = sys.gui.addButton(8, 12, 2, 2, "\\/", scr2);
+  sys.gui.setRelInit(0);
+}
+
+function r_read {
+  sys.gui.setRelInit(1);
+  if (arg0 == 0) {
+    sys.gui.setXYXY(txt,0, 0, 10, 12);
+    sys.gui.setXYXY(rd_back,0, 12, 2, 2);
+    sys.gui.setXYXY(rd_r,3, 12, 1, 1);
+    sys.gui.setXYXY(rd_up,5, 12, 2, 2);
+    sys.gui.setXYXY(rd_dn,8, 12, 2, 2);
+  } else {
+    sys.gui.setXYXY(txt,0, 0, 13, 10);
+    sys.gui.setXYXY(rd_back,13, 0, 2, 2);
+    sys.gui.setXYXY(rd_r,13, 3, 1, 1);
+    sys.gui.setXYXY(rd_up,13, 5, 2, 2);
+    sys.gui.setXYXY(rd_dn,13, 7, 2, 2);
+  }
+  sys.gui.setRelInit(0);
 }
 
 function update {
@@ -139,7 +160,7 @@ function upd_s {
       mode = 1;
     }
     sys.gui.setEvent(btnP[x], 0);
-    x = x + 1;
+    x++;
   }
 }
 
@@ -180,8 +201,13 @@ function read {
   sys.os.gui.setMainScr(scr2);
   mode = 2;
   sys.gui.setTexFit(txt, 1);
+  
   print("load:sel_id=" + sel_id);
-  sys.fs.seekFill(txt, line);
+  #sys.fs.seekFill(txt, line);
+  
+  sys.fs.seek(line);
+  sys.gui.setStr(txt,sys.fs.readChars(800));
+  
 }
 
 function upd_rd {
@@ -192,6 +218,13 @@ function upd_rd {
     sys.fs.close();
     sys.fs.conf.write("active" + sel_id, "0");
     sys.fs.conf.write("line" + sel_id, "" + line);
+    sys.os.gui.setLandscape(0);
+    r_read(0);
+  }
+  
+  if (sys.gui.getEventC(rd_r) == EV_RELEASED) {
+    sys.os.gui.setLandscape(1 - sys.os.gui.getLandscape());
+    r_read(sys.os.gui.getLandscape());
   }
 
   if (sys.gui.getEventC(rd_dn) == EV_RELEASED or sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
@@ -206,9 +239,11 @@ function upd_rd {
 
   if (pos_up > 0) {
     if(line >= 50) {
-      line = line - 50;
+      line -= 50;
     }
-    sys.fs.seekFill(txt, line);
+    #sys.fs.seekFill(txt, line);
+    sys.fs.seek(line);
+    sys.gui.setStr(txt,sys.fs.readChars(800));
     pos_up = pos_up - 1;
 
     if (pos_up == 0) {
@@ -218,7 +253,9 @@ function upd_rd {
 
   if (pos_down > 0) {
     line = line + sys.gui.getParam(txt);
-    sys.fs.seekFill(txt, line);
+    #sys.fs.seekFill(txt, line);
+    sys.fs.seek(line);
+    sys.gui.setStr(txt,sys.fs.readChars(800));
     pos_down = pos_down - 1;
 
     if (pos_down == 0) {
