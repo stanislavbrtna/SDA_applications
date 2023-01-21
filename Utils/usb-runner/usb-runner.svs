@@ -87,8 +87,6 @@ function rcv_start {
   get = 1;
   sys.gui.setSelect(rcv, get);
   sys.com.usbRcvIT(); # start the rcv
-  
-  sys.gui.setGrayout(run, 1);
   gc(0);
   sys.cnt.set(100000);
   status("Waiting...");
@@ -128,6 +126,7 @@ function update {
     }
     
     if (maxlen != 0) {
+      sys.gui.setGrayout(run, 1);
       sys.fs.chDir(1);
       
       if (not sys.fs.exists("Received/")) {
