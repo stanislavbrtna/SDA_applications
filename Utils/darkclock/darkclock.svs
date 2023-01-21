@@ -36,6 +36,59 @@ function init {
     beeper = 0;
     
     timestr = "";
+    
+    load_state();
+}
+
+
+function store_state {
+  sys.fs.conf.open("settings/darkclock.cfg");
+  sys.fs.conf.write(&time_overall, "" + time_overall);
+  sys.fs.conf.write(&time_start, "" + time_start);
+  sys.fs.conf.write(&time_current, "" + time_current);
+  sys.fs.conf.write(&running, "" + running);
+  sys.fs.conf.write(&repetition, "" + repetition);
+  sys.fs.conf.close();
+}
+
+function load_state {
+  if (not sys.fs.exists("settings/darkclock.cfg"))
+    return;
+
+  sys.fs.conf.open("settings/darkclock.cfg");
+  time_overall = num(sys.fs.conf.read(&time_overall));
+  time_start = num(sys.fs.conf.read(&time_start));
+  running = num(sys.fs.conf.read(&running));
+  repetition = num(sys.fs.conf.read(&repetition));
+  sys.fs.conf.close();
+  
+  if (running == 0) {
+    return;
+  }
+  
+  sys.time.setTimer((time_overall - time_current)*1000, &timer_clb);
+  
+  if (running == 1) {
+    sys.gui.setGrayout(b_start, 1);
+    sys.gui.setGrayout(b_stop, 0);
+    time_current = sys.time.get() - time_start;
+  } else if (running == 2) {
+    sys.gui.setGrayout(b_start, 0);
+    sys.gui.setGrayout(b_stop, 0);
+    sys.fs.conf.open("settings/darkclock.cfg");
+    time_current = num(sys.fs.conf.read(&time_current));
+    sys.fs.conf.close();
+    time_start = sys.time.get() - time_current;
+  }
+  
+  update_time();
+  sys.gui.setStr(t_counter,repetition + ". opakování");
+} 
+
+
+function timer_clb {
+  sys.os.arise();
+  print("clb!");
 }
 
 
@@ -57,6 +110,8 @@ function update {
         sys.hw.lockSleep(1);
         sys.gui.setGrayout(b_start, 1);
         sys.gui.setGrayout(b_stop, 0);
+        sys.time.setTimer((time_overall - time_current)*1000, &timer_clb);
+        store_state();
     }
     
     if (sys.gui.getEventC(b_stop) == EV_RELEASED) {
@@ -67,14 +122,17 @@ function update {
           time_current = 0;
           update_time();
         }
-        
+        sys.time.clearTimer();
         sys.hw.lockSleep(0);
         sys.gui.setGrayout(b_start, 0);
+        
+        store_state();
     }
     
     if (sys.gui.getEventC(b_reset) == EV_RELEASED) {
         repetition = 0;
         sys.gui.setStr(t_counter, repetition + ". opakování");
+        store_state();
     }
     
     if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
@@ -124,6 +182,7 @@ function update_overlay {
         time_overall = ov_time;
         update_time();
         sys.o.destroy();
+        store_state();
         return;
     }
     
