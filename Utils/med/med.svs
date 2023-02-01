@@ -9,6 +9,7 @@ function init {
   
   openB = sys.gui.addButton(1, 1, 3, 1, "Otevřít", newScr);
   newB = sys.gui.addButton(5, 1, 3, 1, "Nový", newScr);
+  mainB = sys.gui.addButton(1, 3, 7, 1, "Otevřít main.mnu", newScr);
   
   newT = sys.gui.addText(1,1,7,1, "", newScr);
   newFname = "";
@@ -21,7 +22,7 @@ function init {
   sys.gui.setVisible(createB, 0);
   sys.gui.setVisible(nCancelB, 0);
   
-  # Toolba
+  # Toolbar
   
   upB = sys.gui.addButton(0, 13, 1, 1, "/\\", mainScr);
   downB = sys.gui.addButton(1, 13, 1, 1, "\\/", mainScr);
@@ -29,6 +30,7 @@ function init {
   
   removeB = sys.gui.addButton(4, 13, 1, 1, "-", mainScr);
   saveB = sys.gui.addButton(7, 13, 3, 1, "Uložit", mainScr);
+  closeB = sys.gui.addButton(5, 13, 2, 1, "Zpět", mainScr);
   
   tool_gray(1);
   
@@ -48,14 +50,20 @@ function init {
   # edit screen
   
   editScr = sys.gui.addScreen();
+  sys.gui.setSpacing(editScr, 1, 1, 1, 1);
   eIconI = sys.gui.addIcon(3, 1, 3, 3, "", "none.p16", editScr);
   eNameT = sys.gui.addText(1, 4, 7, 1, "", editScr);
   sys.gui.setTexEd(eNameT, 1);
   eName = "";
   eNamePrev = "";
   eFileB = sys.gui.addButton(1, 6, 7, 1, "Cesta k souboru", editScr);
-  eCancelB = sys.gui.addButton(3, 8, 2, 1, "Zrušit", editScr);
+  eOpenB = sys.gui.addButton(5, 7, 3, 1, "Otevřít", editScr);
+  eCancelB = sys.gui.addButton(2, 8, 2, 1, "Zrušit", editScr);
+  
   eOkB = sys.gui.addButton(6, 8, 2, 1, "Ok", editScr);
+  
+  sys.gui.setTexAlign(eCancelB, ALIGN_CENTER);
+  sys.gui.setTexAlign(eOkB, ALIGN_CENTER);
 
 
   sys.os.gui.setMainScr(mainScr);
@@ -66,6 +74,8 @@ function init {
   if (typeof (arg0) == TYPE_STR) {
     print("med: opening: " + arg0);
     load_mnu(arg0);
+  } else {
+   sys.gui.setVisible(closeB, 0);
   }
 }
 
@@ -76,6 +86,7 @@ function tool_gray {
   sys.gui.setGrayout(addB, arg0);
   sys.gui.setGrayout(removeB, arg0);
   sys.gui.setGrayout(saveB, arg0);
+  sys.gui.setGrayout(closeB, arg0);
 }
 
 
@@ -121,6 +132,10 @@ function update_new {
     sys.gui.setVisible(newB, 1);
     sys.gui.setVisible(openB, 1);
     sys.os.hideKbd();
+  }
+  
+  if(clicked(mainB)){
+    load_mnu("main.mnu");
   }
   
   if(clicked(createB)) {
@@ -221,6 +236,11 @@ function update_list {
         eName = names[i];
         currentIcon = icons[i];
         currentFile = files[i];
+        if (get_ext(currentFile) == "mnu") {
+          sys.gui.setVisible(eOpenB, 1);
+        } else {
+          sys.gui.setVisible(eOpenB, 0);
+        }
         sys.gui.setIcon(eIconI, currentIcon);
         sys.gui.setStr(eFileB, currentFile);
       }
@@ -244,6 +264,11 @@ function update_tb {
   
   if (clicked(saveB)) {
     save_mnu();
+  }
+  
+  if (clicked(closeB)) {
+    sys.os.exit();
+    return;
   }
   
   if (clicked(upB)) {
@@ -331,6 +356,10 @@ function update_ed {
     eNamePrev = eName;
   }
   
+  if (clicked(eOpenB)) {
+    sys.os.subProcess("Utils/med/med.svs", "",currentFile, 0, 0);
+  }
+  
   if (clicked(eOkB)) {
     if (listCurrent == listCount) {
       listCount++;
@@ -350,6 +379,11 @@ function fileRet {
   if (arg1 == 1 and arg0 != "" and (get_ext(arg0) == "svs" or get_ext(arg0) == "mnu")) {
     currentFile = arg0;
     sys.gui.setStr(eFileB, arg0);
+    if (get_ext(currentFile) == "mnu") {
+      sys.gui.setVisible(eOpenB, 1);
+    } else {
+      sys.gui.setVisible(eOpenB, 0);
+    }
   }
 }
 
