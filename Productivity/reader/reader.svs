@@ -1,5 +1,5 @@
 function init {
-  sys.os.checkVer(1000);
+  sys.os.checkVer(1020);
   array namP[60];
   sys.os.setSingular();
   sys.fs.conf.open("settings/reader.cfg");
@@ -203,11 +203,8 @@ function read {
   sys.gui.setTexFit(txt, 1);
   
   print("load:sel_id=" + sel_id);
-  #sys.fs.seekFill(txt, line);
   
-  sys.fs.seek(line);
-  sys.gui.setStr(txt,sys.fs.readChars(800));
-  
+  scroll_text();
 }
 
 function upd_rd {
@@ -228,12 +225,12 @@ function upd_rd {
   }
 
   if (sys.gui.getEventC(rd_dn) == EV_RELEASED or sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
-    pos_down = 4;
+    pos_down = 3;
   }
   sys.hw.btn.clrEvent(BTN_DOWN);
 
   if (sys.gui.getEventC(rd_up) == EV_RELEASED or sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
-    pos_up = 3;
+    pos_up = 2;
   }
   sys.hw.btn.clrEvent(BTN_UP);
 
@@ -241,10 +238,8 @@ function upd_rd {
     if(line >= 50) {
       line -= 50;
     }
-    #sys.fs.seekFill(txt, line);
-    sys.fs.seek(line);
-    sys.gui.setStr(txt,sys.fs.readChars(800));
-    pos_up = pos_up - 1;
+    scroll_text();
+    pos_up--;
 
     if (pos_up == 0) {
       sys.fs.conf.write("line" + sel_id, "" + line);
@@ -252,16 +247,25 @@ function upd_rd {
   }
 
   if (pos_down > 0) {
-    line = line + sys.gui.getParam(txt);
-    #sys.fs.seekFill(txt, line);
-    sys.fs.seek(line);
-    sys.gui.setStr(txt,sys.fs.readChars(800));
-    pos_down = pos_down - 1;
+    local pos = instr(sys.gui.getStr(txt), "\n");
+    if (pos > 25 or pos == 0) {
+      pos = 25;
+    }
+    line += pos;
+    scroll_text();
+    pos_down--;
 
     if (pos_down == 0) {
       sys.fs.conf.write("line" + sel_id, "" + line);
     }
   }
+}
+
+function scroll_text {
+  sys.fs.seek(line);
+  t = sys.fs.readChars(800);
+  t = substr(t, instr(t, " ") + 1, len(t));
+  sys.gui.setStr(txt, t);
 }
 
 function exit{
