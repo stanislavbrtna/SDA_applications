@@ -1,7 +1,7 @@
 function init {
   scr = sys.gui.addScreen();
-  sys.os.gui.setMainScr(scr);
   sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
   
   bFsl = sys.gui.addButton(1, 1, 5, 1, "Choose file", scr);
 
