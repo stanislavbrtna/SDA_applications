@@ -2,7 +2,8 @@
  # todo: - multi select
  #
 function init {
-  sys.os.checkVer(1000);
+  sys.os.checkVer(1100);
+  sys.os.setSingular();
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
@@ -21,7 +22,6 @@ function init {
 
   # move, mkdir, launch, view, edit
   bCopy = sys.gui.addButton(0, 12, 3, 1, "Copy", scr);
-  #bMove = sys.gui.addButton(3, 12, 3, 1, "Move", scr);
   bRename = sys.gui.addButton(3, 12, 4, 1, "Rename", scr);
   bMove = sys.gui.addButton(3, 12, 4, 1, "Move", scr);
   bMkdir = sys.gui.addButton(0, 13, 3, 1, "MkDir", scr);
@@ -52,6 +52,8 @@ function init {
   remOvr = -1;
   inApps = 0;
 }
+
+import "~sc-overlays.svs"
 
 function getsize {
   local x;
@@ -290,6 +292,7 @@ function tryOpen {
   extension = getcp(arg0, len(arg0) - 2) + getcp(arg0, len(arg0) -1) + getcp(arg0, len(arg0));
   print(extension);
   if (extension == "svs") {
+    print("running:" + getPath()+arg0);
     sys.os.subProcCWD(1);
     sys.os.subProcess(arg0, "", 0, 0, 0);
   }
@@ -530,162 +533,5 @@ function handleMkdir {
     sys.os.hideKbd();
     return;
   }
-}
-
-function pasteOvInit {
-  pasteScr = sys.gui.addScreen();
-  pasteTx2 = sys.gui.addText(1, 0, 8, 1, "New file name:", pasteScr);
-  pasteTxt = sys.gui.addText(1, 1, 6, 1, "", pasteScr);
-  pasteOk = sys.gui.addButton(1, 2, 2, 1, "Ok", pasteScr);
-  pasteCancel = sys.gui.addButton(4, 2, 3, 1, "Cancel", pasteScr);
-  pasteBar = sys.gui.addBar(1, 1, 6, 1, 100, 0, pasteScr);
-  pasteName = copyFname;
-  pasteReplace = 1;
-  copyRun = 0;
-  sys.gui.setTexEd(pasteTxt, 1);
-  pasteOvr = sys.o.setScr(pasteScr);
-  sys.o.setXYXY(32, 64, 278, 190);
-  sys.gui.setVisible(pasteBar, 0);
-}
-
-function pasteOvUpd {
-  pasteName = sys.os.gui.handleText(pasteTxt, pasteName);
-
-  if (sys.gui.getEventC(pasteOk) == EV_RELEASED) {
-    if (sys.fs.exists(pasteName) and pasteReplace) {
-      sys.gui.setStr(pasteTx2, "File exists! replace?");
-      pasteReplace = 0;
-    } else {
-      sys.gui.setStr(pasteTx2, "Copy: " + pasteName);
-      sys.gui.setVisible(pasteTxt, 0);
-      sys.gui.setVisible(pasteOk, 0);
-      sys.os.hideKbd();
-      sys.gui.setVisible(pasteBar, 1);
-      sys.fs.copyStart(pasteName, 2048);
-      sys.gui.setParam(pasteBar, sys.fs.copyStat(1));
-      print("copy: "+sys.fs.copyStat(1)+"bytes");
-      copyRun = 1;
-      sys.os.setRedraw();
-      sys.gui.setStr(bCopy, "Copy");
-      sys.gui.setVisible(bMove, 0);
-      sys.gui.setVisible(bRename, 1);
-    }
-  }
-
-  if (sys.gui.getEventC(pasteCancel) == EV_RELEASED) {
-    cancelCopy();
-    sys.o.destroy();
-    return;
-  }
-
-  if (copyRun == 1) {
-    sys.gui.setValue(pasteBar, sys.fs.copyStat(2));
-
-    if (sys.fs.copyStat(0) == 0) {
-      print("copy: "+sys.fs.copyStat(2)+"bytes done");
-      rldFiles(1);
-      sys.o.destroy();
-      copyRun = 0;
-      
-      if (copyMove) {
-        local oldPath = getPath();
-        local oldInApps = inApps;
-        
-        sys.fs.chDir(copyInApps);
-        sys.fs.chDir(copyPath);
-        print("remove: " + copyInApps + ":" + copyPath + copyFname);
-        sys.fs.delete(copyFname);
-        sys.fs.chDir(oldInApps);
-        sys.fs.chDir(oldPath);
-        updatePath(oldPath);
-        upCount = getUpCount(oldPath);
-        rldFiles(1);
-      }
-      
-      copyFname = "";
-      return;
-    }
-  }
-}
-
-function cancelCopy {
-  sys.gui.setStr(bCopy, "Copy");
-  sys.gui.setVisible(bMove, 0);
-  sys.gui.setVisible(bRename, 1);
-  sys.fs.copyStop();
-  copyFname = "";
-}
-
-function remOvrInit {
-  rmScr = sys.gui.addScreen();
-  sys.gui.addText(1, 1, 6, 1, "Remove "+ remName +" ?", rmScr);
-  rmOk = sys.gui.addButton(1, 2, 2, 1, "Ok", rmScr);
-  rmCancel = sys.gui.addButton(4, 2, 3, 1, "Cancel", rmScr);
-  remOvr = sys.o.setScr(rmScr);
-  sys.o.setXYXY(32, 64, 278, 190);
-}
-
-function remOvrUpdate {
-  if (sys.o.getId() != remOvr or sys.o.getId() == 0) {
-    return;
-  }
-
-  if (sys.gui.getEventC(rmOk) == EV_RELEASED) {
-    #sys.fs.delete(remName);
-    rmDir(remName);
-    sys.o.destroy();
-    rldFiles(1);
-    return;
-  }
-
-  if (sys.gui.getEventC(rmCancel) == EV_RELEASED) {
-    sys.o.destroy();
-    return;
-  }
-}
-
-function textOvInit {
-  textScr = sys.gui.addScreen();
-  textLbl = sys.gui.addText(1, 0, 8, 1, "Label", textScr);
-  textTxt = sys.gui.addText(1, 1, 6, 1, "", textScr);
-  textOk = sys.gui.addButton(1, 2, 2, 1, "Ok", textScr);
-  textCancel = sys.gui.addButton(4, 2, 3, 1, "Cancel", textScr);
-
-  pasteReplace = 1;
-  copyRun = 0;
-  sys.gui.setTexEd(textTxt, 1);
-  textOvr = sys.o.setScr(textScr);
-  sys.o.setXYXY(32, 64, 278, 190);
-  return textOvr;
-}
-
-function infoOvrInit {
-  infoScr = sys.gui.addScreen();
-  infoLbl = sys.gui.addText(1, 0, 8, 1, "Info", infoScr);
-  infoTxt = sys.gui.addText(1, 1, 6, 3, arg0, infoScr);
-  infoOk = sys.gui.addButton(1, 4, 2, 1, "Ok", infoScr);
-  infoOvr = sys.o.setScr(infoScr);
-  sys.o.setXYXY(32, 64, 278, 240);
-  return infoOvr;
-}
-
-function infoOvrUpdate {
-  if (sys.o.getId() != infoOvr or sys.o.getId() == 0) {
-    return;
-  }
-
-  if (sys.gui.getEventC(infoOk) == EV_RELEASED) {
-    sys.o.destroy();
-    return;
-  }
-}
-
-
-function showPpm {
-  ppmScr = sys.gui.addScreen();
-  ppmLbl = sys.gui.addText(1, 0, 8, 1, arg0, ppmScr);
-  sys.gui.addImage(1, 1, 8, 9, arg0, ppmScr);
-  ppmOk = sys.gui.addButton(1, 10, 2, 1, "Ok", ppmScr);
-  ppmOvr = sys.o.setScr(ppmScr);
 }
 
