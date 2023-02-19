@@ -188,7 +188,7 @@ function update {
     return;
   }
   
-  if (sys.gui.getEventC(binfo) == EV_RELEASED) {
+  if (sys.gui.getEventC(binfo) == EV_RELEASED and fname != "") {
     init_overlay();
     ov_id = sys.o.setScr(ov_screen);
     sys.o.setY(320);
