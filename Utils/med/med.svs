@@ -57,8 +57,8 @@ function init {
   eName = "";
   eNamePrev = "";
   eFileB = sys.gui.addButton(1, 6, 7, 1, "Cesta k souboru", editScr);
-  eOpenB = sys.gui.addButton(5, 7, 3, 1, "Otevřít", editScr);
-  eCancelB = sys.gui.addButton(2, 8, 2, 1, "Zrušit", editScr);
+  eOpenB = sys.gui.addButton(3, 8, 3, 1, "Otevřít", editScr);
+  eCancelB = sys.gui.addButton(1, 8, 2, 1, "Zrušit", editScr);
   
   eOkB = sys.gui.addButton(6, 8, 2, 1, "Ok", editScr);
   
@@ -76,6 +76,23 @@ function init {
     load_mnu(arg0);
   } else {
    sys.gui.setVisible(closeB, 0);
+  }
+  
+  translate();
+}
+
+function translate {
+  if (sys.os.getLang() == SVP_LANG_ENG) {
+    sys.gui.setStr(openB, "Open");
+    sys.gui.setStr(newB, "New");
+    sys.gui.setStr(mainB, "Open main.mnu");
+    sys.gui.setStr(createB, "Create");
+    sys.gui.setStr(nCancelB, "Cancel");
+    sys.gui.setStr(saveB, "Save");
+    sys.gui.setStr(closeB, "Back");
+    sys.gui.setStr(eFileB, "File path");
+    sys.gui.setStr(eOpenB, "Open");
+    sys.gui.setStr(eCancelB, "Cancel");
   }
 }
 
@@ -119,6 +136,7 @@ function update_new {
   
     sys.gui.setVisible(newB, 0);
     sys.gui.setVisible(openB, 0);
+    sys.gui.setVisible(mainB, 0);
     
     sys.gui.setTexAct(newT);
     sys.os.showKbd();
@@ -257,6 +275,7 @@ function update_tb {
     eName = "";
     currentIcon = "Icons/none.p16";
     currentFile = "";
+    sys.gui.setVisible(eOpenB, 0);
     sys.gui.setIcon(eIconI, currentIcon);
     sys.gui.setStr(eFileB, "Select file");
     
@@ -399,6 +418,7 @@ function update {
   update_new();
   update_tb();
   update_ed();
-  update_list();  
+  update_list();
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
 }
 
