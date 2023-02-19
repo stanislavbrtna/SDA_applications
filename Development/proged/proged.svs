@@ -1,5 +1,7 @@
  # this is still more-less proof of concept
 
+import "lib/inc/1/external-kbd.svs"
+
 function init {
   scr = sys.gui.addScreen();
 
@@ -36,7 +38,7 @@ function init {
   filename = "";
   fileRoot = 0; # root in /DATA
   
-  rcv_init();
+  kbd_init();
 
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 != "") {
@@ -69,27 +71,7 @@ function update {
   program = sys.os.gui.handleText(txt, program);
   
   if (kbdDriver) {
-    if (sys.com.uartGetRd() == 2) {
-      gc(0);
-      local x = sys.com.uartGetStr();
-      if (x != "") {
-        local s = decode(x);
-
-        if (s != "") {
-          if (sys.os.gui.getCPos(txt) == len(program)) {
-            program = substr(program, 1, sys.os.gui.getCPos(txt)) + s;
-          } else {
-            program = substr(program, 1, sys.os.gui.getCPos(txt)) + s + substr(program, sys.os.gui.getCPos(txt) + 1, len(program));          
-          }
-
-          sys.gui.setStr(txt, program);
-          sys.os.gui.setCPos(txt, sys.os.gui.getCPos(txt) + len(s)); 
-        } else {
-          gc(0);
-          decode_arrows(x, txt);
-        }
-      }
-    }
+    kbd_update(txt);
   }
   
   if (cPosOld != sys.gui.getParam(txt)) {
@@ -312,144 +294,4 @@ function newOvrUpdate {
   }
 }
 
- ##############################################################################
- # Keyboard stuff
-
-function rcv_init {
-  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
-  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
-  sys.com.uartRcvIT(); # start the rcv
-}
-
-function decode {
-  local i = 1;
-  local b = 1;
-  local id = 0;
-  local type = "";
-  
-  while(getcp(arg0, i) != "$") {
-    i++;
-  }
-  i++;
-  
-  if (getcp(arg0, i) != "P") {
-    return "";
-  }
-  
-  type = getcp(arg0, i); # P - pressed, R - released, H - hold
-  
-  i++;
-  
-  id = num(substr(arg0, i, i + 1));
-  
-  # special characters
-  if (id == 52) {
-    return "\n";
-  }
-  
-  if (id == 28) {
-    return "  ";
-  }
-  
-  if (id == 53 or id == 56){ # shifts
-    if (type == "P") {
-      kbd_shift = 1;
-    }
-    
-    if (type == "R") {
-      kbd_shift = 0;
-    }
-    return "";
-  }
-  
-  while(getcp(arg0, i) != "$") {
-    i++;
-  }
-  i++;
-  
-  # regular char.
-  if (getcp(arg0, i + 1) == "!" and type == "P") {
-    return getcp(arg0, i);
-  }
-  
-  b = i;
-  while(getcp(arg0, b) != "!") {
-    b++;
-  }
-  kbd_spec = substr(arg0, i, b);  
-  return "";
-}
-
-function decode_arrows #*(str, gr2_id )*# {
-  local i = 1;
-  local b = 1;
-  local id = 0;
-  local type = "";
-  
-  while(getcp(arg0, i) != "$") {
-    i++;
-  }
-  i++;
-  
-  if (getcp(arg0, i) != "P") {
-    return "";
-  }
-  
-  type = getcp(arg0, i); # P - pressed, R - released, H - hold
-  i++;
-  id = num(substr(arg0, i, i + 1));
-  
-  # special characters
-  if (id == 77 and sys.os.gui.getCPos(arg1) > 0) {
-    sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) - 1);
-  }
-  
-  if (id == 79 and sys.os.gui.getCPos(arg1) < len(sys.gui.getStr(arg1))) {
-    sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) + 1);
-  }
-  
-  if (id == 27 and sys.os.gui.getCPos(arg1) > 0) {
-    if(sys.os.gui.getCPos(arg1) == 1) {
-      if (len(program) == 1) {
-        program = "";
-      } else {
-        program = substr(program, 2, len(program));
-      } 
-      sys.os.gui.setCPos(arg1, 0);
-    } else if (sys.os.gui.getCPos(arg1) == len(program)) {
-      program = substr(program, 1, sys.os.gui.getCPos(arg1) - 1);
-    } else {
-      program = substr(program, 1, sys.os.gui.getCPos(arg1) - 1) + substr(program, sys.os.gui.getCPos(arg1) + 1, len(program));
-      sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) - 1); 
-    }
-    sys.gui.setStr(txt, program);
-  }
-  
-  if (id == 14 and sys.os.gui.getCPos(arg1) < len(program)) {
-    if(sys.os.gui.getCPos(arg1) == 0) {
-      if (len(program) == 1) {
-        program = "";
-      } else {
-        program = substr(program, 2, len(program));
-      } 
-    } else if (sys.os.gui.getCPos(arg1) == len(program) - 1) {
-      program = substr(program, 1, sys.os.gui.getCPos(arg1));
-    } else {
-      program = substr(program, 1, sys.os.gui.getCPos(arg1)) + substr(program, sys.os.gui.getCPos(arg1) + 2, len(program)); 
-    }
-    sys.gui.setStr(txt, program);
-  }
-  
-  if (id == 73) {
-    if (keyb_stat == 1) {
-      sys.os.hideKbd();
-    } else {
-      sys.os.showKbd();
-    }
-    keyb_stat = 1 - keyb_stat;
-  }
-  
-  gc(100000);
-  return "";
-}
 

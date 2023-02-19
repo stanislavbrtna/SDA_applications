@@ -1,0 +1,40 @@
+import "lib/inc/1/external-kbd.svs"
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+
+  bActivate = sys.gui.addButton(1, 8, 6, 1, "Enable kbd driver", scr);
+  ov_id = 0;
+  
+  textfield = sys.gui.addText(1, 1, 8, 6, "", scr);
+  textfield2 = sys.gui.addText(1, 7, 8, 1, "", scr);
+  
+  sys.gui.setTexEd(textfield, 1);
+  sys.gui.setTexEd(textfield2, 1);
+  textstring = "";
+  textstring2 = "";
+  useKbd = 0;
+  kbd_init();
+}
+
+function update {
+  if (useKbd) {
+    kbd_update(textfield);
+  }
+
+  textstring = sys.os.gui.handleText(textfield, textstring);
+  textstring2 = sys.os.gui.handleText(textfield2, textstring2);
+  
+  if(sys.gui.getEventC(bActivate) == EV_RELEASED) {
+    useKbd = 1 - useKbd;
+    sys.gui.setSelect(bActivate, useKbd);
+  }
+  
+}
+
+
+function exit {
+
+}

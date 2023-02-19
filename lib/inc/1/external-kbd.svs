@@ -1,0 +1,145 @@
+#*
+*  External keyboard driver
+*  
+*  Usage:
+*  Call kbd_init(); from init
+*  Call kbd_update(text_field_id); from update,
+*  text_field_id specifies what text field cursor will be controlled with arrow keys 
+*#
+
+function kbd_init {
+  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+  sys.com.uartRcvIT(); # start the rcv
+}
+
+function kbd_update {
+  if (sys.com.uartGetRd() == 2) {
+    gc(0);
+    local x = sys.com.uartGetStr();
+    if (x != "") {
+      local s = decode(x);
+
+      if (s != "") {
+        sys.os.gui.setKbdStr(s);
+      } else {
+        gc(0);
+        decode_arrows(x, arg0);
+      }
+    }
+  }
+}
+
+
+function decode {
+  local i = 1;
+  local b = 1;
+  local id = 0;
+  local type = "";
+  
+  while(getcp(arg0, i) != "$") {
+    i++;
+  }
+  i++;
+  
+  if (getcp(arg0, i) != "P") {
+    return "";
+  }
+  
+  type = getcp(arg0, i); # P - pressed, R - released, H - hold
+  
+  i++;
+  
+  id = num(substr(arg0, i, i + 1));
+  
+  # special characters
+  if (id == 52) {
+    return "\n";
+  }
+  
+  if (id == 28) {
+    return "  ";
+  }
+  
+  if (id == 53 or id == 66){ # shifts
+    if (type == "P") {
+      kbd_shift = 1;
+    }
+    
+    if (type == "R") {
+      kbd_shift = 0;
+    }
+    return "";
+  }
+  
+  while(getcp(arg0, i) != "$") {
+    i++;
+  }
+  i++;
+  
+  # regular char.
+  if (getcp(arg0, i + 1) == "!" and type == "P") {
+    return getcp(arg0, i);
+  }
+  
+  b = i;
+  while(getcp(arg0, b) != "!") {
+    b++;
+  }
+  kbd_spec = substr(arg0, i, b);
+  return "";
+}
+
+function decode_arrows #*(str, gr2_id )*# {
+  local i = 1;
+  local b = 1;
+  local id = 0;
+  local type = "";
+  
+  while(getcp(arg0, i) != "$") {
+    i++;
+  }
+  i++;
+  
+  if (getcp(arg0, i) != "P") {
+    return "";
+  }
+  
+  type = getcp(arg0, i); # P - pressed, R - released, H - hold
+  i++;
+  id = num(substr(arg0, i, i + 1));
+  
+  # special characters
+  if (id == 77 and sys.os.gui.getCPos(arg1) > 0) {
+    sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) - 1);
+    return;
+  }
+  
+  if (id == 27 and sys.os.gui.getCPos(arg1) > 0) { # bksp
+    sys.os.gui.setKbdStr("\b");
+    return;
+  }
+   
+  if (id == 14 and sys.os.gui.getCPos(arg1) < len(sys.gui.getStr(arg1))) { # del
+    gc(0); # collect after strlen
+    sys.os.gui.setKbdStr("\bd");
+    return;
+  }
+  
+  if (id == 79 and sys.os.gui.getCPos(arg1) < len(sys.gui.getStr(arg1))) {
+    sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) + 1);
+    gc(0); # collect after strlen
+    return;
+  }
+  
+  if (id == 73) {
+    if (keyb_stat == 1) {
+      sys.os.hideKbd();
+    } else {
+      sys.os.showKbd();
+    }
+    keyb_stat = 1 - keyb_stat;
+    return "";
+  }
+}
+
