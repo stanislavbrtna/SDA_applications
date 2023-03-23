@@ -36,6 +36,8 @@ function init {
   
   txt = sys.gui.addText(1, 3, 8, 2, "", scr);
   
+  pick = sys.gui.addButton(1, 6, 5, 1, "Replace...", scr);
+  
   sys.os.gui.setMainScr(scr);
 
   sys.gui.setGrayout(run, 1);
@@ -47,6 +49,8 @@ function init {
   len = 0;
   maxlen = 0;
   rfname = "tmp.svs";
+  
+  rpl_fname = "";
   r = 0;
 }
 
@@ -54,6 +58,14 @@ function status {
   sys.gui.setStr(txt, arg0);
 }
 
+
+function callRet {
+  rpl_fname = arg0;
+  if (arg0 != "")
+    sys.gui.setStr(pick, arg0);
+  else
+    sys.gui.setStr(pick, "Replace...");
+}
 
 function get_param {
   local i;
@@ -101,13 +113,22 @@ function update {
   if (get == 0 and sys.hw.getUsbState() == 1) {
     rcv_start();
   }
+  
+  if(sys.gui.getEventC(pick) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    return;
+  }
 
   if (sys.gui.getEventC(rcv) == EV_RELEASED) {
     rcv_start();
   }
   
   if (sys.gui.getEventC(run) == EV_RELEASED) {
-    sys.os.subProcess("Received/" + rfname, "", 0, 0, 0);
+    if (rpl_fname == "") {
+      sys.os.subProcess("Received/" + rfname, "", 0, 0, 0);
+    } else {
+      sys.os.subProcess(rpl_fname, "", 0, 0, 0);
+    }
   }
   
   if (get == 1) {
@@ -128,17 +149,25 @@ function update {
     if (maxlen != 0) {
       sys.gui.setGrayout(run, 1);
       sys.fs.chDir(1);
+      local path;
+      if (rpl_fname == "") {
+        path = "Received/" + rfname;
+        status("Receiving:\n" + rfname);
+      } else {
+        path = rpl_fname;
+        status("Receiving:\n" + rpl_fname);
+      }
       
       if (not sys.fs.exists("Received/")) {
         sys.fs.mkDir("Received/");
       }
       
-      if (sys.fs.exists("Received/" + rfname)) {
-        sys.fs.delete("Received/" + rfname);
+      if (sys.fs.exists(path)) {
+        sys.fs.delete(path);
       }
-      sys.fs.open("Received/" + rfname);
+      sys.fs.open(path);
+
       get = 2;
-      status("Receiving:\n" + rfname);
       sys.cnt.set(2000);
       sys.com.usbGetStr();
       sys.gui.setParam(bar, maxlen);
