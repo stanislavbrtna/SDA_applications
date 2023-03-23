@@ -1,0 +1,23 @@
+function get_folder {
+  if (typeof(arg1) == 0) {
+    arg1 = "/";
+  }
+
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+}
+
+function init {
+  print(sys.os.getAppPath());
+  print(get_folder(sys.os.getAppPath()));
+  s = sys.gui.addScreen();
+  sys.os.gui.setMainScr(s);
+  sys.gui.addText(1,1,8,4,sys.os.getAppPath() + "\nFolder: " + get_folder(sys.os.getAppPath()), s);
+}
+
+function update {
+  #sys.os.exit();
+}
