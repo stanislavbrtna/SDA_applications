@@ -43,7 +43,14 @@ function cleanup {
   }
 }
 
+function init_test {
+  if (sys.fs.exists("test.cfg")) {
+    sys.fs.delete("test.cfg");
+  }
+}
+
 function test {
+  init_test();
   if (not GLOB_FAIL) test_open();
   if (not GLOB_FAIL) test_rw();
   if (not GLOB_FAIL) test_rm_ex();
@@ -87,6 +94,13 @@ function test_rw {
     print("Read failed");
   }
   
+  sys.fs.conf.write("Key2", "xyz");
+  
+  if (sys.fs.conf.read("Key1") != "value1" or sys.fs.conf.read("Key2") != "xyz" or sys.fs.conf.read("Key3") != "value3") {
+    FAIL = 1;
+    print("Read failed");
+  }
+  
   sys.fs.conf.write("Key_int", "123456");
   
   if (sys.fs.conf.readInt("Key_notInt", 8) != 8) {
@@ -97,6 +111,11 @@ function test_rw {
   if (sys.fs.conf.readInt("Key_int", 8) != 123456) {
     print("Read int failed");
     FAIL = 1;
+  }
+  
+  if (sys.fs.conf.read("Key1") != "value1" or sys.fs.conf.read("Key2") != "xyz" or sys.fs.conf.read("Key3") != "value3") {
+    FAIL = 1;
+    print("Re-read failed");
   }
   
   sys.fs.conf.close();
@@ -211,7 +230,7 @@ function test_monkey_l {
   
   for (i = 0; i < 10; i++;) {
     keys[i] = random_str(10);
-    values[i] = random_str(10);
+    values[i] = random_str(5+rnd()%16);
     sys.fs.conf.write(keys[i], values[i]);
     
     progress = i;
@@ -223,8 +242,8 @@ function test_monkey_l {
     
     sys.fs.conf.remove(keys[val]);
     
-    keys[val] = random_str(10);
-    values[val] = random_str(10);
+    keys[val] = random_str(5+rnd()%16);
+    values[val] = random_str(5+rnd()%16);
     sys.fs.conf.write(keys[val], values[val]);
     
     
