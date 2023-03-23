@@ -65,6 +65,23 @@ function init {
   menuOvr = 0;
   
   sld_old = -1;
+  
+  cfg_load();
+}
+
+function cfg_load {
+  sys.fs.conf.open("settings/proged.cfg");
+  kbdDriver = sys.fs.conf.readInt("kbdDriver", 0);
+  sys.gui.setVisible(liner, sys.fs.conf.readInt("liner", 0));
+  sys.gui.setX1(txt, sys.fs.conf.readInt("liner", 0));
+  sys.fs.close();
+}
+
+function cfg_store {
+  sys.fs.conf.open("settings/proged.cfg");
+  sys.fs.conf.write("kbdDriver", "" + kbdDriver);
+  sys.fs.conf.write("liner", "" + sys.gui.getVisible(liner));
+  sys.fs.close();
 }
 
 function update {
@@ -166,6 +183,8 @@ function menuOvInit {
   
   btn_kbd = sys.gui.addCheckBox(1, 7, 10, 1, "Keyboard Driver", menuScr);
   
+  sys.gui.setValue(btn_kbd, kbdDriver);
+  
   menuOvr = sys.o.setScr(menuScr);
   
   if (fileRoot == 0) {
@@ -218,11 +237,13 @@ function menuOvUpdate {
   
   if (sys.gui.getEventC(btn_kbd) == EV_RELEASED) {
     kbdDriver = sys.gui.getValue(btn_kbd);
+    cfg_store();
   }
   
   if (sys.gui.getEventC(btn_lines) == EV_RELEASED) {
     sys.gui.setX1(txt, sys.gui.getValue(btn_lines));
     sys.gui.setVisible(liner, sys.gui.getValue(btn_lines));
+    cfg_store();
   }
   
   
