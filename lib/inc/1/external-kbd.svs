@@ -37,14 +37,12 @@ function decode {
   local id = 0;
   local type = "";
   
-  while(getcp(arg0, i) != "$") {
-    i++;
+  for(i = 1; getcp(arg0, i) != "$";i++;) {
+    if (i > 200) {
+      return "";
+    }
   }
   i++;
-  
-  if (getcp(arg0, i) != "P") {
-    return "";
-  }
   
   type = getcp(arg0, i); # P - pressed, R - released, H - hold
   
@@ -61,19 +59,28 @@ function decode {
     return "  ";
   }
   
-  if (id == 53 or id == 66){ # shifts
+  if (id == 53 or id == 66) { # shifts
     if (type == "P") {
       kbd_shift = 1;
+      print("shift down");
     }
     
     if (type == "R") {
       kbd_shift = 0;
+      print("shift up");
     }
+    return "";
+  }
+  
+  if (type != "P") {
     return "";
   }
   
   while(getcp(arg0, i) != "$") {
     i++;
+    if (i > 200) {
+      return "";
+    }
   }
   i++;
   
@@ -82,9 +89,10 @@ function decode {
     return getcp(arg0, i);
   }
   
-  b = i;
-  while(getcp(arg0, b) != "!") {
-    b++;
+  for(b = i; getcp(arg0, b) != "!"; b++;) {
+    if (b > 200) {
+      return "";
+    }
   }
   kbd_spec = substr(arg0, i, b);
   return "";
@@ -96,8 +104,10 @@ function decode_arrows #*(str, gr2_id )*# {
   local id = 0;
   local type = "";
   
-  while(getcp(arg0, i) != "$") {
-    i++;
+  for(i = 1; getcp(arg0, i) != "$";i++;) {
+    if (i > 200) {
+      return "";
+    }
   }
   i++;
   
@@ -110,8 +120,18 @@ function decode_arrows #*(str, gr2_id )*# {
   id = num(substr(arg0, i, i + 1));
   
   # special characters
-  if (id == 77 and sys.os.gui.getCPos(arg1) > 0) {
-    sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) - 1);
+  if (id == 77 and sys.os.gui.getCPos(arg1) > 0) { # arrow left
+    if (not kbd_shift) {
+      sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) - 1);
+    sys.gui.setBlk(arg1, 0, 0);
+    } else {
+      if (sys.gui.getBlkEnd(arg1) == 0) {
+        sys.gui.setBlk(arg1, sys.os.gui.getCPos(arg1), sys.os.gui.getCPos(arg1));
+      } else {
+        sys.gui.setBlk(arg1, sys.gui.getBlkStart(arg1) - 1, sys.gui.getBlkEnd(arg1));
+      }
+    }
+    
     return;
   }
   
@@ -126,9 +146,20 @@ function decode_arrows #*(str, gr2_id )*# {
     return;
   }
   
+  # arrow right
   if (id == 79 and sys.os.gui.getCPos(arg1) < len(sys.gui.getStr(arg1))) {
-    sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) + 1);
-    gc(0); # collect after strlen
+    if (not kbd_shift) {
+      sys.os.gui.setCPos(arg1, sys.os.gui.getCPos(arg1) + 1);
+      sys.gui.setBlk(arg1, 0, 0);
+    } else {
+      if (sys.gui.getBlkEnd(arg1) == 0) {
+          sys.gui.setBlk(arg1, sys.os.gui.getCPos(arg1) + 1, sys.os.gui.getCPos(arg1) + 1);
+        } else {
+          sys.gui.setBlk(arg1, sys.gui.getBlkStart(arg1), sys.gui.getBlkEnd(arg1) + 1);
+        }
+    }
+    
+    
     return;
   }
   
