@@ -1,0 +1,514 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.addText(0, 0, 8, 1, "Time tracker", scr);
+  
+  bNew = sys.gui.addButton(0, 12, 5, 1, "New project", scr);
+  
+  bRemove = sys.gui.addButton(6, 12, 3, 1, "Remove", scr);
+  
+  sProjects = sys.gui.addScreen(0, 1, 8, 10, scr);
+  
+  pSld = sys.gui.addSliderV(8, 1, 1, 8, 100, 50, scr);
+  
+  set_spacing(scr);
+
+  ov_id = 0;
+  
+  array pButtons[32];
+  array pFiles[32];
+  
+  if (not(sys.fs.exists("tracker") and sys.fs.isDir("tracker"))) {
+    sys.fs.mkDir("tracker");
+  }
+  sys.fs.chDir("tracker");
+    
+  load_projects();
+  
+  new_ov_id = 0;
+  rem_ov_id = 0;
+  
+  sProj = 0;
+  sNotes = 0;
+  
+  keypBack = 0;
+  
+  dbg(-1);
+}
+
+function set_spacing {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setXscroll(arg0, -6); # to change xscroll and xscroll old, prevents scroll artefacts
+}
+
+function load_projects {
+  # dummy, replace with correct
+  sys.gui.destroy(sProjects);
+  sProjects = sys.gui.addScreen(0, 1, 8, 10, scr);
+  local i = 0; 
+  
+  for(findfil = sys.fs.find("trk", "."); findfil != ""; findfil = sys.fs.findNext();) {
+    print("found: " + findfil);
+    sys.fs.conf.open(findfil);
+    if (sys.fs.conf.exists("project_name")) {
+      pButtons[i] = sys.gui.addButton(0, i, 7, 1, sys.fs.conf.read("project_name"), sProjects);
+      pFiles[i] = findfil;
+      i++;
+    }
+    sys.fs.conf.close();
+  }
+  
+  set_spacing(sProjects);
+  sys.gui.setYscroll(sProjects, -6);
+  
+  sys.gui.setGrayout(bRemove, 1);
+  pSelect = -1;
+  pCount = i;
+  
+  sys.gui.setValue(pSld, 0);
+  sys.gui.setParam(pSld, (pCount - 1)*34 + 6);
+}
+
+function handle_proj {
+  local i;
+  for(i = 0; i < pCount; i++;) {
+    if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
+      if (sys.gui.getSelect(pButtons[i]) == 1) {
+        load_project(pFiles[i]);
+      } else {
+        sys.gui.setSelect(pButtons[i], 1);
+        if (pSelect != -1) {
+          sys.gui.setSelect(pButtons[pSelect], 0);
+          pSelect = i;
+        } else {
+          pSelect = i;
+          sys.gui.setGrayout(bRemove, 0);
+        }
+      }
+    } 
+  }
+}
+
+function callRet {
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+}
+
+
+function new_overlay {
+  new_screen = sys.gui.addScreen();
+  sys.gui.addText(0, 1, 8, 1, "Set new project name:", new_screen);
+  new_text = sys.gui.addText(0, 2, 7, 1, "", new_screen);
+  sys.gui.setTexEd(new_text, 1);
+  new_str = "";
+  new_ok = sys.gui.addButton(5, 3, 2, 1, "Ok", new_screen);
+  new_cancel = sys.gui.addButton(0, 3, 3, 1, "Cancel", new_screen);
+  
+  set_spacing(new_screen);
+}
+
+
+function new_handle {
+  if (sys.gui.getEventC(new_ok) == EV_RELEASED) {
+    sys.o.destroy();
+    sys.os.hideKbd();
+    
+    sys.fs.conf.open(new_str+".trk");
+    sys.fs.conf.write("project_name", new_str);
+    sys.fs.conf.close();
+    
+    load_projects();
+    
+    return;
+  }
+    
+  if (sys.gui.getEventC(new_cancel) == EV_RELEASED) {
+    sys.o.destroy();
+    sys.os.hideKbd();
+    return;
+  }
+  
+  new_str = sys.os.gui.handleText(new_text, new_str);
+}
+
+function rem_overlay {
+  rem_screen = sys.gui.addScreen();
+  sys.gui.addText(1, 1, 8, 1, "Remove project?", rem_screen);
+  sys.gui.addText(1, 2, 8, 1, sys.gui.getStr(pButtons[pSelect]), rem_screen);
+  rem_ok = sys.gui.addButton(5, 3, 2, 1, "Ok", rem_screen);
+  rem_cancel = sys.gui.addButton(1, 3, 3, 1, "Cancel", rem_screen);
+}
+
+
+function rem_handle {
+  if (sys.gui.getEventC(rem_ok) == EV_RELEASED) {
+    
+    
+    if (not(sys.fs.exists("trash") and sys.fs.isDir("trash"))) {
+      sys.fs.mkDir("trash");
+      sys.fs.chDir("trash");
+    }
+    
+    sys.fs.rename(pFiles[pSelect], "trash/" + pFiles[pSelect]);
+    
+    load_projects();
+    
+    sys.o.destroy();
+    return;
+  }
+    
+  if (sys.gui.getEventC(rem_cancel) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+}
+#*
+*  wrk_start_n
+*  wrk_stop_n
+*  wrk_note_n
+*#
+
+
+function timer_start {
+  sys.fs.conf.open(confCurrent);
+  local i = 0;
+  while(sys.fs.conf.exists("wrk_stop_"+i)) {
+    i++;
+  }
+  
+  current_index = i;
+  
+  sys.fs.conf.write("wrk_start_"+current_index, "" + sys.time.get());
+  sys.fs.conf.write("wrk_stop_"+current_index, "" + sys.time.get());
+  sys.fs.conf.write("wrk_note_"+current_index, "" + sNote);
+  
+  sys.fs.conf.close();
+}
+
+
+function timer_stop {
+  sys.fs.conf.open(confCurrent);
+  sys.fs.conf.write("wrk_stop_"+current_index, "" + sys.time.get());
+  sys.fs.conf.close();
+}
+
+
+function count_time {
+  sys.fs.conf.open(confCurrent);
+  local i = 0;
+  local time = 0;
+  while(sys.fs.conf.exists("wrk_stop_"+i)) {
+    time += num(sys.fs.conf.read("wrk_stop_"+i)) - num(sys.fs.conf.read("wrk_start_"+i));
+    i++;
+  }
+  
+  return time;
+}
+
+
+function get_note {
+  sys.fs.conf.open(confCurrent);
+  local i = 0;
+  local note = "";
+  while(sys.fs.conf.exists("wrk_note_"+i)) {
+    i++;
+  }
+  if (i > 0) {
+    note = sys.fs.conf.read("wrk_note_"+ (i-1));
+  } else {
+    note = "";
+  }
+  sys.fs.conf.close();
+  return note;
+}
+
+function load_notes {
+  if (sNotes != 0) {
+    sys.gui.destroy(sNotes);
+  }
+  
+  sNotes = sys.gui.addScreen();
+  sys.os.gui.setMainScr(sNotes);
+  
+  sys.gui.addText(0, 0, 8, 1, "Project log:", sNotes);
+  
+  sNinscr = sys.gui.addScreen(0, 1, 8, 10,sNotes);
+  
+  bNUp = sys.gui.addButton(8, 1, 1, 3, "/\\", sNotes);
+  
+  bNDn = sys.gui.addButton(8, 4, 1, 3, "\\/", sNotes);
+  
+  bNBack = sys.gui.addButton(0, 11, 3, 1, "Back", sNotes);
+  
+  tNNote = sys.gui.addText(0, 0, 8, 10, "", sNinscr);
+  
+  set_spacing(sNotes);
+  
+  current_note = 0;
+  
+  print("ci: "+current_index);
+  if (current_index > 1) {
+    current_note = current_index;
+  }
+  
+  keypBack = bNBack;
+  
+  sys.gui.setStr(tNNote, note_get_fmt(current_note));
+}
+
+function note_get_fmt {
+  local note = "!NONE";
+  sys.fs.conf.open(confCurrent);
+   
+   
+  if (not sys.fs.conf.exists("wrk_stop_"+arg0)) {
+    sys.fs.conf.close();
+    return note;
+  }
+    
+  local start = num(sys.fs.conf.read("wrk_start_"+arg0));
+  local time = float(num(sys.fs.conf.read("wrk_stop_"+arg0)) - num(start)) / 3600.0;
+  
+  note = sys.fs.conf.read("wrk_note_"+arg0);
+  
+  sys.fs.conf.close();
+  
+  return "Date: "+sys.time.getTsDay(start)
+                 +". "+sys.time.getTsMonth(start)
+                 +". "+sys.time.getTsYear(start)
+                 +" "+fz(sys.time.getTsHr(start))
+                 +":"+fz(sys.time.getTsMin(start))
+                 +":"+fz(sys.time.getTsSec(start))
+                 +"\n\nTime spent: "+time+"h\n\nNote: "+note;
+}
+
+function upd_notes {
+  if (sNotes == 0) {
+    return;
+  }
+  
+  if (sys.gui.getEventC(bNBack) == EV_RELEASED) {
+    sys.os.gui.setMainScr(sProj);
+    sys.gui.destroy(sNotes);
+    sNotes = 0;
+    keypBack = bBack;
+    return;
+  }
+  
+  if (sys.gui.getEventC(bNUp) == EV_RELEASED) {
+    if (current_note > 1) {
+      current_note--;
+      sys.gui.setStr(tNNote, note_get_fmt(current_note));
+    }
+  }
+  
+  if (sys.gui.getEventC(bNDn) == EV_RELEASED) {
+    
+    local note = note_get_fmt(current_note + 1);
+    
+    if (note != "!NONE") {
+      sys.gui.setStr(tNNote, note);
+      current_note++;
+    }
+  }
+}
+
+
+function load_project {
+  if (sProj != 0) {
+    sys.gui.destroy(sProj);
+  }
+  
+  sProj = sys.gui.addScreen();
+  sys.os.gui.setMainScr(sProj);
+  
+  confCurrent = arg0;
+  
+  sys.fs.conf.open(confCurrent);
+  
+  sys.gui.addText(0, 0, 8, 1, "Time tracker", sProj);
+  
+  sys.gui.setTxtSize(sys.gui.addText(0, 1, 8, 2,"Project: " + sys.fs.conf.read("project_name"), sProj), 18);
+  
+  timeBig = sys.gui.addText(0, 2, 5, 3, "00:00", sProj);
+  sys.gui.setTxtSize(timeBig, 70);
+  sys.gui.setTexAlign(timeBig, ALIGN_RIGHT);
+  
+  timeSmall = sys.gui.addText(5, 3, 4, 1, ":00", sProj);
+  
+  bStart = sys.gui.addButton(0, 5, 3, 1, "Start", sProj);
+  
+  bStop = sys.gui.addButton(6, 5, 3, 1, "Stop", sProj);
+  
+  tNote = sys.gui.addText(0, 6, 9, 1, "", sProj);
+  sys.gui.setTexEd(tNote, 1);
+   
+  bSet = sys.gui.addButton(6, 7, 3, 1, "Set note", sProj);
+  
+  tTotal = sys.gui.addText(0, 8, 8, 1, "Total hours:", sProj);
+  
+  bBack = sys.gui.addButton(0, 11, 3, 1, "Back", sProj);
+  
+  bNote = sys.gui.addButton(6, 11, 3, 1, "See log", sProj);
+  
+  set_spacing(sProj);
+  
+  currentIndex = 0;
+  
+  sys.fs.conf.close();
+  
+  sNote = get_note();
+  
+  sys.gui.setGrayout(bStop, 1);
+  sys.gui.setGrayout(bSet, 1);
+  
+  timStart = 0;
+  
+  upd_total();
+  
+  keypBack = bBack;
+}
+
+function upd_total {
+  local time = count_time();
+  sys.gui.setStr(tTotal, "Total hours:  " + float(time)/3600.0);
+}
+
+function fz {
+  #return arg0;
+  local t = arg0;
+  t = "" + t;
+  if (len(t) == 1) {
+    return "0"+t;
+  } else {
+    return t;
+  }
+}
+
+
+function autosave {
+  if (last_save_time+(10*60) < sys.time.get()) {
+    
+    last_save_time = sys.time.get();
+    sys.fs.conf.open(confCurrent);
+    sys.fs.conf.write("wrk_stop_"+current_index, "" + sys.time.get());
+    sys.fs.conf.close();
+    #print("autosaving...");
+  }
+}
+
+
+function update_count {
+  local big;
+  local small;
+  if (last_upd_time == sys.time.get()) {
+    return;
+  }
+  
+  last_upd_time = sys.time.get();
+   
+  big = fz((sys.time.get() - timStart)/3600) + ":" + fz(((sys.time.get() - timStart)/60)%60);
+  
+  if (big != sys.gui.getStr(timeBig)) {
+    sys.gui.setStr(timeBig, big);
+  }
+  small = ":" + fz((sys.time.get() - timStart)%60);
+  if (small != sys.gui.getStr(timeSmall)) {
+    sys.gui.setStr(timeSmall, small);
+  }
+}
+
+
+function upd_timer {
+  if (sProj == 0) {
+    return;
+  }
+
+
+  if (sys.gui.getEventC(bBack) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr);
+    sys.gui.destroy(sProj);
+    sProj = 0;
+    keypBack = 0;
+    return;
+  }
+  
+  if (sys.gui.getEventC(bStart) == EV_RELEASED) {
+    sys.gui.setGrayout(bStop, 0);
+    sys.gui.setGrayout(bStart, 1);
+    sys.gui.setGrayout(bBack, 1);
+    sys.gui.setGrayout(bSet, 0);
+    timer_start();
+    timStart = sys.time.get();
+  }
+  
+  if (sys.gui.getEventC(bStop) == EV_RELEASED) {
+    timer_stop();
+    sys.gui.setGrayout(bStop, 1);
+    sys.gui.setGrayout(bStart, 0);
+    sys.gui.setGrayout(bBack, 0);
+    sys.gui.setGrayout(bSet, 1);
+    upd_total();
+  }
+  
+  if (sys.gui.getEventC(bSet) == EV_RELEASED) {
+    sys.fs.conf.open(confCurrent);
+    sys.fs.conf.write("wrk_note_"+current_index, "" + sNote);
+    sys.fs.conf.close();
+  }
+  
+  if (sys.gui.getEventC(bNote) == EV_RELEASED) {
+    load_notes();
+  }
+  
+  sNote = sys.os.gui.handleText(tNote, sNote);
+  
+  if (sys.gui.getGrayout(bStart)) {
+    update_count();
+    autosave();
+  }
+}
+
+
+function update {
+  if (sys.gui.getEventC(bNew) == EV_RELEASED) {
+    new_overlay();
+    new_ov_id = sys.o.setScr(new_screen);
+    sys.o.setY(230);
+  }
+  
+  if (sys.gui.getEventC(bRemove) == EV_RELEASED) {
+    rem_overlay("test");
+    rem_ov_id = sys.o.setScr(rem_screen);
+    sys.o.setY(200);
+  }
+  
+  if (sys.o.getId() == new_ov_id and sys.o.getId() != 0) {
+    new_handle();
+  }
+  
+  if (sys.o.getId() == rem_ov_id and sys.o.getId() != 0) {
+    rem_handle();
+  }
+  
+  handle_proj();
+  
+  sys.gui.setYscroll(sProjects, sys.gui.getValue(pSld) - 6);
+  
+  upd_timer();
+  upd_notes();
+  
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), keypBack);
+}
+
+
+function exit {
+  if (sys.gui.getGrayout(bStart)) {
+    timer_stop();
+  }
+}
