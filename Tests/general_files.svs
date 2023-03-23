@@ -1,0 +1,297 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(1, 0, 10, 10,"General file functions 1.0", scr);
+  result = sys.gui.addText(1,1,10,10,"Result:", scr);
+  
+  progress = 0;
+  tested = 0;
+  GLOB_FAIL = 0;
+  
+  ignore_glob = 0;
+
+}
+
+function update {
+  if (tested == 0) {
+    test();
+    if (not ignore_glob) add_result("Final result", GLOB_FAIL);
+    tested = 1;
+  }
+}
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+function add_result {
+  if (arg1 == 1) {
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Failed");
+    if (not ignore_glob) GLOB_FAIL = 1;
+  } else
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Passed");
+}
+
+
+ # random_str(len);
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+
+  return new_str;
+}
+
+###############################################################################
+
+function test {
+  prepare();
+  if (not GLOB_FAIL) test_open();
+  if (not GLOB_FAIL) test_rw();
+  if (not GLOB_FAIL) test_rw_byte();
+  if (not GLOB_FAIL) test_size();
+  if (not GLOB_FAIL) test_seek_tell();
+  
+  #seek, ftell, truncate
+}
+
+
+## test functions
+
+function prepare {
+  sys.fs.mkDir("files_test");
+  sys.fs.chDir("files_test");
+  
+  sys.fs.writeStr(random_str(256), "testfile1");
+  sys.fs.writeStr(random_str(256), "testfile2");
+}
+
+function test_open {
+  local FAIL;
+  local test_name = "Open, close.";
+  FAIL = 0;
+
+  # close on empty
+  if (sys.fs.close() == 1) {
+    FAIL = 1;
+  }
+  
+  print("fail: " + FAIL);
+  
+  if (sys.fs.open("testfile1") == 0) {
+    FAIL = 1;
+  }
+  
+  print("fail: " + FAIL);
+  
+  if (sys.fs.open(3, "testfile2") == 0) {
+    FAIL = 1;
+  }
+  
+  print("fail: " + FAIL);
+  
+  if (sys.fs.open(4, "nonexistent") == 0) {
+    FAIL = 1;
+  }
+  
+  print("fail: " + FAIL);
+  
+  if (sys.fs.close(3) == 0) {
+    FAIL = 1;
+  }
+  
+  print("fail: " + FAIL);
+  
+  if (sys.fs.close() == 0) {
+    FAIL = 1;
+  }
+  
+  sys.fs.close(4);
+  
+  print("fail: " + FAIL);
+  
+  add_result(test_name, FAIL);
+}
+
+function test_rw {
+  local FAIL;
+  local test_name = "String read, write.";
+  FAIL = 0;
+  
+  sys.fs.writeStr("testfile 3 content", "testfile3");
+  sys.fs.writeStr("testfile 4 content", "testfile4");
+
+  sys.fs.open("testfile3");
+  sys.fs.open(4, "testfile4");
+  
+  t = sys.fs.readChars(4, 10);
+  if (t != "testfile 4") {
+    FAIL = 1;
+    print("fail 1: " + FAIL + " " + t);
+  }
+   
+  t = sys.fs.readChars(10);
+  if (t != "testfile 3") {
+    FAIL = 1;
+    print("fail 2: " + FAIL + " " + t);
+  }
+    
+  
+  
+  sys.fs.writeChars("teststring3");
+  sys.fs.writeChars(4, "teststring4");
+  
+  sys.fs.close();
+  sys.fs.close(4);
+  
+  t = sys.fs.readStr("testfile3");
+  if (t != "testfile 3teststring3") {
+    FAIL = 1;
+    print("fail3: " + FAIL + " " + t);
+  }
+  
+  t = sys.fs.readStr("testfile4");
+  if (t != "testfile 4teststring4") {
+    FAIL = 1;
+    print("fail4: " + FAIL + " " + t);
+  }
+  
+  add_result(test_name, FAIL);
+}
+
+function test_rw_byte {
+  local FAIL;
+  local test_name = "Byte read, write.";
+  FAIL = 0;
+  
+  sys.fs.writeStr("aaaaaaaaaaaaaaaaaa", "testfile3");
+  sys.fs.writeStr("bbbbbbbbbbbbbbbbbb", "testfile4");
+
+  sys.fs.open("testfile3");
+  sys.fs.open(4, "testfile4");
+  
+  t = sys.fs.readByte();
+  if (t != 97) {
+    FAIL = 1;
+    print("fail 1: " + FAIL + " " + t);
+  }
+   
+  t = sys.fs.readByte(4);
+  if (t != 98) {
+    FAIL = 1;
+    print("fail 2: " + FAIL + " " + t);
+  }
+  
+  sys.fs.writeByte(69);
+  sys.fs.writeByte(4, 70);
+  
+  sys.fs.close();
+  sys.fs.close(4);
+  
+  t = sys.fs.readStr("testfile3");
+  if (t != "aEaaaaaaaaaaaaaaaa") {
+    FAIL = 1;
+    print("fail3: " + FAIL + " " + t);
+  }
+  
+  t = sys.fs.readStr("testfile4");
+  if (t != "bFbbbbbbbbbbbbbbbb") {
+    FAIL = 1;
+    print("fail4: " + FAIL + " " + t);
+  }
+  
+  add_result(test_name, FAIL);
+}
+
+
+function test_size {
+  local FAIL;
+  local test_name = "Fsize";
+  FAIL = 0;
+  
+  sys.fs.writeStr("aaaaaaaaaaaaaaaaaa", "testfile3");
+  sys.fs.writeStr("bbbbbbbbbbbbbbbbbbb", "testfile4");
+  
+  sys.fs.open("testfile3");
+  sys.fs.open(5, "testfile4");
+  
+  t = sys.fs.size();
+  if (t != 18) {
+    FAIL = 1;
+    print("fail 1: " + FAIL + " " + t);
+  }
+  
+  t = sys.fs.size(5);
+  if (t != 19) {
+    FAIL = 1;
+    print("fail 1: " + FAIL + " " + t);
+  }
+  
+  add_result(test_name, FAIL);
+}
+
+
+function test_seek_tell {
+  local FAIL;
+  local test_name = "Seek, tell, truncate";
+  FAIL = 0;
+  
+  sys.fs.writeStr("aaaaaaaaaaaaaaaaaa", "testfile3");
+  sys.fs.writeStr("bbbbbbbbbbbbbbbbbb", "testfile4");
+  
+  sys.fs.open("testfile3");
+  sys.fs.open(5, "testfile4");
+  
+  sys.fs.seek(5);
+  sys.fs.seek(5, 2);
+  
+  sys.fs.writeChars("test");
+  
+  sys.fs.writeChars(5, "test2");
+  
+  t = sys.fs.tell();
+  if (t != 9) {
+    FAIL = 1;
+    print("fail 1: " + FAIL + " " + t);
+  }
+  
+  t = sys.fs.tell(5);
+  if (t != 7) {
+    FAIL = 1;
+    print("fail 2: " + FAIL + " " + t);
+  }
+  
+  sys.fs.truncate();
+  sys.fs.truncate(5);
+  
+  sys.fs.close();
+  sys.fs.close(5);
+  
+  t = sys.fs.readStr("testfile3");
+  if (t != "aaaaatest") {
+    FAIL = 1;
+    print("fail3: " + FAIL + " " + t);
+  }
+  
+  t = sys.fs.readStr("testfile4");
+  if (t != "bbtest2") {
+    FAIL = 1;
+    print("fail4: " + FAIL + " " + t);
+  }
+  
+  add_result(test_name, FAIL);
+}
+
+
+
+
