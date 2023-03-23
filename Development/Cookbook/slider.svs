@@ -3,9 +3,12 @@ function init {
     sys.os.gui.setMainScr(screen);
 
     # Element options
-    grayout = sys.gui.addCheckBox(1, 11, 9, 12,"grayout", screen);
-    ghost = sys.gui.addCheckBox(1, 12, 9, 13,"ghost", screen);
+    grayout = sys.gui.addCheckBox(1, 11, 5, 12,"grayout", screen);
+    ghost = sys.gui.addCheckBox(1, 12, 5, 13,"ghost", screen);
     select = sys.gui.addCheckBox(1, 13, 9, 14,"select", screen);
+    
+    sys.gui.addText(5, 11, 10, 12,"Slider size:", screen);
+    sizer = sys.gui.addSliderH(5, 12, 10, 13, 400, 1, screen);
     
     # Info text
     info = sys.gui.addText(1, 10, 9, 11,"Info text", screen);
@@ -30,6 +33,12 @@ function update {
     if (sys.gui.getEventC(select)) {
         sys.gui.setSelect(element, sys.gui.getValue(select));
         sys.gui.setSelect(element2, sys.gui.getValue(select));
+    }
+    
+    if (sys.gui.getEventC(sizer) == EV_HOLD) {
+        sys.gui.setSliderSize(element, sys.gui.getValue(sizer));
+        sys.gui.setSliderSize(element2, sys.gui.getValue(sizer));
+        print("setting: " + sys.gui.getValue(sizer));
     }
 
     # Handle element events
