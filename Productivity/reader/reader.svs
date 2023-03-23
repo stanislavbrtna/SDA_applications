@@ -1,5 +1,6 @@
 function init {
-  sys.os.checkVer(1020);
+sys.heatmapStart();
+  sys.os.checkVer(1110);
   array namP[60];
   sys.os.setSingular();
   sys.fs.conf.open("settings/reader.cfg");
@@ -34,6 +35,7 @@ function init {
     read_prep();
     read();
   }
+  #sys.profiler(1);
 }
 
 function init_main {
@@ -188,7 +190,6 @@ function upd_sel {
     sys.gui.setVisible(sel_sld, 1);
     sys.gui.setVisible(sel_image, 0);
   }
-
 }
 
 function read_prep {
@@ -231,14 +232,18 @@ function upd_rd {
 
   if (sys.gui.getEventC(rd_up) == EV_RELEASED or sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
     pos_up = 2;
+    #gc(0);
   }
   sys.hw.btn.clrEvent(BTN_UP);
 
   if (pos_up > 0) {
     if(line >= 50) {
       line -= 50;
+    } else {
+      line = 0;
     }
     scroll_text();
+    sys.gui.setStr(txt, substr(sys.gui.getStr(txt), linechars(sys.gui.getStr(txt), 0) + 1, len(sys.gui.getStr(txt))));
     pos_up--;
 
     if (pos_up == 0) {
@@ -247,15 +252,17 @@ function upd_rd {
   }
 
   if (pos_down > 0) {
-    local pos = instr(sys.gui.getStr(txt), "\n");
-    if (pos > 25 or pos == 0) {
-      pos = 25;
-    }
-    line += pos;
-    scroll_text();
-    pos_down--;
+    
+    local lc = linechars(sys.gui.getStr(txt), 1);
 
+    line += lc;
+    scroll_text();
+    if (lc != 0) { # because of some error in garbage collection, function sometimes fails
+      pos_down--;
+    }
+    
     if (pos_down == 0) {
+      gc(7000);
       sys.fs.conf.write("line" + sel_id, "" + line);
     }
   }
@@ -263,12 +270,44 @@ function upd_rd {
 
 function scroll_text {
   sys.fs.seek(line);
-  t = sys.fs.readChars(800);
-  t = substr(t, instr(t, " ") + 1, len(t));
-  sys.gui.setStr(txt, t);
+  #t = substr(t, linechars, len(t));
+  sys.gui.setStr(txt, sys.fs.readChars(800));
+}
+
+function linechars #*str, rlen?*# {
+  local i;
+  local l;
+  local c;
+  local lastspace = 0;
+  
+  
+  for(i = 0; i < len(arg0); i++;) {
+    c = getcp(arg0, i);
+    if (c == "\n") {
+      l = substr(arg0, 0, i);
+      #gc(1800);
+      return (arg1*rlen(l) + (1 - arg1)*len(l)) ;
+    }
+    
+    if (c == " ") {
+      l = substr(arg0, 0, i);
+      if (sys.ds.getTextWidth(l) > 320 + 90*sys.os.gui.getLandscape()) {
+        #gc(1800);
+        return lastspace;
+      }
+      lastspace = (arg1*rlen(l) + (1 - arg1)*len(l));
+    }
+  }
+  
+  
+  print("nothing triggered " + len(arg0));
+  #print("arg0 "+arg0);
+  return 0;
 }
 
 function exit{
   sys.fs.close();
   sys.fs.conf.close();
+  sys.heatmapStop();
+  sys.heatmapPrint();
 }
