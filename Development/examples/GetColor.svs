@@ -1,0 +1,30 @@
+function init {
+  scr = sys.gui.addScreen();
+
+  getColor = sys.gui.addCButton(1, 1, 5, 2, "Get Color", scr);
+  sys.gui.setValue(getColor, sys.ds.mixColor(10, 10, 228));
+
+  sys.os.gui.setMainScr(scr);
+  
+  colOvr = 0;
+}
+
+function update {
+
+  # Launch overlay
+  if (sys.gui.getEventC(getColor) == EV_RELEASED) {
+    # set defaults from current date
+    colOvr = sys.o.color.add(sys.gui.getValue(getColor));
+  }
+
+  # Updates given overlay id, does nothing if overlay is inactive
+  sys.o.color.update(colOvr);
+
+  # Handles overlay success
+  if (sys.o.color.getOk(colOvr)) {
+    sys.gui.setValue(getColor, sys.o.color.getCol(colOvr));
+    sys.o.color.clrOk(colOvr);
+  }
+
+}
+

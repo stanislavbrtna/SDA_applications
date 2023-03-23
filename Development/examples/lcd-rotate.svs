@@ -1,0 +1,30 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  btn = sys.gui.addButton(1, 1, 8, 1, "Choose file", scr);
+  btn_rotate =  sys.gui.addButton(1, 3, 4, 1, "Rotate Lcd", scr);
+  txt = sys.gui.addText(1, 2, 6, 1, "text", scr);
+  string = "";
+
+  sys.gui.setTexEd(txt, 1);
+  sys.os.gui.setMainScr(scr);
+}
+
+function update {
+  if(sys.gui.getEventC(btn) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(btn_rotate) == EV_RELEASED) {
+    sys.os.gui.setLandscape(1 - sys.os.gui.getLandscape());
+  }
+  
+  string = sys.os.gui.handleText(txt, string);
+}
+
+function callRet {
+  print("callback returned");
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+}
