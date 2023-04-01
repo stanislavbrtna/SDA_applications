@@ -39,6 +39,8 @@ function init {
   fileRoot = 0; # root in /DATA
   
   kbd_init();
+  
+  print("DBG: arg0: "+arg0+" arg1: "+arg1+" arg2: "+arg2);
 
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 != "") {
@@ -65,23 +67,26 @@ function init {
   menuOvr = 0;
   
   sld_old = -1;
-  
   cfg_load();
 }
 
 function cfg_load {
+  sys.fs.chDir(0);
   sys.fs.conf.open("settings/proged.cfg");
   kbdDriver = sys.fs.conf.readInt("kbdDriver", 0);
   sys.gui.setVisible(liner, sys.fs.conf.readInt("liner", 0));
   sys.gui.setX1(txt, sys.fs.conf.readInt("liner", 0));
   sys.fs.close();
+  sys.fs.chDir(fileRoot);
 }
 
 function cfg_store {
+  sys.fs.chDir(0);
   sys.fs.conf.open("settings/proged.cfg");
   sys.fs.conf.write("kbdDriver", "" + kbdDriver);
   sys.fs.conf.write("liner", "" + sys.gui.getVisible(liner));
   sys.fs.close();
+  sys.fs.chDir(fileRoot);
 }
 
 function update {

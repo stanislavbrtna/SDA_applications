@@ -156,6 +156,7 @@ function init {
   array btnList[30];
   array btnListSng[30];
   array prevSongs[15];
+  
   numOfSongs = countSongs();
 
   current = sys.gui.addButton(5,3,4,1, "All songs", scr);
@@ -495,11 +496,15 @@ function update_list {
 }
 
 function update_song #* new current *# {
-  if (currentSong >= listBegin and currentSong <= listEnd) {
-    sys.gui.setSelect(btnList[currentSong - listBegin - 1], 0);
-  }
-  if (arg0 >= listBegin and arg0 <= listEnd) {
-    sys.gui.setSelect(btnList[arg0 - listBegin - 1], 1);
+  if (list_search == 0) {
+    if (currentSong >= listBegin and currentSong <= listEnd and currentSong != 0) {
+      print("val: " + (currentSong - listBegin - 1));
+      sys.gui.setSelect(btnList[currentSong - listBegin - 1], 0);
+    }
+    if (arg0 >= listBegin and arg0 <= listEnd and listBegin != 0) {
+      print("val: "+btnList[arg0 - listBegin - 1]);
+      sys.gui.setSelect(btnList[arg0 - listBegin - 1], 1);
+    }
   }
 }
 
