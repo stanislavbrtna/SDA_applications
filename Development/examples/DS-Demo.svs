@@ -25,7 +25,6 @@ function redraw {
     redrawAll--;
     redraw = 1;
     redraw_score = 1;
-    redraw_food = 1;
   }
 
   if (redraw == 0) {
@@ -47,7 +46,7 @@ function redraw {
 
 function update {
 
-  if (sys.os.getRedraw()){
+  if (sys.os.getRedraw()) {
     redrawAll = 2;
   }
 

@@ -1,4 +1,4 @@
-function init{
+function init {
   scr = sys.gui.addScreen();
   btn = sys.gui.addButton(3, 1, 7, 2, "Measure", scr);
 
