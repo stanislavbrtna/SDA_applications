@@ -1,0 +1,67 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  btn = sys.gui.addButton(1, 1, 8, 1, "Choose background", scr);
+  
+  set = sys.gui.addButton(1, 11, 8, 1, "Set background", scr);
+  rem = sys.gui.addButton(1, 12, 8, 1, "Remove background", scr);
+
+  sys.gui.setGrayout(set, 1);
+
+  sys.os.gui.setMainScr(scr);
+  
+  sys.fs.chDir(1); #move to apps
+  
+  sys.fs.conf.open("homescreen.cfg");
+  if (sys.fs.conf.exists("background")) {
+    sys.gui.setGrayout(rem, 0);
+  } else {
+    sys.gui.setGrayout(set, 1);
+  }
+  sys.fs.conf.close();
+  
+  background = "";
+}
+
+
+function update {
+  if(sys.gui.getEventC(btn) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, "Backgrounds/", 1, 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(set) == EV_RELEASED) {
+    sys.fs.conf.open("homescreen.cfg");
+    sys.fs.conf.write("background", background);
+    sys.fs.conf.close();
+    sys.os.settings.homeRld();
+  }
+  
+  if(sys.gui.getEventC(rem) == EV_RELEASED) {
+    sys.fs.conf.open("homescreen.cfg");
+    sys.fs.conf.remove("background");
+    sys.fs.conf.close();
+    sys.os.settings.homeRld();
+  }
+}
+
+
+function callRet {
+  print("callback returned");
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, arg0);
+  
+  if (arg1 == 1) {
+    sys.gui.setStr(scr, arg0);
+    background = arg0;
+    sys.gui.setGrayout(set, 0);
+    if (sys.ds.getImageW(arg0) == 160) {
+      sys.gui.setParam(scr, 2);
+    } else {
+      sys.gui.setParam(scr, 1);
+    }
+  } else {
+    sys.gui.setStr(btn, "System folder only");
+    sys.gui.setGrayout(set, 1);
+  }
+}
