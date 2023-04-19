@@ -35,7 +35,7 @@ function init {
   sys.gui.setSelect(bData, 1);
 
   selfOvr = sys.o.setScr(scr);
-  sys.o.setXYXY(16 + sys.os.gui.getLandscape()*80, 48, 304  + sys.os.gui.getLandscape()*80, 464 - sys.os.gui.getLandscape()*160);
+  sys.o.setXYXY(16 + sys.os.gui.getLandscape()*80, 48, 304  +  sys.os.gui.getLandscape()*80, 464 - sys.os.gui.getLandscape()*160);
   array fScrBtns[200];
   array path[30];
 
@@ -66,7 +66,7 @@ function init {
   if (typeof(arg0) == TYPE_STR) {
     print("defdir: " + arg0 + "(" + getFolder(arg0) + ")");
     sys.fs.chDir(getFolder(arg0));
-    updatePath(arg0);
+    updatePath(getFolder(arg0));
     upCount = getUpCount(arg0);
     rldFiles();
     sys.gui.setGrayout(bUp, 0);
@@ -77,11 +77,18 @@ function init {
 }
 
 function getFolder {
+  arg3 = 0;
   for(arg2 = len(arg0); arg2 > 0; arg2--;) {
     if (getcp(arg0, arg2) == "/") {
       return substr(arg0, 0, arg2);
     }
+    if (getcp(arg0, arg2) == ".") {
+      arg3 = 1;
+    }
   }
+  if (arg3) return ""; # 
+  
+  return arg0;
 }
 
 function getUpCount {
@@ -98,9 +105,10 @@ function getUpCount {
 function updatePath {
   arg4 = 0;
   arg5 = 0;
-  for(arg2 = 0; arg2 < len(arg0); arg2++;) {
+  for(arg2 = 0; arg2 <= len(arg0); arg2++;) {
     if (getcp(arg0, arg2) == "/") {
       path[arg5] = substr(arg0, arg4, arg2 - 1);
+      #print("path:" + arg5 + " " + substr(arg0, arg4, arg2 - 1));
       arg5++;
       arg4 = arg2 + 1;
     }
