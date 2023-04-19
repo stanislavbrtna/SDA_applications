@@ -151,7 +151,6 @@ function rem_handle {
     
     if (not(sys.fs.exists("trash") and sys.fs.isDir("trash"))) {
       sys.fs.mkDir("trash");
-      sys.fs.chDir("trash");
     }
     
     sys.fs.rename(pFiles[pSelect], "trash/" + pFiles[pSelect]);
