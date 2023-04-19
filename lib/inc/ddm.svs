@@ -1,0 +1,92 @@
+#*
+misc configuration:
+  ddm_width: change ddm_width before ddm_add_btn() and after ddm_create(), to change menu width
+
+*#
+
+
+function ddm_init {
+  ddm_id = 0;
+}
+
+ # creates new dropdown
+function ddm_create #* id of the calling button, return: id*# {
+  array ddm_options[10];
+  ddm_btn_cnt = 0;
+  ddm_width   = sys.gui.getX2(arg0);# - sys.gui.getX1(arg0);
+  ddm_x1 = sys.gui.getX1(arg0) * sys.gui.getXcell(sys.os.gui.getMainScr()) + 12;
+  ddm_y1 = 28 +  (sys.gui.getY1(arg0) + 1) * sys.gui.getYcell(sys.os.gui.getMainScr());
+
+  ddm_screen = sys.gui.addScreen();
+  ddm_id = sys.o.setScr(ddm_screen);
+  
+  # dummy button without a screen, for the keypad dontrolls
+  ddm_dummy = sys.gui.addButton(1, 1, 1, 1, "Back", 0);
+  
+  return ddm_id;
+}
+
+ # creates new dropdown at given menu position
+function ddm_create_sub #*  return: id*# {
+  array ddm_options[10];
+  ddm_btn_cnt = 0;
+  ddm_x1 += 12;
+  ddm_y1 += 32 * (arg0 - 1) + 28;
+
+  ddm_screen = sys.gui.addScreen();
+  ddm_id = sys.o.setScr(ddm_screen);
+  
+  return ddm_id;
+}
+
+
+function ddm_add_btn #* str name, return: id *# {
+  ddm_options[ddm_btn_cnt]
+    = sys.gui.addButton(0, ddm_btn_cnt, ddm_width, 1, arg0, ddm_screen);
+  ddm_btn_cnt++;
+ 
+  # positioning:
+  while (ddm_y1 + sys.gui.getYcell(sys.os.gui.getMainScr()) * ddm_btn_cnt > 480 - 160*sys.os.gui.getLandscape()) {
+    ddm_y1 -= sys.gui.getYcell(sys.os.gui.getMainScr());
+  }
+  
+  sys.o.setXYXY(
+    ddm_x1,
+    ddm_y1,
+    ddm_x1 + ddm_width * sys.gui.getXcell(sys.os.gui.getMainScr()),
+    ddm_y1 + sys.gui.getYcell(sys.os.gui.getMainScr()) * ddm_btn_cnt
+  );
+  
+  return ddm_btn_cnt;
+}
+
+
+function ddm_handle #* ddm id *# {
+
+  if (sys.o.getId() != arg0) {
+    return -1;
+  }
+
+  if (sys.o.getId() != ddm_id or sys.o.getId() == 0) {
+    return 0;
+  }
+  
+  for (local i = 0; i < ddm_btn_cnt; i++;) {
+    if (sys.gui.getEventC(ddm_options[i]) == EV_RELEASED) {
+      return i + 1;
+    }
+  }
+  
+  if (sys.gui.getEventC(ddm_dummy) == EV_RELEASED) {
+      sys.o.destroy();
+      return 0;
+    }
+  
+  sys.os.gui.btnCtrl(ddm_screen, ddm_dummy);
+}
+
+
+function ddm_exit {
+  sys.o.destroy();
+}
+

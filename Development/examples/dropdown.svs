@@ -1,0 +1,78 @@
+import "lib/inc/ddm.svs"
+ 
+function init {
+  # Main aplication screen
+  screen = sys.gui.addScreen();
+  sys.os.gui.setMainScr(screen);
+  sys.gui.setRelInit(1);
+  
+  # Create overlay
+  b_create = sys.gui.addButton(2, 2, 6, 1, "Create dropdown", screen);
+  b_create2 = sys.gui.addButton(2, 12, 6, 1, "Create dropdown", screen);
+  
+  # info text
+  info_text = sys.gui.addText(2, 1, 7, 1, "Nothing pressed", screen);
+  
+  menu1 = 0;
+  menu2 = 0;
+  subMenu = 0;
+  
+  ddm_init();
+}
+
+
+function update {
+  if (sys.gui.getEventC(b_create) == EV_RELEASED) {
+    # Overlay screen must be created right away before calling sys.o.setScr
+    menu1 = ddm_create(b_create);
+    ddm_add_btn("btn1");
+    ddm_add_btn("btn2");
+    ddm_add_btn("btn3");
+    ddm_add_btn("sub");
+    ddm_add_btn("btn5");
+  }
+  
+  if (sys.gui.getEventC(b_create2) == EV_RELEASED) {
+    # Overlay screen must be created right away before calling sys.o.setScr
+    menu2 = ddm_create(b_create2);
+    ddm_add_btn("xbtn1");
+    ddm_add_btn("Rotate screen");
+    ddm_add_btn("xbtn3");
+    ddm_add_btn("xbtn4");
+    ddm_add_btn("xbtn5");
+  }
+  
+  # Check if our overlay is the current one, if true, handle it
+  i = ddm_handle(menu1);
+  if (i > 0) {
+    sys.gui.setStr(info_text, i + " pressed menu 1");
+    if (i == 4) {
+      subMenu = ddm_create_sub(i);
+      ddm_add_btn("sub1");
+      ddm_add_btn("sub2");
+      ddm_add_btn("sub3");
+    } else {
+      ddm_exit();
+    }
+  }
+  
+  i = ddm_handle(subMenu);
+  if (i > 0) {
+    sys.gui.setStr(info_text, i + " pressed sub-menu");
+    ddm_exit();
+  }
+  
+  i = ddm_handle(menu2);
+  if (i > 0) {
+    if (i == 2) {
+      sys.os.gui.setLandscape(1 - sys.os.gui.getLandscape());
+      
+      sys.gui.setY1(b_create2, 12 - 5*sys.os.gui.getLandscape());
+      sys.gui.setY2(b_create2, 1);
+    }
+  
+    sys.gui.setStr(info_text, i + " pressed menu 2");
+    ddm_exit();
+  }
+}
+
