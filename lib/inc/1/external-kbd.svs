@@ -11,9 +11,17 @@ function kbd_init {
   sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
   sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
   sys.com.uartRcvIT(); # start the rcv
+  kbd_drv_en = 1;
 }
 
 function kbd_update {
+  if (kbd_drv_en) { # re-enable recieve after wkup
+    if (sys.hw.getLcdState() == 1 and kbd_lcd_state == 0) {
+      sys.com.uartRcvIT();
+    }
+    kbd_lcd_state = sys.hw.getLcdState();
+  }
+
   if (sys.com.uartGetRd() == 2) {
     gc(0);
     local x = sys.com.uartGetStr();
@@ -21,6 +29,11 @@ function kbd_update {
       local s = decode(x);
 
       if (s != "") {
+        if (sys.gui.getTexAct(arg0)) {
+          sys.os.hideKbd();
+          sys.gui.setTexAct(arg0);
+        }
+        
         sys.os.gui.setKbdStr(s);
       } else {
         gc(0);
@@ -51,23 +64,30 @@ function decode {
   id = num(substr(arg0, i, i + 1));
   
   # special characters
-  if (id == 52) {
+  if (id == 52 and type == "P") {
     return "\n";
   }
   
-  if (id == 28) {
+  if (id == 28 and type == "P") {
     return "  ";
+  }
+  
+  # esc
+  if (id == 0 and type == "P") {
+    sys.gui.texDeact();
+    sys.os.hideKbd();
+    return "";
   }
   
   if (id == 53 or id == 66) { # shifts
     if (type == "P") {
       kbd_shift = 1;
-      print("shift down");
+      #print("shift down");
     }
     
     if (type == "R") {
       kbd_shift = 0;
-      print("shift up");
+      #print("shift up");
     }
     return "";
   }

@@ -60,6 +60,10 @@ function ddm_add_btn #* str name, return: id *# {
   return ddm_btn_cnt;
 }
 
+function ddm_gray #*ddm id, val*# {
+  sys.gui.setGrayout(ddm_options[arg0 - 1], arg1);
+}
+
 
 function ddm_handle #* ddm id *# {
 
