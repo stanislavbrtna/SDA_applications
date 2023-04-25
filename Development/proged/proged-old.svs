@@ -1,7 +1,6 @@
  # this is still more-less proof of concept
 
 import "lib/inc/1/external-kbd.svs"
-import "lib/inc/ddm.svs"
 
 function init {
   scr = sys.gui.addScreen();
@@ -10,25 +9,23 @@ function init {
 
   sys.gui.setRelInit(1);
 
-  textscreen = sys.gui.addScreen();
+  scrollscr = sys.gui.addScreen();
 
-  sys.gui.setXYXY(textscreen, 0, 1, 9, 11);
+  sys.gui.setXYXY(scrollscr, 0, 0, 9, 12);
 
-  sys.gui.setScreen(textscreen, scr);
+  sys.gui.setScreen(scrollscr, scr);
 
-  txt = sys.gui.addText(1, 0, 20, 15, "", textscreen);
+  txt = sys.gui.addText(1, 0, 20, 400, "", scrollscr);
   
-  liner = sys.gui.addText(0, 0, 1, 40, "", textscreen);
+  liner = sys.gui.addText(0, 0, 1, 40, "", scrollscr);
 
-  sld = sys.gui.addSliderV(9, 2, 1, 9, 100, 1, scr);
-  sld2 = sys.gui.addSliderH(1, 12, 7, 1, 320, 1, scr);
+  sld = sys.gui.addSliderV(9, 1, 1, 7, 100, 1, scr);
+  sld2 = sys.gui.addSliderH(3, 12, 6, 1, 320, 1, scr);
   
-  btn_up = sys.gui.addButton(9, 1, 1, 1, "/\\", scr);
-  btn_dn = sys.gui.addButton(9, 11, 1, 1, "\\/", scr);
+  btn_up = sys.gui.addButton(9, 0, 1, 1, "/\\", scr);
+  btn_dn = sys.gui.addButton(9, 8, 1, 1, "\\/", scr);
   
-  btn_menu = sys.gui.addButton(0, 0, 5, 1, "Menu", scr);
-  
-  fnameT = sys.gui.addText(0, 13, 10, 1, "Proged-X 1.0", scr);
+  btn_menu = sys.gui.addButton(0, 12, 2, 1, "Menu", scr);
 
   sys.gui.setTexEd(txt, 1);
   sys.gui.setTxtSize(txt, 12);
@@ -36,7 +33,6 @@ function init {
 
   kbdDriver = 0;
   cPosOld = 0;
-  gc_clean = 0;
 
   program = "";
   filename = "";
@@ -62,11 +58,10 @@ function init {
     if (sys.fs.exists(filename)) {
       program = sys.fs.readStr(filename);
       resize_bar();
-      sys.gui.setStr(fnameT, "Editing: " + filename);
     }
   }
 
-  
+  fnameT = sys.gui.addText(0, 13, 10, 1,"Editing: " + filename, scr);
   
   textOvr = 0;
   
@@ -74,51 +69,6 @@ function init {
   
   sld_old = -1;
   cfg_load();
-  ddm_init();
-  
-  dmenu = 0;
-  
-  kbdStateOld = 0;
-}
-
-function ui_transform {
-  if (sys.os.gui.getLandscape() == 0) {
-    if (sys.os.kbdGetState() == 1) {
-      sys.gui.setXYXY(textscreen, 0, 1, 10, 11);
-      sys.gui.setVisible(sld, 0);
-      sys.gui.setXYXY(btn_up, 7, 0, 1, 1);
-      sys.gui.setXYXY(btn_dn, 8, 0, 1, 1);
-    } else {
-      sys.gui.setXYXY(btn_menu, 0, 0, 5, 1);
-      sys.gui.setXYXY(fnameT, 0, 13, 10, 1);
-      sys.gui.setXYXY(textscreen, 0, 1, 9, 11);
-      sys.gui.setXYXY(sld2,1, 12, 7, 1);
-      sys.gui.setVisible(sld, 1);
-      sys.gui.setXYXY(sld, 9, 2, 1, 9);
-      sys.gui.setXYXY(btn_up, 9, 1, 1, 1);
-      sys.gui.setXYXY(btn_dn, 9, 11, 1, 1);
-    }
-  }
-  
-  if (sys.os.gui.getLandscape() == 1) {
-    if (sys.os.kbdGetState() == 1) {
-      sys.gui.setXYXY(fnameT, 0, 8, 10, 1);
-      sys.gui.setXYXY(btn_menu, 9, 7, 5, 1);
-      sys.gui.setXYXY(textscreen, 0, 0, 14, 7);
-      sys.gui.setVisible(sld, 0);
-      sys.gui.setXYXY(btn_up, 14, 1, 1, 1);
-      sys.gui.setXYXY(btn_dn, 14, 3, 1, 1);
-    } else {
-      sys.gui.setXYXY(fnameT, 0, 8, 10, 1);
-      sys.gui.setXYXY(btn_menu, 9, 7, 5, 1);
-      sys.gui.setXYXY(sld2, 0, 7, 7, 1);
-      sys.gui.setXYXY(textscreen, 0, 0, 14, 7);
-      sys.gui.setVisible(sld, 1);
-      sys.gui.setXYXY(sld, 14, 2, 1, 4);
-      sys.gui.setXYXY(btn_up, 14, 1, 1, 1);
-      sys.gui.setXYXY(btn_dn, 14, 6, 1, 1);
-    }
-  }
 }
 
 function cfg_load {
@@ -127,7 +77,7 @@ function cfg_load {
   kbdDriver = sys.fs.conf.readInt("kbdDriver", 0);
   sys.gui.setVisible(liner, sys.fs.conf.readInt("liner", 0));
   sys.gui.setX1(txt, sys.fs.conf.readInt("liner", 0));
-  sys.fs.conf.close();
+  sys.fs.close();
   sys.fs.chDir(fileRoot);
 }
 
@@ -136,61 +86,39 @@ function cfg_store {
   sys.fs.conf.open("settings/proged.cfg");
   sys.fs.conf.write("kbdDriver", "" + kbdDriver);
   sys.fs.conf.write("liner", "" + sys.gui.getVisible(liner));
-  sys.fs.conf.close();
+  sys.fs.close();
   sys.fs.chDir(fileRoot);
 }
 
 function resize_bar {
   local cnt = 0;
-  #*
   for(local i = 0; i < len(program); i++;) {
     if (getcp(program, i) == "\n") {
       cnt++;
     }
   }
-  *#
-  cnt = (sys.ds.getTextHeight(program)/18);
   
   sys.gui.setParam(sld, cnt*13 + 50);
-  sys.gui.setY2(txt, cnt/2 + 14);
 }
 
 
 function update {
   program = sys.os.gui.handleText(txt, program);
-  if (len(program) > 8000) { 
-    if (cPosOld != sys.gui.getParam(txt)) {
-      gc_clean = 2;
-      cPosOld = sys.gui.getParam(txt);
-    }
-  }
-  
-  if (gc_clean != 0) {
-    sys.profiler(1);
-    gc(100000);
-    sys.profiler(0);
-    print("collecting");
-    gc_clean--;
-  }
   
   if (kbdDriver) {
     kbd_update(txt);
+  }
+  
+  if (cPosOld != sys.gui.getParam(txt)) {
+    gc(100000);
+    cPosOld = sys.gui.getParam(txt);
   }
 
   newOvrUpdate();
   menuOvUpdate();
   
   if (sys.gui.getEventC(btn_menu) == EV_RELEASED) {
-    dmenu = ddm_create(btn_menu);
-      ddm_add_btn("New");
-      ddm_add_btn("Open");
-      ddm_add_btn("Run");
-      ddm_add_btn("Save");
-      ddm_add_btn("Rotate screen");
-      ddm_add_btn("Options");
-      if (fileRoot == 0 or filename == "") {
-        ddm_gray(3, 1);
-      }
+    menuOvInit();
   }
   
   if (sys.gui.getEventC(btn_up) == EV_RELEASED) {
@@ -206,80 +134,31 @@ function update {
       sys.gui.setValue(sld, sys.gui.getValue(sld) + 16);
     } else {
       sys.gui.setParam(sld, sys.gui.getParam(sld) + 32);
-      sys.gui.setY2(txt, sys.gui.getY2(txt) + 1);
       sys.gui.setValue(sld, sys.gui.getParam(sld));
     }
   }
 
-  sys.gui.setYscroll(textscreen, sys.gui.getValue(sld));
-  sys.gui.setXscroll(textscreen, sys.gui.getValue(sld2));
+  sys.gui.setYscroll(scrollscr, sys.gui.getValue(sld));
+  sys.gui.setXscroll(scrollscr, sys.gui.getValue(sld2));
   
   upd_liner();
-  
-  d = ddm_handle(dmenu);
-  if (d > 0) {
-    if (d == 1) { # new
-      new_store = 0;
-      newOvInit();
-      return;
-    }
-    if (d == 2) { # open
-      sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
-    }
-    if (d == 3) { #run
-      sys.fs.chDir(fileRoot); # goto apps
-      sys.fs.writeStr(program, filename);
-      if (fileRoot == 1) {
-        sys.os.subProcess(filename, "", 0, 0, 0);
-      }
-    }
-    if (d == 4) { #save
-      if (filename != "") {
-        sys.fs.writeStr(program, filename);
-      } else {
-        new_store = 1;
-        newOvInit();
-        return;
-      }
-    }
-    if (d == 5) { # rotate
-      sys.os.gui.setLandscape(1 - sys.os.gui.getLandscape());
-      #TODO: handle layout
-    }
-    if (d == 6) { # options
-      menuOvInit();
-      return;
-    }
-    ddm_exit();
-  }
-  
-  if (sys.os.kbdGetState() != kbdStateOld) {
-    ui_transform();
-  }
-  
-  if (sys.os.gui.getLandscape() != landscapeOld) {
-    ui_transform();
-  }
-  
-  landscapeOld = sys.os.gui.getLandscape();
-  kbdStateOld = sys.os.kbdGetState();
 }
 
 function upd_liner {
 
-  if (sys.gui.getYscroll(textscreen) == sld_old or sys.gui.getVisible(liner) == 0)
+  if (sys.gui.getYscroll(scrollscr) == sld_old or sys.gui.getVisible(liner) == 0)
     return;
 
-  sld_old = sys.gui.getYscroll(textscreen);
+  sld_old = sys.gui.getYscroll(scrollscr);
 
   local s = "";
   local i;
   
-  sys.gui.setY1(liner, sys.gui.getYscroll(textscreen) / 32);
-  sys.gui.setY2(liner, sys.gui.getYscroll(textscreen) / 32 + 80);
+  sys.gui.setY1(liner, sys.gui.getYscroll(scrollscr) / 32);
+  sys.gui.setY2(liner, sys.gui.getYscroll(scrollscr) / 32 + 80);
   
   for (i = 1; i < 20; i++;) {
-    s += sys.gui.getYscroll(textscreen)/14 + i + "\n";
+    s += sys.gui.getYscroll(scrollscr)/14 + i + "\n";
   }
   sys.gui.setStr(liner, s);
 }
@@ -306,21 +185,33 @@ function callRet {
 function menuOvInit {
   menuScr = sys.gui.addScreen();
   
-  sys.gui.addText(1, 0, 6, 1,"Options", menuScr);
+  sys.gui.addText(0, 0, 6, 1,"   SDA Script edit", menuScr);
   
-  btn_lines = sys.gui.addCheckBox(1, 2, 10, 1, "Show lines", menuScr);
+  btn_new =  sys.gui.addButton(1, 1, 4, 1, "New", menuScr);
+  
+  btn_open =  sys.gui.addButton(1, 2, 4, 1, "Open", menuScr);
+
+  btn_run = sys.gui.addButton(1, 4, 4, 1, "Run", menuScr);
+
+  btn_store = sys.gui.addButton(1, 5, 4, 1, "Save", menuScr);
+  
+  btn_close = sys.gui.addButton(6, 1, 1, 1, "X", menuScr);
+  
+  btn_lines = sys.gui.addCheckBox(1, 6, 10, 1, "Show lines", menuScr);
+  
   sys.gui.setValue(btn_lines, sys.gui.getVisible(liner));
   
-  btn_kbd = sys.gui.addCheckBox(1, 3, 10, 1, "Keyboard Driver", menuScr);
-  sys.gui.setValue(btn_kbd, kbdDriver);
+  btn_kbd = sys.gui.addCheckBox(1, 7, 10, 1, "Keyboard Driver", menuScr);
   
-  btn_close = sys.gui.addButton(5, 5, 2, 1, "Close", menuScr);
+  sys.gui.setValue(btn_kbd, kbdDriver);
   
   menuOvr = sys.o.setScr(menuScr);
   
-  sys.gui.setYscroll(menuScr, -7);
+  if (fileRoot == 0) {
+    sys.gui.setGrayout(btn_run, 1);
+  }
   
-  sys.o.setXYXY(32 + 80*sys.os.gui.getLandscape(), 64, 278 +80*sys.os.gui.getLandscape(), 280);
+  #sys.o.setXYXY(32, 64, 278, 190);
 
   return menuOvr;
 }
@@ -330,7 +221,40 @@ function menuOvUpdate {
   if (sys.o.getId() != menuOvr or sys.o.getId() == 0) {
     return;
   }
-   
+  
+  if (sys.gui.getEventC(btn_run) == EV_RELEASED) {
+    sys.fs.chDir(fileRoot); # goto apps
+    sys.fs.writeStr(program, filename);
+    if (fileRoot == 1) {
+      sys.os.subProcess(filename, "", 0, 0, 0);
+    }
+    sys.o.destroy();
+    return;
+  }
+
+  if (sys.gui.getEventC(btn_store) == EV_RELEASED) {
+    if (filename != "") {
+      sys.fs.writeStr(program, filename);
+    } else {
+      new_store = 1;
+      newOvInit();
+      return;
+    }
+    sys.o.destroy();
+    return;
+  }
+
+  if (sys.gui.getEventC(btn_open) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if (sys.gui.getEventC(btn_new) == EV_RELEASED) {
+    new_store = 0;
+    newOvInit();
+    return;
+  }
+  
   if (sys.gui.getEventC(btn_kbd) == EV_RELEASED) {
     kbdDriver = sys.gui.getValue(btn_kbd);
     cfg_store();
@@ -341,6 +265,7 @@ function menuOvUpdate {
     sys.gui.setVisible(liner, sys.gui.getValue(btn_lines));
     cfg_store();
   }
+  
   
   if (sys.gui.getEventC(btn_close) == EV_RELEASED) {
     sys.o.destroy();
