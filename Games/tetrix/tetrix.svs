@@ -1,0 +1,606 @@
+function init {
+  print("Tetrix");
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  retry = sys.gui.addButton(7, 13, 10, 14, "Retry", scr);
+  sys.gui.addText(0, 13, 5, 14, "Standa 2023", scr);
+
+  array arr[20*10];
+  
+  array bl_x[4];
+  array bl_y[4];
+  bl_col = 0;
+  bl_y_add = 0;
+  bl_x_add = 5;
+  bl_shape = 0;
+  bl_r = 0;
+  
+  next_shape = sys.os.rnd()%7;
+  
+  dx_add = 32;
+  dy_add = 64;
+
+  gray = sys.ds.mixColor(200, 200, 200);
+  green = sys.ds.mixColor(24, 240, 20);
+
+  reset();
+}
+
+function reset {
+  for (local x = 0; x < 20*10; x++;){
+    arr[x] = 0;
+  }
+
+  game_speed = 300;
+  speedCnt = 0;
+
+  a = 0;
+
+  win = 0;
+  lost = 0;
+
+  redraw = 2;
+
+  redrawAll = 3;
+
+  redraw_score = 2;
+
+  started = 0;
+  score = 0;
+  sys.gui.setVisible(retry, 0);
+  sys.cnt.set(0);
+  next_shape = sys.os.rnd()%7;
+  gen_piece();
+  bl_y_add = 0;
+  gp_flag = 0;
+  ob = 1;
+}
+
+function rotate {
+  local array l[18];
+  
+  for (local a = 0; a < 18; a++;) {
+    l[a] = 0;
+  }
+
+  for (local a = 0; a < 4; a++;) {
+    l[bl_x[a] + (3-bl_y[a]) * 4] = 1;
+  }
+  
+  local n = 0;
+  n = 0;
+  for (local a = 0; a < 16; a++;) {
+    if (l[a] == 1) {
+      bl_y[n] = a%4;
+      bl_x[n] = a/4;
+      n++;
+    }
+  }
+}
+
+function gen_piece {
+  local next = sys.os.rnd()%7;
+  
+  set_piece(next);
+  r_next();
+  set_piece(next_shape);
+  next_shape = next;
+  bl_x_add = 3;
+}
+
+function set_piece {
+  local r = arg0;
+  
+  if (r == 0) { # I
+    bl_x[0] = 0;
+    bl_y[0] = 1;
+    bl_x[1] = 1;
+    bl_y[1] = 1;
+    bl_x[2] = 2;
+    bl_y[2] = 1;
+    bl_x[3] = 3;
+    bl_y[3] = 1;
+    
+    bl_col =sys.ds.mixColor(0, 240, 240);
+    bl_shape = 1;
+    bl_y_add = 1;
+  }
+  
+  if (r == 1) { # O
+    bl_x[0] = 1;
+    bl_y[0] = 1;
+    bl_x[1] = 2;
+    bl_y[1] = 1;
+    bl_x[2] = 2;
+    bl_y[2] = 2;
+    bl_x[3] = 1;
+    bl_y[3] = 2;
+    
+    bl_col = sys.ds.mixColor(240,240,0);
+    bl_shape = 2;
+    
+    bl_y_add = 0;
+  }
+  
+  if (r == 2) { # T
+    bl_x[0] = 1;
+    bl_y[0] = 1;
+        
+    bl_x[1] = 0;
+    bl_y[1] = 2;
+    
+    bl_x[2] = 1;
+    bl_y[2] = 2;
+    
+    bl_x[3] = 2;
+    bl_y[3] = 2;
+    
+    bl_col = sys.ds.mixColor(160,0,240);
+    bl_shape = 3;
+    
+    bl_y_add = 0;
+  }
+  
+  if (r == 3) { # J
+    bl_x[0] = 1;
+    bl_y[0] = 1;
+    
+    bl_x[1] = 1;
+    bl_y[1] = 2;
+    
+    bl_x[2] = 2;
+    bl_y[2] = 2;
+    
+    bl_x[3] = 3;
+    bl_y[3] = 2;
+    
+    bl_col = sys.ds.mixColor(0, 0,240);
+    bl_shape = 4;
+    
+    bl_y_add = 0;
+  }
+  
+  if (r == 4) { # L
+    bl_x[0] = 3;
+    bl_y[0] = 1;
+    
+    bl_x[1] = 1;
+    bl_y[1] = 2;
+    
+    bl_x[2] = 2;
+    bl_y[2] = 2;
+    
+    bl_x[3] = 3;
+    bl_y[3] = 2;
+    
+    bl_col = sys.ds.mixColor(240, 160, 0);
+    bl_shape = 4;
+    
+    bl_y_add = 0;
+  }
+  
+  if (r == 5) { # S
+    bl_x[0] = 3;
+    bl_y[0] = 1;
+    
+    bl_x[1] = 1;
+    bl_y[1] = 2;
+    
+    bl_x[2] = 2;
+    bl_y[2] = 2;
+    
+    bl_x[3] = 2;
+    bl_y[3] = 1;
+    
+    bl_col = sys.ds.mixColor(0, 240, 0);
+    bl_shape = 4;
+    
+    bl_y_add = 0;
+  }
+  
+  if (r == 6) { # Z
+    bl_x[0] = 1;
+    bl_y[0] = 1;
+    
+    bl_x[1] = 2;
+    bl_y[1] = 2;
+    
+    bl_x[2] = 3;
+    bl_y[2] = 2;
+    
+    bl_x[3] = 2;
+    bl_y[3] = 1;
+    
+    bl_col = sys.ds.mixColor(240, 0, 0);
+    bl_shape = 5;
+    
+    bl_y_add = 0;
+  }
+  
+}
+
+function r_next {
+  local a = 220;
+  local b = 98;
+  
+  sys.ds.drawText(a + 5, b-22, "Next:", gray);
+  sys.ds.fillRect(a, b, a+16*4, b+16*4, 0);
+  
+  for (local i = 0; i < 4; i++;) {
+    sys.ds.fillRect(
+      a + bl_x[i]*16,
+      b + bl_y[i]*16,
+      a + 16 + bl_x[i]*16,
+      b + 16 + bl_y[i]*16,
+      bl_col
+    );
+  }
+  
+  sys.ds.drawRect(a, b, a+16*4, b+16*4, gray);
+}
+
+function redraw {
+
+  sys.ds.setArea(1, 33, 318, 448);
+
+  if(redrawAll > 2) {
+    sys.ds.clearArea(sys.ds.mixColor(20, 20, 20));
+    redrawAll = redrawAll - 1;
+    redraw = 1;
+    redraw_score = 1;
+    
+    sys.ds.drawText(58, 28, "SDA Tetris!", gray);
+    
+    if (started == 0) {
+      gen_piece();
+    } else {
+      sys.ds.drawText(220 + 5, 98-18, "Next:", gray);
+      sys.ds.fillRect(220, 98, 220+16*4, 64+16*4, 0);
+      sys.ds.drawRect(220, 98, 220+16*4, 64+16*4, gray);
+    }
+    
+    sys.ds.drawRect(0+dx_add - 1, 0+dy_add - 1, 160+dx_add + 1, 320+dy_add + 1, gray);
+    
+    sys.ds.drawRect(1, 1, 317, 415, gray);
+    sys.ds.drawRect(2, 2, 316, 414, gray);
+  }
+
+  if (gp_flag == 1) {
+    gen_piece();
+    gp_flag = 0;
+  }
+
+  if (redraw == 0){
+    return;
+  }
+  
+  # field
+  if(not lost) {
+    redr_fld = 0;
+    for (local x = 0; x < 20*10; x++;) {
+      #if(arr[x]) {
+        sys.ds.fillRect(
+          0 + x%10*16+dx_add,
+          0 + x/10*16+dy_add,
+          16 + x%10*16+dx_add,
+          16 + x/10*16+dy_add,
+          arr[x]
+        );
+      #}
+    }
+  }
+  
+  if (started or win or lost) {
+    for (local i = 0; i < 4; i++;) {
+      sys.ds.fillRect(
+        0 + bl_x[i]*16 + bl_x_add*16 + dx_add,
+        bl_y_add*16 + 0 + bl_y[i]*16 + dy_add,
+        16 + bl_x[i]*16 + bl_x_add*16 + dx_add,
+        bl_y_add*16 + 16 + bl_y[i]*16 + dy_add,
+        bl_col
+      );
+    }
+  }
+  
+  if (lost) {
+    sys.gui.setVisible(retry, 1);
+    sys.ds.fillRect(0, 160, 319, 196, 0xFFFF);
+    sys.ds.drawText(35, 168, "You lost! Final score: " + score, 0);
+  }
+  
+  if (redraw_score) {
+    redraw_score = 0;
+    sys.ds.fillRect(220, 182, 290, 230, sys.ds.mixColor(20, 20, 20));
+    sys.ds.drawText(225, 182, "Score:", gray);
+    sys.ds.drawText(245, 204, "" + score, 0xF000);
+  }
+  redraw = 0;
+}
+
+function wall_block {
+  for (local x = 0; x < 4; x++;) {
+    if (bl_x[x]+ bl_x_add  + (bl_y[x]+bl_y_add)*10 > 0) {
+      arr[bl_x[x]+ bl_x_add  + (bl_y[x]+bl_y_add)*10] = bl_col;
+    }
+  }
+  redr_fld = 1;
+}
+
+function move_block {
+  # endgame check etc
+  
+  # move block
+  local blocked = 0;
+
+  # 0 - left
+  # 1 - right
+  # 2 - up
+  # 3 - Down
+
+  # set direction
+  if (arg0 == 0) { # left
+    blocked = 0;
+    
+    for (local x = 0; x < 4; x++;) {
+      if (bl_x[x]+bl_x_add < 1) {
+        blocked = 1;
+        break;
+      }
+      local v = (bl_x[x]+ bl_x_add - 1) + (bl_y[x] + bl_y_add)*10;
+      
+      if (v < 200 and v >= 0) {
+        if (arr[v] != 0) {
+          blocked = 1;
+          break;
+        }
+      }
+    }
+    if (not blocked) {
+      bl_x_add--;
+    }
+    
+  }
+
+  if (arg0 == 1) { # right
+    blocked = 0;
+    for (local x = 0; x < 4; x++;) {
+      if (bl_x[x]+bl_x_add == 9) {
+        blocked = 1;
+        break;
+      }
+      v = (bl_x[x]+ bl_x_add + 1) + (bl_y[x] + bl_y_add)*10;
+      
+      if (v < 200 and v >= 0) {
+        if (arr[v] != 0) {
+          blocked = 1;
+          break;
+        }
+      }
+    }
+    if (not blocked) {
+      bl_x_add++;
+    }
+  }
+
+  if (arg0 == 2) { # rotate
+    rotate();
+    
+    blocked = 1;
+    
+    while(blocked) {
+      blocked = 0;
+      for (local x = 0; x < 4; x++;) {
+        if (bl_x[x]+bl_x_add > 9) {
+          blocked = 1;
+        }
+      }
+      bl_x_add--;
+    }
+    
+    blocked = 1;
+    while(blocked){
+      blocked = 0;
+      for (local x = 0; x < 4; x++;) {
+        if (bl_x[x]+bl_x_add < 0) {
+          blocked = 1;
+        }
+      }
+      bl_x_add++;
+    }
+      
+      #*
+      for (local n = 0; n < 10*20; n++;) {
+        if (bl_y[x] + bl_y_add == n/10 and bl_x[x]+bl_x_add == n%10 and arr[n] != 0) {
+          blocked = 1;
+          break;
+        }
+      }
+      *#
+    
+  }
+
+  if (arg0 == 3) { # drop
+    local stop = 0;
+    while (not stop) {
+      for (local x = 0; x < 4 and stop == 0; x++;) {
+        if ((bl_x[x]+ bl_x_add) + (bl_y[x] + bl_y_add +1)*10 < 200) {
+          if (arr[(bl_x[x]+ bl_x_add) + (bl_y[x] + bl_y_add +1)*10] != 0) {
+            stop = 1;
+            break;
+          }
+        }
+        
+        if (bl_y[x] + bl_y_add +1 == 20) {
+          stop = 1;
+          break;
+        }
+      }
+      bl_y_add++;
+    }
+    bl_y_add -=2;
+    redrawAll = 1;
+  }
+  
+}
+
+function resolve_blk {
+  # check if we colided with bottom
+  for (local x = 0; x < 4; x++;) {
+    if (bl_y[x] + bl_y_add == 19) {
+      # freeze block
+      wall_block();
+      
+      bl_x_add = 5; 
+      gen_piece();
+      bl_y_add--;
+    }
+  }
+  
+  # check if we colided with blocks
+  for (local x = 0; x < 4; x++;) {
+    for (local x = 0; x < 4 and stop == 0; x++;) {
+      if ((bl_x[x]+ bl_x_add) + (bl_y[x] + bl_y_add +1)*10 < 200) {
+        if (arr[(bl_x[x]+ bl_x_add) + (bl_y[x] + bl_y_add +1)*10] != 0) {
+          # freeze block
+          wall_block();
+          if (bl_y_add == 0) {
+            lost();
+          }
+          
+          bl_x_add  = 5;
+          gen_piece();
+          bl_y_add--;
+        }
+      }
+    }
+  }
+}
+
+function rmline {
+  for (local a = 0; a < 10; a++;) {
+    arr[a] = 0;
+  }
+
+  for (local n = arg0; n > 0; n--;) {
+    for (local a = 0; a < 10; a++;) {
+      arr[a + n*10] = arr[a + (n - 1)*10];
+    }
+  }
+}
+
+function clear_blk {
+  local tetris = 0;
+
+  for (local n = 0; n < 20; n++;) {
+    local clr = 1;
+    for(local a = 0; a < 10; a++;) {
+      if (arr[n*10 + a] == 0) {
+        clr = 0;
+        break;
+      }
+    }
+    
+    if(clr) {
+      tetris++;
+      print("clearing " + n);
+      rmline(n); 
+    }
+    
+  }
+  
+  if (tetris == 1) score += 40;
+  if (tetris == 2) score += 100;
+  if (tetris == 3) score += 300;
+  if (tetris == 4) score += 1200;
+  
+  if (tetris) redraw_score = 1;
+}
+
+function update {
+  if (sys.os.getRedraw()){
+    redrawAll = 7;
+  }
+
+  if (dir_set == 0) {
+    if (sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED and (dir_set == 0)) {
+      direction = 2;
+      if (not started) {
+        gp_flag = 1;
+        direction = 0;
+      }
+      started = 1;
+      dir_set = 1;
+    }
+    sys.hw.btn.clrEvent(BTN_UP);
+
+    if (sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED and (dir_set == 0)) {
+      direction = 3;
+      if (not started) {
+        gp_flag = 1;
+        direction = 0;
+      }
+      started = 1;
+      dir_set = 1;
+    }
+    sys.hw.btn.clrEvent(BTN_DOWN);
+
+    if (sys.hw.btn.getEvent(BTN_LEFT) == EV_PRESSED and (dir_set == 0)) {
+      direction = 0;
+      if (not started) {
+        gp_flag = 1;
+      }
+      started = 1;
+      dir_set = 1;
+    }
+    sys.hw.btn.clrEvent(BTN_LEFT);
+
+    if (sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED and (dir_set == 0)) {
+      direction = 1;
+      if (not started) {
+        gp_flag = 1;
+      }
+      started = 1;
+      dir_set = 1;
+    }
+    sys.hw.btn.clrEvent(BTN_RIGHT);
+  }
+
+  if((sys.cnt.get() != 0)) { # framelimiter
+    return;
+  } else {
+    sys.cnt.set(game_speed);
+  }
+  dir_set = 0;
+
+  if (started and ((lost != 1) and (win != 1))) {
+    move_block(direction);
+    resolve_blk();
+    if (ob == 1) {
+      bl_y_add++;
+    }
+    ob = not ob;
+    clear_blk();
+    direction = -1;
+  }
+  redraw = 1;
+  redraw();
+
+  if(sys.gui.getEvent(retry) == EV_RELEASED) {
+    reset();
+  }
+  sys.gui.setEvent(retry, EV_NONE);
+
+}
+
+function lost{
+  lost = 1;
+  sys.gui.setVisible(retry, 1);
+  sys.ds.fillRect(0, 160, 319, 196, 0xFFFF);
+  sys.ds.drawText(35, 168, "You lost! Final score: " + score, 0);
+}
+
+function adjust{
+  if (game_speed > 0) {
+    game_speed = game_speed - 1;
+  }
+}
