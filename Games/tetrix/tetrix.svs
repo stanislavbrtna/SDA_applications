@@ -12,6 +12,7 @@ function init {
   bl_col = 0;
   bl_y_add = 0;
   bl_x_add = 5;
+  
   bl_shape = 0;
   bl_r = 0;
   
@@ -47,12 +48,13 @@ function reset {
 
   started = 0;
   score = 0;
+  lines = 0;
+  level = 1;
   sys.gui.setVisible(retry, 0);
   sys.cnt.set(0);
   next_shape = sys.os.rnd()%7;
   gen_piece();
   bl_y_add = 0;
-  gp_flag = 0;
   ob = 1;
 }
 
@@ -82,9 +84,9 @@ function gen_piece {
   local next = sys.os.rnd()%7;
   
   set_piece(next);
-  r_next();
   set_piece(next_shape);
   next_shape = next;
+  r_next();
   bl_x_add = 3;
 }
 
@@ -223,6 +225,18 @@ function r_next {
   local a = 220;
   local b = 98;
   
+  local array bl_xl[4];
+  local array bl_yl[4];
+  local bl_col_l = bl_col;
+  local bl_y_add_o = bl_y_add;
+  
+  for(local i = 0; i < 4; i++;) {
+    bl_xl[i] = bl_x[i];
+    bl_yl[i] = bl_y[i];
+  }
+  
+  set_piece(next_shape);
+  
   sys.ds.drawText(a + 5, b-22, "Next:", gray);
   sys.ds.fillRect(a, b, a+16*4, b+16*4, 0);
   
@@ -237,6 +251,13 @@ function r_next {
   }
   
   sys.ds.drawRect(a, b, a+16*4, b+16*4, gray);
+  
+  for(local i = 0; i < 4; i++;) {
+    bl_x[i] = bl_xl[i];
+    bl_y[i] = bl_yl[i];
+  }
+  bl_col = bl_col_l;
+  bl_y_add = bl_y_add_o;
 }
 
 function redraw {
@@ -251,23 +272,12 @@ function redraw {
     
     sys.ds.drawText(58, 28, "SDA Tetris!", gray);
     
-    if (started == 0) {
-      gen_piece();
-    } else {
-      sys.ds.drawText(220 + 5, 98-18, "Next:", gray);
-      sys.ds.fillRect(220, 98, 220+16*4, 64+16*4, 0);
-      sys.ds.drawRect(220, 98, 220+16*4, 64+16*4, gray);
-    }
+    r_next();
     
     sys.ds.drawRect(0+dx_add - 1, 0+dy_add - 1, 160+dx_add + 1, 320+dy_add + 1, gray);
     
     sys.ds.drawRect(1, 1, 317, 415, gray);
     sys.ds.drawRect(2, 2, 316, 414, gray);
-  }
-
-  if (gp_flag == 1) {
-    gen_piece();
-    gp_flag = 0;
   }
 
   if (redraw == 0){
@@ -277,8 +287,18 @@ function redraw {
   # field
   if(not lost) {
     redr_fld = 0;
+    
+    local blk = 0;
+    
     for (local x = 0; x < 20*10; x++;) {
-      #if(arr[x]) {
+      blk = 0;
+      for(local i = 0; i < 4; i++;) {
+        if(x%10 == bl_x[i]+ bl_x_add and x/10 == bl_y[i]+ bl_y_add) {
+          blk = 1;
+        }
+      }
+      
+      if(not blk) {
         sys.ds.fillRect(
           0 + x%10*16+dx_add,
           0 + x/10*16+dy_add,
@@ -286,19 +306,15 @@ function redraw {
           16 + x/10*16+dy_add,
           arr[x]
         );
-      #}
-    }
-  }
-  
-  if (started or win or lost) {
-    for (local i = 0; i < 4; i++;) {
-      sys.ds.fillRect(
-        0 + bl_x[i]*16 + bl_x_add*16 + dx_add,
-        bl_y_add*16 + 0 + bl_y[i]*16 + dy_add,
-        16 + bl_x[i]*16 + bl_x_add*16 + dx_add,
-        bl_y_add*16 + 16 + bl_y[i]*16 + dy_add,
-        bl_col
-      );
+      } else {
+        sys.ds.fillRect(
+          0 + x%10*16+dx_add,
+          0 + x/10*16+dy_add,
+          16 + x%10*16+dx_add,
+          16 + x/10*16+dy_add,
+          bl_col
+        );
+      }
     }
   }
   
@@ -310,9 +326,13 @@ function redraw {
   
   if (redraw_score) {
     redraw_score = 0;
-    sys.ds.fillRect(220, 182, 290, 230, sys.ds.mixColor(20, 20, 20));
-    sys.ds.drawText(225, 182, "Score:", gray);
-    sys.ds.drawText(245, 204, "" + score, 0xF000);
+    sys.ds.fillRect(220, 182, 290, 290, sys.ds.mixColor(20, 20, 20));
+    
+    sys.ds.drawText(225, 182, "Level:", gray);
+    sys.ds.drawText(245, 204, "" + level, 0xF000);
+    
+    sys.ds.drawText(225, 182 + 50, "Score:", gray);
+    sys.ds.drawText(245, 204 + 50, "" + score, 0xF000);
   }
   redraw = 0;
 }
@@ -407,7 +427,8 @@ function move_block {
       }
       bl_x_add++;
     }
-      
+    
+    
       #*
       for (local n = 0; n < 10*20; n++;) {
         if (bl_y[x] + bl_y_add == n/10 and bl_x[x]+bl_x_add == n%10 and arr[n] != 0) {
@@ -477,6 +498,8 @@ function resolve_blk {
 }
 
 function rmline {
+  lines++;
+
   for (local a = 0; a < 10; a++;) {
     arr[a] = 0;
   }
@@ -508,24 +531,23 @@ function clear_blk {
     
   }
   
-  if (tetris == 1) score += 40;
-  if (tetris == 2) score += 100;
-  if (tetris == 3) score += 300;
-  if (tetris == 4) score += 1200;
+  if (tetris == 1) score += 40   * level;
+  if (tetris == 2) score += 100  * level;
+  if (tetris == 3) score += 300  * level;
+  if (tetris == 4) score += 1200 * level;
   
   if (tetris) redraw_score = 1;
 }
 
 function update {
   if (sys.os.getRedraw()){
-    redrawAll = 7;
+    redrawAll = 3;
   }
 
   if (dir_set == 0) {
     if (sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED and (dir_set == 0)) {
       direction = 2;
       if (not started) {
-        gp_flag = 1;
         direction = 0;
       }
       started = 1;
@@ -536,7 +558,6 @@ function update {
     if (sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED and (dir_set == 0)) {
       direction = 3;
       if (not started) {
-        gp_flag = 1;
         direction = 0;
       }
       started = 1;
@@ -546,9 +567,6 @@ function update {
 
     if (sys.hw.btn.getEvent(BTN_LEFT) == EV_PRESSED and (dir_set == 0)) {
       direction = 0;
-      if (not started) {
-        gp_flag = 1;
-      }
       started = 1;
       dir_set = 1;
     }
@@ -556,9 +574,6 @@ function update {
 
     if (sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED and (dir_set == 0)) {
       direction = 1;
-      if (not started) {
-        gp_flag = 1;
-      }
       started = 1;
       dir_set = 1;
     }
@@ -571,6 +586,13 @@ function update {
     sys.cnt.set(game_speed);
   }
   dir_set = 0;
+  
+  if (lines > 10) {
+    level++;
+    lines = 0;
+    game_speed -= game_speed/4;
+    print("level up: speed: " + game_speed); 
+  }
 
   if (started and ((lost != 1) and (win != 1))) {
     move_block(direction);
