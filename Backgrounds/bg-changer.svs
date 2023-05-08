@@ -15,6 +15,9 @@ function init {
   sys.fs.conf.open("homescreen.cfg");
   if (sys.fs.conf.exists("background")) {
     sys.gui.setGrayout(rem, 0);
+    sys.fs.conf.open("homescreen.cfg");
+    sys.gui.setStr(scr,sys.fs.conf.read("background"));
+    sys.fs.conf.close();
   } else {
     sys.gui.setGrayout(set, 1);
   }
@@ -26,6 +29,8 @@ function init {
 
 function update {
   if(sys.gui.getEventC(btn) == EV_RELEASED) {
+    sys.gui.setGrayout(set, 1);
+    sys.gui.setStr(scr, "");
     sys.os.subProcess("lib/fsl.svs", &callRet, "Backgrounds/", 1, 0);
     return;
   }
@@ -41,6 +46,7 @@ function update {
     sys.fs.conf.open("homescreen.cfg");
     sys.fs.conf.remove("background");
     sys.fs.conf.close();
+    sys.gui.setStr(scr,"");
     sys.os.settings.homeRld();
   }
 }
@@ -51,7 +57,7 @@ function callRet {
   print("argument0: " + arg0);
   sys.gui.setStr(btn, arg0);
   
-  if (arg1 == 1) {
+  if (arg1 == 1 and arg0 != "") {
     sys.gui.setStr(scr, arg0);
     background = arg0;
     sys.gui.setGrayout(set, 0);
@@ -60,8 +66,11 @@ function callRet {
     } else {
       sys.gui.setParam(scr, 1);
     }
-  } else {
-    sys.gui.setStr(btn, "System folder only");
-    sys.gui.setGrayout(set, 1);
+    return;
   }
+
+  sys.gui.setStr(btn, "System folder only");
+  sys.gui.setGrayout(set, 1);
+  sys.gui.setStr(scr, "");
+
 }
