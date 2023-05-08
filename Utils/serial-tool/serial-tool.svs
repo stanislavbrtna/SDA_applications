@@ -1,0 +1,168 @@
+import "lib/inc/ddm.svs"
+ 
+function init {
+  # Main aplication screen
+  screen = sys.gui.addScreen();
+  sys.os.gui.setMainScr(screen);
+  sys.gui.setRelInit(1);
+  
+  sys.gui.addText(0, 0, 6, 1, "Serial tool", screen);
+
+  input_t = sys.gui.addText(0, 1, 7, 1, "", screen);
+  b_send = sys.gui.addButton(7, 1, 3, 1, "Send", screen);
+  
+  sys.gui.addText(0, 2, 6, 1, "Response:", screen);
+  
+  output_t = sys.gui.addText(0, 3, 10, 8, "", screen);
+  
+  b_receive = sys.gui.addCheckBox(0, 11, 5, 1, "Receive", screen);
+  
+  b_bd = sys.gui.addButton(0, 13, 4, 1, "9600 bd", screen);
+  
+  b_port = sys.gui.addButton(4, 13, 3, 1, "USB", screen);
+  b_crlf = sys.gui.addButton(7, 13, 3, 1, "LF", screen);
+  
+  b_clr = sys.gui.addButton(7, 11, 3, 1, "Clear", screen);
+  
+  sys.gui.setTexEd(input_t, 1);
+  sys.gui.setTexEd(output_t, 1);
+  
+  inp = "";
+  
+  menu_bd = 0;
+  
+  port_speed = 9600;
+  
+  def_port = 0; # 0 - usb, 1 - exp
+  
+  crlf = 0; # 0 - LF, 1 - CR+LF
+  
+  ddm_init();
+  
+  # external pin defines
+  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+  
+  uart_str = "";
+}
+
+
+function set_speed {
+  if (def_port == 0) {
+    sys.com.usbSetBd(port_speed);
+  } else {
+    sys.com.uartSetBd(port_speed);
+  }
+  sys.gui.setStr(b_bd, port_speed + " bd");
+}
+
+function update {
+  inp = sys.os.gui.handleText(input_t, inp);
+  uart_str = sys.os.gui.handleText(output_t, uart_str);
+  
+  if (sys.gui.getEventC(b_send) == EV_RELEASED) {
+    if (crlf) {
+      inp +="\r";
+    }
+    inp +="\n";
+    
+    if (def_port == 0) {
+      sys.com.usbTrs(inp);
+    } else {
+      sys.com.uartTrs(inp);
+    }
+    
+    inp = "";
+  }
+  
+  if(sys.gui.getEventC(b_receive) == EV_RELEASED) {
+    if (sys.gui.getValue(b_receive)) {
+      print("rcv start");
+      if(def_port == 1) {
+        sys.com.uartRcvIT();
+      } else {
+        sys.com.usbRcvIT();
+      }
+    }
+  }
+  
+  if (sys.gui.getValue(b_receive)) {
+    local x = "";
+    if (def_port == 1) {
+      if (sys.com.uartGetRd()==2) {
+        x = sys.com.uartGetStr();
+        if (x != "") {
+          uart_str += x;
+          sys.gui.setStr(txt, uart_str);
+        } else {
+          print("fail!");
+        }   
+      }
+    }
+    
+    if (def_port == 0) {
+      if (sys.com.usbGetRd()==2) {
+        x = sys.com.usbGetStr();
+        if (x != "") {
+          uart_str += x;
+          sys.gui.setStr(txt, uart_str);
+        } else {
+          print("fail!");
+        }   
+      }
+    }
+  }
+  
+  
+  if (sys.gui.getEventC(b_clr) == EV_RELEASED) {
+    sys.gui.setStr(output_t, "");
+    uart_str = "";
+  }
+  
+  if (sys.gui.getEventC(b_port) == EV_RELEASED) {
+    def_port = not def_port;
+    if (def_port) {
+      sys.gui.setStr(b_port, "Exp");
+    } else {
+      sys.gui.setStr(b_port, "USB");
+    }
+    sys.gui.setValue(b_receive, 0);
+  }
+  
+  if (sys.gui.getEventC(b_crlf) == EV_RELEASED) {
+    crlf = not crlf;
+    if (crlf) {
+      sys.gui.setStr(b_crlf, "CR+LF");
+    } else {
+      sys.gui.setStr(b_crlf, "LF");
+    }
+  }
+  
+
+  if (sys.gui.getEventC(b_bd) == EV_RELEASED) {
+    menu_bd = ddm_create(b_bd);
+    ddm_add_btn("4800 bd");
+    ddm_add_btn("9600 bd");
+    ddm_add_btn("14400 bd");
+    ddm_add_btn("19200 bd");
+    ddm_add_btn("38400 bd");
+    ddm_add_btn("57600 bd");
+    ddm_add_btn("115200 bd");
+  }
+  
+  i = ddm_handle(menu_bd);
+  if (i > 0) {
+    if (i == 1) {port_speed = 4800;}
+    if (i == 2) {port_speed = 9600;}
+    if (i == 3) {port_speed = 14400;}
+    if (i == 4) {port_speed = 19200;}
+    if (i == 5) {port_speed = 38400;}
+    if (i == 6) {port_speed = 57600;}
+    if (i == 7) {port_speed = 115200;}
+    set_speed();
+    sys.gui.setValue(b_receive, 0);
+    ddm_exit();
+  }
+  
+}
+

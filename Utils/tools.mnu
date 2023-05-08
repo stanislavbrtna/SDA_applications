@@ -3,3 +3,4 @@ Utils/sender/sender.svs|Utils/sender/sender.p16|Sender|
 Utils/gps/gps.svs|Utils/gps/gps.p16|GPS|
 Utils/darkclock/darkclock.svs|Utils/darkclock/darkclock.p16|darkclock|
 Utils/lightmet/lightmet.svs|Utils/lightmet/lightmet.p16|LightMet|
+Utils/serial-tool/serial-tool.svs|Icons/conf.p16|SerialTool|
