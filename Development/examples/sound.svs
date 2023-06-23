@@ -1,0 +1,30 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.setRelInit(1);
+  
+  toneT = sys.gui.addText(1, 2, 3, 1, "440", scr);
+  sys.gui.addText(4, 2, 1, 1, "Hz", scr);
+  durT = sys.gui.addText(5, 2, 3, 1, "120", scr);
+  sys.gui.addText(8, 2, 2, 1, "ms", scr);
+
+  play = sys.gui.addButton(5, 4, 3, 1,"Play", scr);
+
+  sys.gui.setTexEd(toneT, 1);
+  sys.gui.setTexEd(durT, 1);
+
+  tone = "440";
+  duration = "400";
+}
+
+function update {
+  # Get tone and duration
+  tone = sys.os.gui.handleText(toneT, tone);
+  duration = sys.os.gui.handleText(durT, duration);
+  
+  if (sys.gui.getEventC(play)==EV_PRESSED and isnum(tone) and isnum(duration)) {
+    # play the sound
+    sys.snd.beepC(num(tone), num(duration), ""); # no callback
+  }
+}
