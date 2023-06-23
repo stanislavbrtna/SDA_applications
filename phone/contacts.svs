@@ -1,0 +1,484 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.setXscroll(scr, 16);
+  
+  list_scr = sys.gui.addScreen(1, 2, 8, 10, scr);
+  
+  #bFsl = sys.gui.addButton(1, 1, 5, 1, "Choose file", scr);
+
+  #bOverlay = sys.gui.addButton(1, 3, 5, 1, "Create overlay", scr);
+  
+  b_dial = sys.gui.addButton(1, 0, 3, 1, "Dialer", scr);
+  b_exit = sys.gui.addButton(1, 0, 3, 1, "Back", scr);
+  sys.gui.setVisible(b_exit, 0);
+  
+  b_new = sys.gui.addButton(7, 0, 3, 1, "New", scr);
+  
+  b_search = sys.gui.addButton(1, 13, 3, 1, "Search", scr);
+  
+  t_search = sys.gui.addText(1, 8, 8, 1, "Search", scr);
+  
+  sys.gui.setTexEd(t_search, 1);
+  sys.gui.setVisible(t_search, 0);
+  
+  ov_id = 0;
+
+  array b_list[10];
+  array i_list[10];
+  
+  list_start = 0;
+  
+  sys.fs.conf.open("phone/contacts.cfg");
+  list_size = 0;
+  while(sys.fs.conf.exists("name_" + list_size)) {
+    list_size++;
+  }
+  sys.fs.conf.close();
+  
+  print(list_size - 1 + " contacts found");
+  
+  s_bar = sys.gui.addSliderV(9, 3, 1, 8, list_size - 10, 1, scr);
+  
+  b_up = sys.gui.addButton(9, 2, 1, 1, "/\\", scr);
+  b_dn = sys.gui.addButton(9, 11, 1, 1, "\\/", scr);
+  
+  # contacts filter
+  listFilter = "";
+  listFilterO = "";
+  
+  load_list();
+  
+  # new contact
+  new_scr = sys.gui.addScreen();
+  b_nback = sys.gui.addButton(1, 0, 3, 1, "Back", new_scr);
+  b_nsave = sys.gui.addButton(6, 0, 3, 1, "Save", new_scr);
+  s_nbar  = sys.gui.addSliderV(9, 1, 1, 11, 250, 1, new_scr);
+  
+  s_nin = sys.gui.addScreen(1, 1, 8, 12, new_scr);
+  
+  sys.gui.addText(0, 0, 7, 1, "Name:", s_nin);
+  t_nname = sys.gui.addText(0, 1, 8, 1, "", s_nin);
+  sys.gui.setTexEd(t_nname, 1);
+  
+  sys.gui.addText(0, 2, 7, 1, "Surname:", s_nin);
+  t_nsurname = sys.gui.addText(0, 3, 8, 1, "", s_nin);
+  sys.gui.setTexEd(t_nsurname, 1);
+  
+  sys.gui.addText(0, 4, 7, 1, "Company:", s_nin);
+  t_ncompany = sys.gui.addText(0, 5, 8, 1, "", s_nin);
+  sys.gui.setTexEd(t_ncompany, 1);
+  
+  array t_nphone[10];
+  array nphone[10];
+ 
+  sys.gui.addText(0, 6, 7, 1, "Phone:", s_nin);
+  t_nphone[0] = sys.gui.addText(0, 7, 8, 1, "", s_nin);
+  sys.gui.setTexEd(t_nphone[0], 1);
+  
+  b_nadd_num = sys.gui.addButton(1, 8, 6, 1, "+ Add number", s_nin);
+  
+  b_npic = sys.gui.addButton(1, 9, 6, 1, "Select picture", s_nin);
+  
+  t_nnote_t = sys.gui.addText(0, 10, 7, 1, "Note:", s_nin);
+  
+  t_nnote = sys.gui.addText(0, 11, 8, 4, "", s_nin);
+  sys.gui.setTexEd(t_nnote, 1);
+  
+  new_reset();
+  
+  # contact screen
+  
+  cont_scr = sys.gui.addScreen();
+  i_cimage = sys.gui.addImage(3, 1 , 4, 4, "phone/empty.p16", cont_scr);
+  i_bcall  = sys.gui.addButton(1, 10, 4, 1, "Call", cont_scr);
+  i_bmsg   = sys.gui.addButton(5, 10, 4, 1, "Message", cont_scr);
+  
+  i_bedit = sys.gui.addButton(1, 12, 3, 1, "Edit", cont_scr);
+  i_bback = sys.gui.addButton(6, 12, 3, 1, "Back", cont_scr);
+  
+  i_tname    = sys.gui.addText(2, 6, 6, 1, "", cont_scr);
+  i_tsurname = sys.gui.addText(2, 7, 6, 1, "", cont_scr);
+  i_tphone   = sys.gui.addText(2, 8, 6, 1, "", cont_scr);
+  i_tcomp    = sys.gui.addText(2, 9, 6, 1, "", cont_scr);
+  
+  if (typeof(arg0) == TYPE_STR) {
+    if (arg0 == "ONLYBACK") {
+       sys.gui.setVisible(b_exit, 1);
+       sys.gui.setVisible(b_dial, 0);
+    }
+  }
+  
+ 
+  
+}
+
+
+function new_reset {
+  nname = "";
+  nsurname = "";
+  ncompany = "";
+  nnote = "";
+  npic = "";
+  currentContId = 0;
+  
+  for(local i = 0; i < 10; i++;) {
+    nphone[i] = "";
+  }
+  
+  for(local i = 1; i < 10; i++;) {
+    if(t_nphone[i] != 0) {
+      sys.gui.destroy(t_nphone[i]);
+      t_nphone[i] = 0;
+    }
+  }
+  
+  sys.gui.setXYXY(b_nadd_num, 1, 8, 6, 1);
+  sys.gui.setXYXY(b_npic, 1, 9, 6, 1);
+  sys.gui.setStr(b_npic, "Select picture");
+  sys.gui.setXYXY(t_nnote_t, 0, 10, 7, 1);
+  sys.gui.setXYXY(t_nnote, 0, 11, 8, 4);
+}
+
+
+function load_list {
+  local i = list_start;
+  
+  #sys.gui.destroy(list_scr);
+  #list_scr = sys.gui.addScreen(1, 2, 8, 10, scr);
+  
+  for(local g = 0; g < 10; g++;) {
+    if (b_list[g]) {
+      sys.gui.destroy(b_list[g]);
+      b_list[g] = 0;
+    }
+  }
+  
+  sys.fs.conf.open("phone/contacts.cfg");
+  
+  
+  if(listFilter == "") {
+    local b = 0;
+    while(sys.fs.conf.exists("name_" + i)) {
+      #print("add: " + sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i));
+      
+      b_list[b] = sys.gui.addButton(0, b, 8, 1,
+        sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i), list_scr);
+      i_list[b] = i;
+      b++;
+      i++;
+      
+      if(b > 9) {
+        break;
+      }
+    }
+  } else {
+    local b = 0;
+    local name = "";
+    while(sys.fs.conf.exists("name_" + i)) {
+      name = sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i);
+      if (instr(lower(name), lower(listFilter))) {
+        b_list[b] = sys.gui.addButton(0, b, 8, 1, name, list_scr);
+        i_list[b] = i;
+        b++;
+      }
+      
+      i++;
+      
+      if(b > 9) {
+        break;
+      }
+    }
+  }
+  
+  
+  sys.fs.conf.close();
+}
+
+
+function upd_list {
+
+  if (sys.gui.getEventC(b_dn) == EV_RELEASED) {
+    if (sys.gui.getValue(s_bar) < sys.gui.getParam(s_bar)) {
+      sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) + 1);
+    }
+  }
+  
+  if (sys.gui.getEventC(b_up) == EV_RELEASED) {
+    if (sys.gui.getValue(s_bar) > 0) {
+      sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) - 1);
+    }
+  }
+
+  if (sys.gui.getValue(s_bar) != s_bar_pval) {
+    list_start = sys.gui.getValue(s_bar);
+    load_list();
+  }
+  
+  s_bar_pval = sys.gui.getValue(s_bar);
+
+  if (sys.gui.getEventC(b_search) == EV_RELEASED) {
+    sys.gui.setVisible(t_search, 1);
+    sys.gui.setRelInit(0);
+    
+    sys.gui.setY2(list_scr, 8);
+    sys.gui.setY2(s_bar, 8);
+    
+    sys.gui.setY1(b_dn, 7);
+    sys.gui.setY2(b_dn, 8);
+    
+    sys.gui.setRelInit(1);
+    
+    sys.gui.setTexAct(t_search);
+    sys.os.showKbd();
+  }
+  
+  if (sys.gui.getTexAct(t_search) == 0 and sys.gui.getVisible(t_search) == 1) {
+    sys.gui.setVisible(t_search, 0);
+    sys.gui.setRelInit(0);
+    
+    sys.gui.setY2(list_scr, 12);
+    sys.gui.setY2(s_bar, 11);
+    
+    sys.gui.setY1(b_dn, 11);
+    sys.gui.setY2(b_dn, 12);
+    
+    listFilter = "";
+    sys.gui.setRelInit(1);
+  }
+  
+  listFilter = sys.os.gui.handleText(t_search, listFilter);
+  
+  if (listFilter != listFilterO) {
+    sys.gui.setValue(s_bar, 0);
+    list_start = 0;
+    load_list();
+    listFilterO = listFilter;
+  }
+
+  for(local i = 0; i < 10; i++;) {
+    if (b_list[i] != 0) {     
+      if(sys.gui.getEventC(b_list[i]) == EV_RELEASED) {
+        sys.os.gui.setMainScr(cont_scr);
+        sys.os.hideKbd();
+        local id = i_list[i];
+        sys.fs.conf.open("phone/contacts.cfg");
+        
+        sys.gui.setStr(i_tname, sys.fs.conf.read("name_" + id));
+        sys.gui.setStr(i_tsurname, sys.fs.conf.read("surname_" + id));
+        sys.gui.setStr(i_tcompany, sys.fs.conf.read("company_" + id));
+        sys.gui.setStr(i_tphone, sys.fs.conf.read("phone_" + id + "_0"));
+        
+        if (sys.gui.getStr(i_tphone) == "") {
+          sys.gui.setGrayout(i_bcall, 1);
+          sys.gui.setGrayout(i_bmsg, 1);
+        } else {
+          sys.gui.setGrayout(i_bcall, 0);
+          sys.gui.setGrayout(i_bmsg, 0);
+        }
+        
+        sys.fs.conf.close();
+        
+        currentContId = id;
+      }
+    }
+  }
+}
+
+
+function upd_cont {
+  if (sys.gui.getEventC(i_bback) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr);
+  }
+  
+  if (sys.gui.getEventC(i_bcall) == EV_RELEASED) {
+    #TODO: Add multiple number support
+    sys.os.subProcess("phone/dialer.svs", &callRet, "CALL", sys.gui.getStr(i_tphone), 0);
+    return;
+  }
+  
+  if (sys.gui.getEventC(i_bedit) == EV_RELEASED) {
+    
+    local id = currentContId;
+    
+    new_reset();
+    
+    sys.fs.conf.open("phone/contacts.cfg");
+        
+    nname = sys.fs.conf.read("name_" + id);
+    nsurname = sys.fs.conf.read("surname_" + id);
+    ncompany = sys.fs.conf.read("company_" + id);
+    nphone[0] = sys.fs.conf.read("phone_" + id + "_0");
+    
+    nnote = sys.fs.conf.read("note_" + id);
+    npic = sys.fs.conf.read("pic_" + id);
+    
+    sys.fs.conf.close();
+    sys.os.gui.setMainScr(new_scr);
+    
+    currentContId = id;
+  }
+  
+}
+
+
+function init_overlay {
+  ov_screen = sys.gui.addScreen();
+  sys.gui.addText(1, 1, 8, 1, "This is the overlay", ov_screen);
+  ov_ok = sys.gui.addButton(5, 2, 2, 1, "Ok", ov_screen);
+  ov_cancel = sys.gui.addButton(1, 2, 3, 1, "Cancel", ov_screen);
+}
+
+
+function handle_overlay {
+  if (sys.gui.getEventC(ov_ok) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+    
+  if (sys.gui.getEventC(ov_cancel) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+}
+
+
+function update {
+
+  upd_new();
+  upd_list();
+  upd_cont();
+
+  if (sys.gui.getEventC(b_new) == EV_RELEASED) {
+    sys.os.gui.setMainScr(new_scr);
+    new_reset();
+  }
+  
+  if (sys.gui.getEventC(b_dial) == EV_RELEASED) {
+    sys.os.subProcess("phone/dialer.svs", "", "", 0, 0);
+  }
+  
+  if (sys.gui.getEventC(b_exit) == EV_RELEASED) {
+    sys.os.exit();
+  }
+
+#*
+  # fsl
+  if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  # overlay
+  if (sys.gui.getEventC(bOverlay) == EV_RELEASED) {
+    init_overlay();
+    ov_id = sys.o.setScr(ov_screen);
+    sys.o.setY(200);
+  }
+  
+  if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
+    handle_overlay();
+  }
+*#
+}
+
+function picRet {
+  print("argument0: " + arg0);
+  sys.gui.setStr(b_npic, arg0);
+  npic = arg0;
+}
+
+function upd_new {
+  if (sys.gui.getEventC(b_nback) == EV_RELEASED) {
+    sys.os.hideKbd();
+    sys.os.gui.setMainScr(scr);
+  }
+  
+  nname = sys.os.gui.handleText(t_nname, nname);
+  nsurname = sys.os.gui.handleText(t_nsurname, nsurname);
+  ncompany = sys.os.gui.handleText(t_ncompany, ncompany);
+  nnote = sys.os.gui.handleText(t_nnote, nnote);
+  
+  for(local i = 0; i < 10; i++;) {
+    if (t_nphone[i] != 0) {
+      nphone[i] = sys.os.gui.handleText(t_nphone[i], nphone[i]);
+    }
+  }
+  
+  if (sys.gui.getEventC(b_npic) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &picRet, 0, 0, 0);
+    return;
+  }
+  
+  if (sys.gui.getEventC(b_nadd_num) == EV_RELEASED) {
+    local i;
+    for(i = 0; i < 10; i++;) {
+      if (t_nphone[i] == 0) {
+        t_nphone[i] = sys.gui.addText(0, 7 + i, 8, 1, "add", s_nin);
+        sys.gui.setTexEd(t_nphone[i], 1);
+        break;
+      }
+    }
+    
+    if (i == 9) {
+      sys.gui.setGrayout(b_nadd_num, 1);
+    }
+    
+    sys.gui.setRelInit(0);
+    sys.gui.setY1(b_nadd_num, sys.gui.getY1(b_nadd_num) + 1);
+    sys.gui.setY2(b_nadd_num, sys.gui.getY2(b_nadd_num) + 1);
+    
+    sys.gui.setY1(b_npic, sys.gui.getY1(b_npic) + 1);
+    sys.gui.setY2(b_npic, sys.gui.getY2(b_npic) + 1);
+    
+    sys.gui.setY1(t_nnote_t, sys.gui.getY1(t_nnote_t) + 1);
+    sys.gui.setY2(t_nnote_t, sys.gui.getY2(t_nnote_t) + 1);
+    
+    sys.gui.setY1(t_nnote, sys.gui.getY1(t_nnote) + 1);
+    sys.gui.setY2(t_nnote, sys.gui.getY2(t_nnote) + 1);
+    sys.gui.setRelInit(1);
+  }
+  
+  if (sys.gui.getEventC(b_nsave) == EV_RELEASED) {
+    
+    sys.fs.conf.open("phone/contacts.cfg");
+    local id = 0;
+    if (currentContId == 0) {
+      while(sys.fs.conf.exists("name_" + id)) {
+        id++;
+      }
+    } else {
+      id = currentContId;
+    }
+    
+    sys.fs.conf.write("name_" + id, nname);
+    sys.fs.conf.write("surname_" + id, nsurname);
+    sys.fs.conf.write("company_" + id, ncompany);
+    sys.fs.conf.write("note_" + id, nnote);
+    
+    if (npic != "") {
+      sys.fs.conf.write("pic_" + id, npic);
+    }
+    
+    for(local i = 0; i < 10; i++;) {
+      if (t_nphone[i] != 0) {
+        sys.fs.conf.write("phone_" + id + "_" + i, nphone[i]); 
+      }
+    }
+    list_size++;
+    sys.gui.setParam(s_bar, list_size - 10);
+    sys.fs.conf.close();
+    load_list();
+    sys.os.hideKbd();  
+    sys.os.gui.setMainScr(scr);
+  }
+  
+  sys.gui.setYscroll(s_nin, sys.gui.getValue(s_nbar));
+}
+
+
+function exit {
+
+}

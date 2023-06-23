@@ -1,0 +1,9 @@
+number = "";
+
+#string = "+CLCC: 1,1,4,0,0,\"+420603717477\",";
+
+string = "";
+
+string = substr(string, instr(string, "\"") + 1, len(string));
+
+print(substr(string, 0, instr(string, "\"") - 1));

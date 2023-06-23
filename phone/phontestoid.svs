@@ -1,0 +1,38 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  call = sys.gui.addButton(1, 1, 8, 1, "incomming call 123", scr);
+  
+  fill = sys.gui.addButton(1, 2, 8, 1, "fill number 123", scr);
+  fill2 = sys.gui.addButton(1, 3, 8, 1, "call number 123", scr);
+  
+}
+
+function callRet {
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+}
+
+function update {
+  if(sys.gui.getEventC(call) == EV_RELEASED) {
+    sys.os.subProcess("phone/dialer.svs", &callRet, "INCOMMING", "123456789", 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(fill) == EV_RELEASED) {
+    sys.os.subProcess("phone/dialer.svs", &callRet, "FILL", "123456789", 0);
+    return;
+  }
+  
+  if(sys.gui.getEventC(fill2) == EV_RELEASED) {
+    sys.os.subProcess("phone/dialer.svs", &callRet, "CALL", "123456789", 0);
+    return;
+  }
+}
+
+
+function exit {
+
+}

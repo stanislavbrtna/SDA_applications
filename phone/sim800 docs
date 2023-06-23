@@ -1,0 +1,7 @@
+get caller id: AT+CLCC
+
+receive hook:
+-> zaregistrovat uart hook
+-> pokud recv = 1, tak probudit aplikaci, zrušit hook
+-> nutnost přidat resource locking
+-> nutnost přidat receive after wakeup

@@ -1,0 +1,466 @@
+import "~cont-tools.svs"
+import "~at-cmd.svs"
+
+function init {
+
+  at_init();
+  at_init_io();
+
+  scr_d = sys.gui.addScreen();
+  scr_c = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr_d);
+  
+  sys.gui.setXscroll(scr_d, -16);
+  sys.gui.setYscroll(scr_d, 16);
+  
+  array b_dial[10];
+  
+  for(local i = 1; i < 10; i++;) {
+    b_dial[i] = sys.gui.addButton(0 + 2*((i-1)%3), 3 + 2*((i-1)/3), 2, 2, "" + i, scr_d);
+    sys.gui.setTxtSize(b_dial[i], 32);
+  }
+  
+  b_dial[0] = sys.gui.addButton(2, 10, 2, 2, "0", scr_d);
+  sys.gui.setTxtSize(b_dial[0], 32);
+  
+  b_star = sys.gui.addButton(0, 10, 2, 2, "*", scr_d);
+  b_hash = sys.gui.addButton(4, 10, 2, 2, "#", scr_d);
+  sys.gui.setTxtSize(b_star, 32);
+  sys.gui.setTxtSize(b_hash, 32);
+  
+  b_add = sys.gui.addButton(7, 6, 2, 1, "Add", scr_d);
+  
+  b_del = sys.gui.addButton(7, 1, 2, 1, "<-", scr_d);
+  
+  b_call = sys.gui.addButton(7, 3, 2, 2, "Call", scr_d);
+  
+  b_contacts = sys.gui.addButton(0, 13, 4, 1, "Contacts", scr_d);
+  b_history = sys.gui.addButton(5, 13, 4, 1, "History", scr_d);
+  
+  t_number = sys.gui.addText(0, 1, 6, 1, "", scr_d);
+  
+  sys.gui.setTexEd(t_number, 1);
+  sys.gui.setTexAlign(t_number, ALIGN_CENTER);
+  
+  number = "";
+  
+  # call screen
+  
+  t_mode = sys.gui.addText(1, 1, 6, 1, "Calling:", scr_c);
+  
+  t_name = sys.gui.addText(1, 2, 8, 2, "John Doe", scr_c);
+  sys.gui.setTxtSize(t_name, 32);
+  
+  t_cnumber = sys.gui.addText(1, 4, 6, 1, "+420123456789", scr_c);
+  
+  t_ccompany = sys.gui.addText(1, 5, 6, 1, "", scr_c);
+  
+  b_cend = sys.gui.addButton(3, 12, 4, 1, "End Call", scr_c);
+  sys.gui.setTexAlign(b_cend, ALIGN_CENTER);
+  
+  b_caccept = sys.gui.addButton(6, 6, 3, 1, "Accept", scr_c);
+  sys.gui.setTexAlign(b_caccept, ALIGN_CENTER);
+  
+  b_cdecline = sys.gui.addButton(1, 6, 3, 1, "Decline", scr_c);
+  sys.gui.setTexAlign(b_cdecline, ALIGN_CENTER);
+  
+  killOnEnd = 0;
+  inCall = 0;
+  
+  callNumber = "";
+  callName = "";
+  
+  # arg0 - type of request
+  if (typeof(arg0) == TYPE_STR) {
+    if (arg0 == "FILL") {
+      number = arg1;
+    }
+    
+    if (arg0 == "INCOMMING") {
+      perform_inc(arg1);
+    }
+    
+    if (arg0 == "CALL") {
+      perform_call(arg1);
+    }
+  }
+  
+  init_clist();
+  
+  at_quiet = 1;
+  
+  for(local i = 0; i < 10; i++;) {
+    at_command("AT");
+    
+    if(at_success == 1) {
+      break;
+    }
+    
+    at_wait(400);
+  }
+  
+  if(at_success == 0) {
+    sys.os.error("Modem connection error!");
+  }
+  
+  at_wait(200);
+  
+  for(local i = 0; i < 10; i++;) {
+    at_command("AT+CPIN?");
+    
+    if(at_success == 1) {
+      break;
+    }
+    
+    at_wait(400);
+  }
+  
+  
+  if(not instr(at_result, "+CPIN: READY")) {
+    sys.os.error("PIN not entered! " + at_result);
+  }
+  
+  at_quiet = 0;
+  
+}
+
+
+function init_clist {
+  cl_scr = sys.gui.addScreen(); 
+  sys.gui.setXscroll(cl_scr, 16);
+  
+  list_scr = sys.gui.addScreen(1, 1, 8, 11, cl_scr);
+  
+  b_back = sys.gui.addButton(1, 0, 3, 1, "Back", cl_scr);
+   
+  #b_search = sys.gui.addButton(1, 13, 3, 1, "Search", cl_scr);
+  
+  #t_search = sys.gui.addText(1, 8, 8, 1, "", cl_scr);
+  
+  sys.gui.setTexEd(t_search, 1);
+  sys.gui.setVisible(t_search, 0);
+  
+  array b_list[10];
+  array i_list[10];
+  array t_list[10];
+  
+  list_start = 0;
+  
+  sys.fs.conf.open("phone/history.cfg");
+  list_size = 0;
+  while(sys.fs.conf.exists("number_" + list_size)) {
+    list_size++;
+  }
+  sys.fs.conf.close();
+  
+  print(list_size - 1 + " calls found");
+  
+  if (list_size - 10 > 0) {
+    s_bar = sys.gui.addSliderV(9, 2, 1, 9, list_size - 10, 0, cl_scr);
+  } else {
+    s_bar = sys.gui.addSliderV(9, 2, 1, 9, list_size, 0, cl_scr);
+  }  
+  
+  
+  b_up = sys.gui.addButton(9, 1, 1, 1, "/\\", cl_scr);
+  b_dn = sys.gui.addButton(9, 11, 1, 1, "\\/", cl_scr);
+  
+  # contacts filter
+  listFilter = "";
+  listFilterO = "";
+  
+  s_bar_pval = 0;
+  
+  load_list();
+}
+
+
+function load_list {
+  local i = list_start;
+  
+  for(local g = 0; g < 10; g++;) {
+    if (b_list[g]) {
+      sys.gui.destroy(b_list[g]);
+      sys.gui.destroy(t_list[g]);
+      b_list[g] = 0;
+    }
+  }
+  
+  sys.fs.conf.open("phone/history.cfg");
+  
+  local b = 0;
+  while(sys.fs.conf.exists("number_" + i)) {
+    
+    local number = sys.fs.conf.read("number_" + i);
+      
+    b_list[b] = sys.gui.addButton(0, b*3 , 8, 1, sys.fs.conf.read("name_" + i), list_scr);
+    
+    local start = num(sys.fs.conf.read("start_" + i));
+    local stop = num(sys.fs.conf.read("stop_" + i));
+    local type = sys.fs.conf.read("type_" + i);
+    
+    local timeString
+            = lz(sys.time.getTsHr(start)) + ":"
+              + lz(sys.time.getTsMin(start)) + " "
+              + sys.time.getTsDay(start) + ". "
+              + sys.time.getTsMonth(start) + ". "
+              + sys.time.getTsYear(start) + "\n"
+              + type + " "
+              + (stop - start)/60 + "m "
+              + lz((stop - start)%60) + "s";
+    
+    t_list[b] = sys.gui.addText(0, b*3 + 1, 8, 2, number + "\n" + timeString, list_scr);
+    
+    i_list[b] = i;
+    
+    b++;
+    i++;
+    
+    if(b > 9) {
+      break;
+    }
+  }
+  
+  sys.fs.conf.close();
+}
+
+function lz {
+  if (arg0 < 10) {
+    return "0"+arg0;
+  }
+  return arg0;
+}
+
+
+function upd_list {
+
+  if (sys.gui.getEventC(b_dn) == EV_RELEASED) {
+    if (sys.gui.getValue(s_bar) < sys.gui.getParam(s_bar)) {
+      sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) + 1);
+    }
+  }
+  
+  if (sys.gui.getEventC(b_up) == EV_RELEASED) {
+    if (sys.gui.getValue(s_bar) > 0) {
+      sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) - 1);
+    }
+  }
+
+  if (sys.gui.getValue(s_bar) != s_bar_pval) {
+    list_start = sys.gui.getValue(s_bar);
+    load_list();
+    print("ls: " + list_start);
+  }
+  
+  s_bar_pval = sys.gui.getValue(s_bar);
+
+  if (sys.gui.getEventC(b_back) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr_d);
+  }
+
+  for(local i = 0; i < 10; i++;) {
+    if (b_list[i] != 0) {     
+      if(sys.gui.getEventC(b_list[i]) == EV_RELEASED) {
+        print("clicked");
+      }
+    }
+  }
+}
+
+
+function perform_call {
+  
+  if (arg0 == "") {
+    return;
+  }
+  
+  local number = cont_numsane(arg0);
+  
+  sys.os.hideKbd();
+  sys.os.gui.setMainScr(scr_c);
+  sys.gui.setVisible(b_cend, 1);
+  sys.gui.setVisible(b_caccept, 0);
+  sys.gui.setVisible(b_cdecline, 0);
+
+  sys.gui.setStr(t_cnumber, number);
+  
+  local nfo;
+  nfo = cont_get_info(number);
+  
+  sys.gui.setStr(t_name, nfo[0] + " " + nfo[1]);
+  sys.gui.setStr(t_ccompany, nfo[3]);
+  
+  #perform call
+  at_command("ATD" + number + ";");
+  
+  inCall = 1;
+  
+  callStart = sys.time.get();
+  callEnd = sys.time.get();
+  callType = "OUTGOING";
+  callNumber = number;
+  callName = nfo[0] + " " + nfo[1];
+}
+
+function add_to_hist {
+  sys.fs.conf.open("phone/history.cfg");
+  
+  local id = 0;
+  while(sys.fs.conf.exists("number_" + id)) {
+    id++;
+  }
+  
+  sys.fs.conf.write("number_" + id, "" + callNumber);
+  sys.fs.conf.write("name_" + id, "" + callName);
+  sys.fs.conf.write("start_" + id, "" + callStart);
+  sys.fs.conf.write("stop_" + id, "" + callEnd);
+  sys.fs.conf.write("type_" + id, "" + callType);
+  
+  list_size++;
+  sys.gui.setParam(s_bar, list_size);
+  
+  sys.fs.conf.close();
+  print("closed" + id);
+}
+
+
+function check_end {
+  if(killOnEnd == 1) {
+    sys.os.exit();
+  }
+}
+
+function update {
+  number = sys.os.gui.handleText(t_number, number);
+  for(local i = 0; i < 10; i++;) {
+    if (sys.gui.getEventC(b_dial[i]) == EV_RELEASED) {
+      number += sys.gui.getStr(b_dial[i]);
+      sys.os.gui.setCPos(t_number, len(number));
+      sys.gui.setStr(t_number, number);
+    }
+  }
+  
+  if (sys.gui.getEventC(b_star) == EV_RELEASED) {
+    number += "*";
+    sys.gui.setStr(t_number, number);
+  }
+  
+  if (sys.gui.getEventC(b_hash) == EV_RELEASED) {
+    number += "#";
+    sys.gui.setStr(t_number, number);
+  }
+  
+  if (sys.gui.getEventC(b_del) == EV_RELEASED) {
+    number = substr(number, 0, len(number) - 1);
+    sys.gui.setStr(t_number, number);
+  }
+  
+  if (sys.gui.getEventC(b_call) == EV_RELEASED) {
+    perform_call(number);
+  }
+  
+  # call screen
+  
+  if (sys.gui.getEventC(b_cend) == EV_RELEASED) {
+    check_end();
+    sys.os.gui.setMainScr(scr_d);
+    at_command("ATH");
+    callEnd = sys.time.get();
+    add_to_hist();
+    inCall = 0;
+  }
+  
+  if (sys.gui.getEventC(b_cdecline) == EV_RELEASED) {
+    at_command("ATH");
+    add_to_hist();
+    inCall = 0;
+    check_end();
+    sys.os.gui.setMainScr(scr_d);
+  }
+  
+  if (sys.gui.getEventC(b_caccept) == EV_RELEASED) {
+    #call accept
+    at_command("ATA");
+    sys.gui.setVisible(b_cend, 1);
+    sys.gui.setVisible(b_caccept, 0);
+    sys.gui.setVisible(b_cdecline, 0);
+  }
+  
+  if (sys.gui.getEventC(b_contacts) == EV_RELEASED) {
+    sys.os.subProcess("phone/contacts.svs", "", "ONLYBACK", 0, 0);
+  }
+  
+  if (sys.gui.getEventC(b_history) == EV_RELEASED) {
+    sys.os.gui.setMainScr(cl_scr);
+  }
+  
+  upd_list();
+  
+  resolve_ring();
+}
+
+
+function resolve_ring {
+
+  local x = "";
+  
+  if(sys.os.gui.getMainScr() == scr_c) {
+    return;
+  }
+  
+  if(sys.os.inSim()) {
+    return;
+  }
+
+  if (sys.com.uartGetRd() == 2) {
+    x += sys.com.uartGetStr();
+  }
+  
+  if(instr(x, "RING")){
+    local number = "";
+    at_wait(400);
+    
+    at_command("AT+CLCC");
+    at_wait(100);
+    #print("AT: " + at_success + " result: " + at_result);
+    
+    if(at_success) {
+      number = substr(at_result, instr(at_result, "\"") + 1, len(at_result));
+      number = substr(number, 0, instr(number, "\"") - 1);
+    } else {
+      number = "CLCC Error";
+    }
+    
+    
+    perform_inc(number);
+  }
+}
+
+
+function perform_inc {
+  local cn = arg0;
+  sys.gui.setStr(t_cnumber, cn);
+  sys.os.gui.setMainScr(scr_c);
+  sys.gui.setVisible(b_cend, 0);
+  killOnEnd = 1;
+
+  local nfo;
+  nfo = cont_get_info(arg0);
+  
+  sys.gui.setStr(t_name, nfo[0] + " " + nfo[1]);
+  sys.gui.setStr(t_ccompany, nfo[3]);
+  
+  callStart = sys.time.get();
+  callEnd = sys.time.get();
+  callType = "INCOMMING";
+  callNumber = cn;
+  callName = nfo[0] + " " + nfo[1];
+}
+
+
+function exit {
+  if (inCall) {
+    at_command("ATH");
+  }
+}

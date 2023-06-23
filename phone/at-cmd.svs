@@ -1,0 +1,87 @@
+# init
+
+function at_init {
+  at_success = 0;
+  at_quiet = 0;
+  at_delay = 50;
+  at_result = "";
+}
+
+function at_init_io {
+  sys.hw.iPinDef(13, PIN_ALT, PIN_NOPULL);
+  sys.hw.iPinDef(15, PIN_ALT, PIN_NOPULL);
+  sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+  sys.com.uartRcvIT();
+}
+
+
+function at_command {
+  at_init_io();
+  at_success = 0;
+  #printing something breaks the comms
+  
+  if(sys.os.inSim()) {
+    print("Simulated AT Command: " + arg0);
+    at_result = arg0 + "\nSIMULATED\nOK";
+    return
+  }
+  
+  at_result = "<empty>";
+  sys.com.uartGetStr(); # clean the buffer
+  sys.com.uartTrs(arg0 + "\r\n");
+  local x = "";
+  local cnt = 0;
+  
+  while(cnt < 3000) {
+    if (sys.com.uartGetRd() == 2) {
+      x += sys.com.uartGetStr();
+      cnt = 0;
+    }
+    cnt++;
+  }
+  
+  at_wait(at_delay);
+  
+  if (substr(x, len(x) - 3, len(x) - 2) == "OK") {
+    #print("ok");
+    at_success = 1;
+  } else {
+    if (not at_quiet) {
+      sys.os.error("AT CMD Error: " + arg0 + "\n" + x);
+    }
+  }
+  
+  at_result = x;
+  return at_success;
+}
+
+function at_wait {
+  if(not sys.os.inSim()) {
+    local time = sys.time.getAppUptime() + arg0;
+    
+    while(1) {
+      if (sys.time.getAppUptime() > time) {
+        break;
+      }
+    }
+  }
+}
+
+function at_update {
+  #receive loop
+  local x;
+  local msg = "";
+  
+  if (at_enabled) {
+    if (sys.com.uartGetRd()==2) {
+      x = sys.com.uartGetStr();
+      if (x != "") {
+        msg = x;
+        
+      }  
+    }
+  }
+  
+  # handle messages
+}

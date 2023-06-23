@@ -1,0 +1,58 @@
+
+
+function cont_get_info {
+  sys.fs.conf.open("phone/contacts.cfg");
+  
+  local array info[4]; #name, surname, image, company
+  
+  info[0] = "unknown";
+  info[1] = "";
+  info[2] = "";
+  info[3] = "";
+  
+  local sane = cont_numsane(arg0);
+  local i = 0;
+  
+  local key = "phone_" + i + "_0";
+  
+  while(sys.fs.conf.exists(key)) {
+    if (cont_numsane(sys.fs.conf.read(key)) == sane) {
+      info[0] = sys.fs.conf.read("name_" + i);
+      info[1] = sys.fs.conf.read("surname_" + i);
+      info[3] = sys.fs.conf.read("company_" + i);
+      info[2] = sys.fs.conf.read("pic_" + i); #phone/empty.p16
+      sys.fs.conf.close();
+      return info;
+    }
+
+    i++;
+    key = "phone_" + i + "_0";
+  }
+  
+  sys.fs.conf.close();
+  return info;
+}
+
+function cont_numsane {
+  local new = "";
+  local c = "";
+  
+  # remove spaces
+  for(local i = 0; i <= len(arg0); i++;) {
+    c = getcp(arg0, i);
+    if(isnum(c) and c != " " and c != "." and c != "-") {
+      new += c;
+    }
+  }
+  
+  if (len(new) == 9) {
+    new = "+420" + new;
+  } else if (len(new) == 12) {
+    new = "+" + new;
+  } else if (len(new) != 9 and len(new) != 12) {
+    print("number error! number:" + arg0);
+    new = arg0;
+  }
+  
+  return new;
+}
