@@ -29,6 +29,7 @@ function update {
   
   if(sys.gui.getEventC(bActivate) == EV_RELEASED) {
     useKbd = 1 - useKbd;
+    if (useKbd) kbd_init();
     sys.gui.setSelect(bActivate, useKbd);
   }
   
