@@ -30,10 +30,11 @@ function init {
   inp = "";
   
   menu_bd = 0;
+  menu_port = 0;
   
   port_speed = 9600;
   
-  def_port = 0; # 0 - usb, 1 - exp
+  def_port = 0; # 0 - usb, 1 - exp_ext, 2 - exp_int
   
   crlf = 0; # 0 - LF, 1 - CR+LF
   
@@ -101,7 +102,7 @@ function update {
     }
     
     if (def_port == 0) {
-      if (sys.com.usbGetRd()==2) {
+      if (sys.com.usbGetRd() == 2) {
         x = sys.com.usbGetStr();
         if (x != "") {
           uart_str += x;
@@ -120,12 +121,11 @@ function update {
   }
   
   if (sys.gui.getEventC(b_port) == EV_RELEASED) {
-    def_port = not def_port;
-    if (def_port) {
-      sys.gui.setStr(b_port, "Exp");
-    } else {
-      sys.gui.setStr(b_port, "USB");
-    }
+    menu_port = ddm_create(b_port);
+    ddm_add_btn("USB");
+    ddm_add_btn("Exp-ext");
+    ddm_add_btn("Exp-int");
+    
     sys.gui.setValue(b_receive, 0);
   }
   
@@ -164,5 +164,35 @@ function update {
     ddm_exit();
   }
   
+  i = ddm_handle(menu_port);
+  if (i > 0) {
+    if (i == 1) {
+      def_port = 0;
+      sys.gui.setStr(b_port, "USB");
+      sys.gui.setValue(b_receive, 0);
+    }
+    if (i == 2) {
+      def_port = 1;
+      sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+      sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+      
+      sys.hw.iPinDef(13, PIN_IN, PIN_NOPULL);
+      sys.hw.iPinDef(15, PIN_IN, PIN_NOPULL);
+      
+      sys.gui.setStr(b_port, "Exp-Ext");
+      sys.gui.setValue(b_receive, 0);
+    }
+    if (i == 3) {
+      def_port = 1;
+      sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+      sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+      
+      sys.hw.iPinDef(13, PIN_ALT, PIN_NOPULL);
+      sys.hw.iPinDef(15, PIN_ALT, PIN_NOPULL);
+      sys.gui.setStr(b_port, "Exp-Int");
+      sys.gui.setValue(b_receive, 0);
+    }
+    ddm_exit();
+  }
 }
 
