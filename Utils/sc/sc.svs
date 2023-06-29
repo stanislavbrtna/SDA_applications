@@ -7,7 +7,7 @@ function init {
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 1.8", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.0", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
 
@@ -15,8 +15,11 @@ function init {
   sys.gui.setXYXY(file_scr, 0, 2, 9, 9);
 
   bUp = sys.gui.addButton(0, 1, 1, 1, "/\\", scr);
-  bData = sys.gui.addButton(2, 1, 2, 1, "Data", scr);
-  bApps = sys.gui.addButton(4, 1, 2, 1, "Apps", scr);
+  bData = sys.gui.addButton(4, 1, 2, 1, "Data", scr);
+  bApps = sys.gui.addButton(2, 1, 2, 1, "Apps", scr);
+  
+  bTabA = sys.gui.addButton(7, 1, 1, 1, "A", scr);
+  bTabB = sys.gui.addButton(8, 1, 1, 1, "B", scr);
 
   tPath = sys.gui.addText(0, 11, 8, 1, "Dir: /", scr);
 
@@ -30,11 +33,19 @@ function init {
   bRemove = sys.gui.addButton(3, 13, 4, 1, "Remove", scr);
 
   sys.gui.setSelect(bData, 1);
+  sys.gui.setSelect(bTabA, 1);
   sys.gui.setGrayout(bEdit, 1);
   sys.gui.setVisible(bMove, 0);
 
   array fScrBtns[200];
   array path[30];
+  
+  tabApath = "";
+  tabAapps = 0;
+  tabAsc = 0;
+  tabBpath = "";
+  tabBapps = 0;
+  tabBsc = 0;
 
   rldFiles();
   copyFname = "";
@@ -287,6 +298,43 @@ function getPath {
   return pathStr;
 }
 
+function getFolder {
+  arg3 = 0;
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+    if (getcp(arg0, arg2) == ".") {
+      arg3 = 1;
+    }
+  }
+  if (arg3) return ""; # 
+  
+  return arg0;
+}
+
+function switchDir {
+
+  sys.fs.chDir(arg1);
+  inApps = arg1;
+  
+  sys.gui.setSelect(bData, not inApps);
+  sys.gui.setSelect(bApps, inApps);
+  
+  sys.fs.chDir(getFolder(arg0));
+  updatePath(getFolder(arg0));
+  upCount = getUpCount(arg0);
+  print("uc:" + upCount);
+  if(upCount) {
+    sys.gui.setGrayout(bUp, 0);
+  } else {
+    sys.gui.setGrayout(bUp, 1);
+  }
+  rldFiles();
+  
+  sys.gui.setStr(tPath, "Dir: /" + getPath());
+}
+
 function tryOpen {
   # arg0 -> fname
   extension = getcp(arg0, len(arg0) - 2) + getcp(arg0, len(arg0) -1) + getcp(arg0, len(arg0));
@@ -391,6 +439,29 @@ function update {
     upCount = 0;
     rldFiles(0);
     sys.gui.setGrayout(bEdit, 1);
+  }
+  
+  # tab control
+  if (sys.gui.getEventC(bTabA) == EV_RELEASED) {
+    tabBpath = getPath();
+    tabBapps = inApps;
+    tabBsc   = sys.gui.getValue(scrollbar);
+    
+    switchDir(tabApath, tabAapps);
+    sys.gui.setValue(scrollbar, tabAsc);
+    sys.gui.setSelect(bTabA, 1);
+    sys.gui.setSelect(bTabB, 0);
+  }
+  
+  if (sys.gui.getEventC(bTabB) == EV_RELEASED) {
+    tabApath = getPath();
+    tabAapps = inApps;
+    tabAsc   = sys.gui.getValue(scrollbar);
+    
+    switchDir(tabBpath, tabBapps);
+    sys.gui.setValue(scrollbar, tabBsc);
+    sys.gui.setSelect(bTabA, 0);
+    sys.gui.setSelect(bTabB, 1);
   }
 
   if (sys.gui.getEventC(bCopy) == EV_RELEASED) {
