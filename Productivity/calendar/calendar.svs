@@ -393,24 +393,6 @@ function day_update{
 
   sys.gui.setYscroll(day_scr_l, sys.gui.getValue(day_sld)*5);
 
-  if(sys.hw.btn.getEvent(BTN_UP)==1){
-    if (sys.gui.getValue(day_sld)>10){
-      sys.gui.setValue(day_sld,sys.gui.getValue(day_sld)-10);
-    }else{
-      sys.gui.setValue(day_sld,0);
-    }
-  }
-  sys.hw.btn.clrEvent(BTN_UP);
-
-  if(sys.hw.btn.getEvent(BTN_DOWN)==1){
-    if (sys.gui.getValue(day_sld)<90){
-      sys.gui.setValue(day_sld,sys.gui.getValue(day_sld)+10);
-    }else{
-      sys.gui.setValue(day_sld,100);
-    }
-  }
-  sys.hw.btn.clrEvent(BTN_DOWN);
-
   if(day_reload==1){
     day_reloader();
     day_reload=0;
