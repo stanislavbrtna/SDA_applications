@@ -86,43 +86,15 @@ function init {
     }
   }
   
+  sys.gui.setGrayout(b_call, 1);
+  
   init_clist();
+
+  t_cpin = 0;
+  t_dummy = 0;
   
+  t_at = at_command("AT");
   at_quiet = 1;
-  
-  for(local i = 0; i < 10; i++;) {
-    at_command("AT");
-    
-    if(at_success == 1) {
-      break;
-    }
-    
-    at_wait(400);
-  }
-  
-  if(at_success == 0) {
-    sys.os.error("Modem connection error!");
-  }
-  
-  at_wait(200);
-  
-  for(local i = 0; i < 10; i++;) {
-    at_command("AT+CPIN?");
-    
-    if(at_success == 1) {
-      break;
-    }
-    
-    at_wait(400);
-  }
-  
-  
-  if(not instr(at_result, "+CPIN: READY")) {
-    sys.os.error("PIN not entered! " + at_result);
-  }
-  
-  at_quiet = 0;
-  
 }
 
 
@@ -292,7 +264,7 @@ function perform_call {
   sys.gui.setStr(t_ccompany, nfo[3]);
   
   #perform call
-  at_command("ATD" + number + ";");
+  t_dummy = at_command("ATD" + number + ";");
   
   inCall = 1;
   
@@ -365,14 +337,14 @@ function update {
   if (sys.gui.getEventC(b_cend) == EV_RELEASED) {
     check_end();
     sys.os.gui.setMainScr(scr_d);
-    at_command("ATH");
+    t_dummy = at_command("ATH");
     callEnd = sys.time.get();
     add_to_hist();
     inCall = 0;
   }
   
   if (sys.gui.getEventC(b_cdecline) == EV_RELEASED) {
-    at_command("ATH");
+    t_dummy = at_command("ATH");
     add_to_hist();
     inCall = 0;
     check_end();
@@ -381,7 +353,7 @@ function update {
   
   if (sys.gui.getEventC(b_caccept) == EV_RELEASED) {
     #call accept
-    at_command("ATA");
+    t_dummy = at_command("ATA");
     sys.gui.setVisible(b_cend, 1);
     sys.gui.setVisible(b_caccept, 0);
     sys.gui.setVisible(b_cdecline, 0);
@@ -395,9 +367,49 @@ function update {
     sys.os.gui.setMainScr(cl_scr);
   }
   
+  local res;
+  
+  res = at_result(t_at);
+  if(res) {
+    print("phone: AT: " + res);
+    at_wait(400);
+    t_at2 = at_command("AT");
+  }
+  
+  res = at_result(t_at2);
+  if(res) {
+    print("phone: AT2: " + res);
+    at_wait(400);
+    t_cpin = at_command("AT+CPIN?");
+  }
+  
+  
+  res = at_result(t_cpin);
+  if(res == 1) {
+    if(instr(at_result, "+CPIN: READY")) {
+      sys.gui.setGrayout(b_call, 0);
+      print("pin OK");
+      at_quiet = 0;
+    } else {
+      sys.os.error("PIN not entered! " + at_result);
+      sys.gui.setGrayout(b_call, 1);
+    }
+  }
+  if(res == 2) {
+    print("CPIN fail");
+    at_wait(400);
+    t_cpin = at_command("AT+CPIN?");
+  }
+  
+  at_result(t_dummy);
+  
   upd_list();
   
-  resolve_ring();
+  if (sys.gui.getGrayout(b_call) == 0) {
+    #resolve_ring();
+  }
+  
+  at_update();
 }
 
 
@@ -413,28 +425,26 @@ function resolve_ring {
     return;
   }
 
-  if (sys.com.uartGetRd() == 2) {
-    x += sys.com.uartGetStr();
+  if (at_enabled == 0) {
+    if (sys.com.uartGetRd() == 2) {
+      x += sys.com.uartGetStr();
+    }
   }
   
-  if(instr(x, "RING")){
+  if(instr(x, "RING")) {
     local number = "";
-    at_wait(400);
+    #t_clcc = at_command("AT+CLCC");
     
-    at_command("AT+CLCC");
-    at_wait(100);
     #print("AT: " + at_success + " result: " + at_result);
-    
-    if(at_success) {
-      number = substr(at_result, instr(at_result, "\"") + 1, len(at_result));
-      number = substr(number, 0, instr(number, "\"") - 1);
-    } else {
-      number = "CLCC Error";
-    }
-    
+  }
+  
+  if(at_result(t_clcc) == 1) {
+    number = substr(at_result, instr(at_result, "\"") + 1, len(at_result));
+    number = substr(number, 0, instr(number, "\"") - 1);
     
     perform_inc(number);
   }
+  
 }
 
 
@@ -461,6 +471,6 @@ function perform_inc {
 
 function exit {
   if (inCall) {
-    at_command("ATH");
+    t_dummy = at_command("ATH");
   }
 }

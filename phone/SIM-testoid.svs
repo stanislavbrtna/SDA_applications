@@ -9,25 +9,39 @@ function init {
   
   array commands = ["AT","AT+CSPN?", "AT+CSQ", "AT+CPIN?", "AT+CPIN=5110", "AT+CLCC"];
   
+  reset = sys.gui.addButton(1, 4, 8, 1, "HW reset", scr);
+  
   for(i = 0; i < len(buttons); i++;) {
     if (i < len(commands)) {
-      buttons[i] = sys.gui.addButton(1, 4 + i, 8, 1, commands[i], scr);
+      buttons[i] = sys.gui.addButton(1, 6 + i, 8, 1, commands[i], scr);
     } else {
       buttons[i] = 0;
     }
-    
   }
   
   output = sys.gui.addText(1, 1, 8, 3, "", scr);
+  
+  at_init();
+  
+  ticket = 0;
 }
 
 function update {
   for(local i = 0; i < len(buttons) and buttons[i] != 0; i++;) {
     if(sys.gui.getEventC(buttons[i]) == EV_RELEASED) {
-      at_command(sys.gui.getStr(buttons[i]));
-      sys.gui.setStr(output, at_result);
+      ticket = at_command(sys.gui.getStr(buttons[i]));
     }
   }
+  
+  if(sys.gui.getEventC(reset) == EV_RELEASED) {
+    at_reset_hw();
+  }
+  
+  if (at_result(ticket)) {
+    sys.gui.setStr(output, at_result);
+  }
+  
+  at_update();
 }
 
 

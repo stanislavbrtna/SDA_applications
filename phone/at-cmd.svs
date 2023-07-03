@@ -2,58 +2,135 @@
 
 function at_init {
   at_success = 0;
-  at_quiet = 0;
-  at_delay = 50;
   at_result = "";
+  at_ticket = 0;
+  at_ticket_n = 0;
+  at_timeout = 0;
+  at_enabled = 0;
+  at_result = "";
+  at_simcmd = "";
+  at_quiet = 0;
 }
+
 
 function at_init_io {
   sys.hw.iPinDef(13, PIN_ALT, PIN_NOPULL);
   sys.hw.iPinDef(15, PIN_ALT, PIN_NOPULL);
+  
+  #sys.hw.iPinDef(11, PIN_OUT, PIN_NOPULL);
+  #sys.hw.iPinSet(11, 1);
   sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
   sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
   sys.com.uartRcvIT();
 }
 
 
+ # this needs to be fixed
+function at_reset_hw {
+  #sys.hw.iPinSet(11, 0);
+  #at_wait(1000);
+  #sys.hw.iPinSet(11, 1);
+}
+
+
 function at_command {
+  if (at_ticket != 0) {
+    print("AT_WARN: command not yet processed! (" + arg0 + ")");
+    return 0;
+  }
+  
   at_init_io();
   at_success = 0;
+  at_enabled = 1;
+  
+  at_ticket_n++;
+  
+  at_ticket = at_ticket_n;
+  
   #printing something breaks the comms
   
+  at_result = "";
+  
   if(sys.os.inSim()) {
-    print("Simulated AT Command: " + arg0);
-    at_result = arg0 + "\nSIMULATED\nOK";
-    return
-  }
-  
-  at_result = "<empty>";
-  sys.com.uartGetStr(); # clean the buffer
-  sys.com.uartTrs(arg0 + "\r\n");
-  local x = "";
-  local cnt = 0;
-  
-  while(cnt < 3000) {
-    if (sys.com.uartGetRd() == 2) {
-      x += sys.com.uartGetStr();
-      cnt = 0;
-    }
-    cnt++;
-  }
-  
-  at_wait(at_delay);
-  
-  if (substr(x, len(x) - 3, len(x) - 2) == "OK") {
-    #print("ok");
-    at_success = 1;
+    print("Simulated AT Command: " + arg0 + " ticket: " + at_ticket);
+    at_simcmd = arg0 + "\nSIMULATED\nOK\r\n";
   } else {
-    if (not at_quiet) {
-      sys.os.error("AT CMD Error: " + arg0 + "\n" + x);
-    }
+    at_simcmd = arg0;
+    # send message
+    sys.com.uartTrs(arg0 + "\r\n");
   }
   
-  at_result = x;
-  return at_success;
+  at_timeout = sys.time.getAppUptime() + 5000;
+  
+  return at_ticket;
+}
+
+function at_result #* Ticket *# {
+  if (at_ticket == arg0 and at_success == 1) {
+    at_reset();
+    return 1;
+  }
+  
+  if (at_ticket == arg0 and at_success == 2) {
+    at_reset();
+    return 2;
+  }
+  
+  return 0;
+}
+
+
+function at_reset {
+  at_enabled = 0;
+  at_timeout = 0;
+  at_ticket  = 0;
+  at_success = 0;
+  sys.com.uartGetStr();
+  at_wait(100);
+}
+
+
+function at_update {
+  if (at_enabled) {
+    local x = "";
+    local cnt = 0;
+    
+    if (not sys.os.inSim()) {
+      if (sys.com.uartGetRd() == 2) {
+        x += sys.com.uartGetStr();
+        at_result += x;
+      }
+    } else {
+      if (at_result == "") {
+        print("Simulated result for ticket: " + at_ticket + " timeout: " + at_timeout);
+        at_result = at_simcmd;
+      }
+    }
+      
+    if (substr(at_result, len(at_result) - 3, len(at_result) - 2) == "OK") {
+      at_success = 1;
+    }
+    
+    if (substr(at_result, len(at_result) - 3, len(at_result) - 2) == "OR") {
+      if (not at_quiet) {
+        sys.os.error("AT CMD ERROR\nCMD: " + at_simcmd +"\nError: " + at_result);
+      } else {
+        print("AT CMD ERROR\nCMD: " + at_simcmd +"\nError: " + at_result);
+      }
+      at_success = 2;
+    } 
+    
+    if (sys.time.getAppUptime() > at_timeout and at_timeout != 0) {
+      if (not at_quiet) {
+        sys.os.error("AT CMD Timeout\nCMD: " + at_simcmd +"\nError: " + at_result);
+      } else {
+        print("AT CMD Timeout\nCMD: " + at_simcmd +"\nError: " + at_result);
+      }
+      
+      at_timeout = 0;
+      at_success = 2;
+    }
+  }
 }
 
 function at_wait {
@@ -66,22 +143,4 @@ function at_wait {
       }
     }
   }
-}
-
-function at_update {
-  #receive loop
-  local x;
-  local msg = "";
-  
-  if (at_enabled) {
-    if (sys.com.uartGetRd()==2) {
-      x = sys.com.uartGetStr();
-      if (x != "") {
-        msg = x;
-        
-      }  
-    }
-  }
-  
-  # handle messages
 }
