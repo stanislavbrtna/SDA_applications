@@ -264,12 +264,12 @@ function rldFiles {
   #load sorted buttons
   for(i = 0; i < numOfFiles; i++;) {
     findfil =  fScrBtns[i];
-    fScrBtns[i] = sys.gui.addButton(0, i, 5, 1, findfil, file_scr);
+    fScrBtns[i] = sys.gui.addButton(0, i, 6, 1, findfil, file_scr);
 
     if (sys.fs.isDir(findfil)) {
-      sys.gui.addText(6, i, 2, 1, "(Dir)", file_scr);
+      sys.gui.setTexAlign(sys.gui.addText(6, i, 3, 1, "(Dir)", file_scr), ALIGN_RIGHT);
     } else {
-      sys.gui.addText(6, i, 4, 1, "" + getsize(findfil) + "B", file_scr);
+      sys.gui.setTexAlign(sys.gui.addText(6, i, 3, 1, "" + humanSize(getsize(findfil)), file_scr), ALIGN_RIGHT);
     }
   }
   
@@ -286,6 +286,20 @@ function rldFiles {
 
   selected = -1;
 }
+
+
+function humanSize {
+  if (arg0 > 1000000) {
+    return arg0/1000000 + "M";
+  }
+  
+  if (arg0 > 1000) {
+    return arg0/1000 + "K";
+  }
+  
+  return arg0 + "";
+}
+
 
 function getPath {
   local i;
@@ -442,7 +456,7 @@ function update {
   }
   
   # tab control
-  if (sys.gui.getEventC(bTabA) == EV_RELEASED) {
+  if (sys.gui.getEventC(bTabA) == EV_RELEASED and sys.gui.getSelect(bTabB)) {
     tabBpath = getPath();
     tabBapps = inApps;
     tabBsc   = sys.gui.getValue(scrollbar);
@@ -453,7 +467,7 @@ function update {
     sys.gui.setSelect(bTabB, 0);
   }
   
-  if (sys.gui.getEventC(bTabB) == EV_RELEASED) {
+  if (sys.gui.getEventC(bTabB) == EV_RELEASED and sys.gui.getSelect(bTabA)) {
     tabApath = getPath();
     tabAapps = inApps;
     tabAsc   = sys.gui.getValue(scrollbar);
