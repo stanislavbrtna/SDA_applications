@@ -1,0 +1,29 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  b1 = sys.gui.addButton(1, 1, 5, 1, "Show 1 error", scr);
+  b2 = sys.gui.addButton(1, 2, 5, 1, "Show 2 errors", scr);
+  br = sys.gui.addButton(1, 4, 5, 1, "Rotate", scr);
+}
+
+function update {
+  if(sys.gui.getEventC(b1) == EV_RELEASED) {
+    sys.os.error("This is error!");
+  }
+  
+  if(sys.gui.getEventC(b2) == EV_RELEASED) {
+    sys.os.error("This is error 1!");
+    sys.os.error("This is error 2!");
+  }
+  
+  if(sys.gui.getEventC(br) == EV_RELEASED) {
+    sys.os.gui.setLandscape(1 - sys.os.gui.getLandscape());
+  }
+}
+
+
+function exit {
+
+}

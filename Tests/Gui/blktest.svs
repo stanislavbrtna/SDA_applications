@@ -1,0 +1,46 @@
+function init {
+  s = sys.gui.addScreen();
+  sys.os.gui.setMainScr(s);
+  sys.gui.setRelInit(1);
+  
+  t7 = sys.gui.addText(1, 1, 8, 6, "", s);
+  sys.gui.setTexEd(t7, 1);
+  sys.gui.setTexBlk(t7, 1);
+  s7 = "Lorem ipsum ýdoloěr sitá amet\n sagittis večlitž m\n1234567890\n1234567890\n1234567890";
+  copy = sys.gui.addButton(1, 0, 3, 1, "Copy", s);
+  cut = sys.gui.addButton(4, 0, 2, 1, "Cut", s);
+  paste = sys.gui.addButton(6, 0, 3, 1, "Paste", s);
+  
+  s8 = "testy test";
+  t8 = sys.gui.addText(1, 7, 8, 2, "", s);
+  sys.gui.setTexEd(t8, 1);
+  sys.gui.setTexBlk(t8, 1);
+  
+}
+
+function update {
+  s7 = sys.os.gui.handleText(t7, s7);
+  s8 = sys.os.gui.handleText(t8, s8);
+  
+  if (sys.gui.getEventC(copy) == EV_RELEASED) {
+    clipboard = substr(s7, sys.gui.getBlkStart(t7), sys.gui.getBlkEnd(t7));
+    print(clipboard);
+    sys.os.setClipboard(clipboard);
+    clipboard = "";
+  }
+  
+  if (sys.gui.getEventC(cut) == EV_RELEASED) {
+    clipboard = substr(s7, sys.gui.getBlkStart(t7), sys.gui.getBlkEnd(t7));
+    s7 = substr(s7, 0, sys.gui.getBlkStart(t7) - 1) + substr(s7, sys.gui.getBlkEnd(t7) + 1, len(s7));  
+    print(clipboard);
+    sys.os.setClipboard(clipboard);
+    clipboard = "";
+    sys.gui.setBlk(t7, 0, 0);
+  }
+  
+  if (sys.gui.getEventC(paste) == EV_RELEASED) {
+    #clipboard = sys.os.getClipboard();
+    #sys.os.gui.setKbdStr(clipboard);
+    sys.os.gui.pasteClipboard();
+  }
+}

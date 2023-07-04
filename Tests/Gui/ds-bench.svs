@@ -1,0 +1,59 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(0, 0, 5, 1, "Direct-S benchmark", scr);
+  button = sys.gui.addButton(8, 0, 10, 1, "Run!", scr);
+
+  gray = sys.ds.mixColor(200, 200, 200);
+  green = sys.ds.mixColor(24, 240, 20);
+
+  redrawAll = 3;
+
+  touchX = 0;
+  touchY = 0;
+}
+
+
+function redraw {
+
+  sys.ds.setArea(0, 64, 318, 440);
+
+  if (redrawAll) {
+    sys.ds.clearArea(0);
+    redrawAll--;
+    redraw = 1;
+    redraw_score = 1;
+    redraw_food = 1;
+  }
+
+  if (redraw == 0) {
+    return;
+  }
+
+  redraw = 0;
+}
+
+
+function update {
+
+  if (sys.os.getRedraw()){
+    redrawAll = 2;
+  }
+
+  if(sys.gui.getEventC(button) == EV_RELEASED) {
+    sys.ds.setArea(0, 64, 318, 440);
+    sys.ds.clearArea(0);
+    time = sys.time.getAppUptime();
+    for (n = 0; n < 100; n++;) {
+      for (i = 0; i < 10; i++;) {
+        for (b = 0; b < 10; b++;) {
+          sys.ds.fillRect(b*20, i*20, b*20 + 20, i*20 + 20, sys.rnd());
+        }
+      }
+    }
+    benchtime = sys.time.getAppUptime() - time;
+    sys.ds.drawText(0, 220, "Time: " + benchtime + "ms " + float(20*100*100)/float(benchtime) +"px/ms", sys.ds.mixColor(200, 200, 200));
+  }
+
+  redraw();
+}
