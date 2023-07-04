@@ -1,0 +1,110 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(1, 0, 10, 10,"SDA Autotest Entrypoint", scr);
+  result = sys.gui.addText(0,1,10,10,"Result:", scr);
+  
+  progress = 0;
+  tested = 0;
+  GLOB_FAIL = 0;
+  
+  ignore_glob = 0;
+  
+  if (arg0 == 1) {
+    autoreturn = 1;
+  }
+}
+
+function update {
+  if (tested == 0) {
+    if(test_files()) return;
+    if(test_conf()) return;
+    if(test_monk()) return;
+    
+    tested = 1;
+  }
+  
+  if (tested == 1) {
+    if (not ignore_glob) add_result("Final result", GLOB_FAIL);
+    
+    if (autoreturn) {
+      sys.os.subRetval(GLOB_FAIL, 0, 0);
+    }
+    tested = 2;
+  }
+}
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+function add_result {
+  if (arg1 == 1) {
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Failed");
+    if (not ignore_glob) GLOB_FAIL = 1;
+  } else
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Passed");
+}
+
+
+ # random_str(len);
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+
+  return new_str;
+}
+
+###############################################################################
+
+function result {
+  add_result(arg1, arg0);
+}
+
+## test functions
+
+function test_files {
+  if (test_files) {
+    return 0;
+  }
+  sys.os.subProcess("Tests/general_files.svs", &result, 1, 0, 0);
+  test_files = 1;
+  return 1;
+}
+
+function test_conf {
+  if (test_conf) {
+    return 0;
+  }
+  
+  sys.os.subProcess("Tests/configs.svs", &result, 1, 0, 0);
+  
+  test_conf = 1;
+  
+  return 1;
+}
+
+function test_monk {
+  if (test_monk) {
+    return 0;
+  }
+  
+  sys.os.subProcess("Tests/call_monkey.svs", &result, 1, 0, 0);
+  
+  test_monk = 1;
+  
+  return 1;
+}
+
+

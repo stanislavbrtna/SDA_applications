@@ -1,7 +1,8 @@
 function init {
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 10, 10,"General file functions 1.0", scr);
+  test_name = "General file functions 1.0";
+  sys.gui.addText(1, 0, 10, 10, test_name, scr);
   result = sys.gui.addText(1,1,10,10,"Result:", scr);
   
   progress = 0;
@@ -9,7 +10,10 @@ function init {
   GLOB_FAIL = 0;
   
   ignore_glob = 0;
-
+  
+  if (arg0 == 1) {
+    autoreturn = 1;
+  }
 }
 
 function update {
@@ -17,6 +21,11 @@ function update {
     test();
     if (not ignore_glob) add_result("Final result", GLOB_FAIL);
     tested = 1;
+    
+    if (autoreturn) {
+      sys.os.subRetval(GLOB_FAIL, test_name, 0);
+      sys.os.exit();
+    }
   }
 }
 
@@ -62,7 +71,6 @@ function test {
   if (not GLOB_FAIL) test_size();
   if (not GLOB_FAIL) test_seek_tell();
   
-  #seek, ftell, truncate
 }
 
 
@@ -145,8 +153,6 @@ function test_rw {
     FAIL = 1;
     print("fail 2: " + FAIL + " " + t);
   }
-    
-  
   
   sys.fs.writeChars("teststring3");
   sys.fs.writeChars(4, "teststring4");

@@ -1,0 +1,116 @@
+function init {
+  scr = sys.gui.addScreen();
+  test_name = "Call Monkey";
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(1, 0, 10, 10, test_name, scr);
+  result = sys.gui.addText(0,1,10,10,"Result:", scr);
+  
+  progress = 0;
+  tested = 0;
+  GLOB_FAIL = 0;
+  
+  ignore_glob = 0;
+  
+  if (arg0 == 1) {
+    autoreturn = 1;
+  }
+}
+
+
+function update {
+  if (tested == 0) {
+    if(test_monkey()) return;
+    
+    tested = 1;
+  }
+  
+  if (tested == 1) {
+    if (not ignore_glob) add_result("Final result", GLOB_FAIL);
+    sys.os.gui.setMainScr(scr); #this is weird... does only happen when test is run from cmd line
+    if (not GLOB_FAIL) {
+      print("Test finished, result: PASS");
+    } else {
+      print("Test finished, result: FAIL");
+    }
+    
+    if (autoreturn) {
+      sys.os.subRetval(GLOB_FAIL, test_name, 0);
+      sys.os.exit();
+    }
+    tested = 2;
+  }
+}
+
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100;
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+function add_result {
+  if (arg1 == 1) {
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Failed");
+    if (not ignore_glob) GLOB_FAIL = 1;
+  } else
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Passed");
+}
+
+
+ # random_str(len);
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+  
+  gc(10*arg0); # bit of cleanup after string generation is needed...
+  
+  return new_str;
+}
+
+###############################################################################
+
+## test functions
+
+function test_monkey {
+  if (test_monkey == 40) {
+    return 0;
+  }
+  
+  r1 = random_str(rnd()%50 + 2);
+  r2 = progress;
+  r3 = random_str(rnd()%50 + 2);
+  
+  print("calling n="+ test_monkey);
+  
+  sys.os.subProcess("Tests/call_monkey_child.svs", &result, r1, r2, r3);
+  
+  test_monkey++;
+  progress = num((float(test_monkey)/40.0)*100.0);
+  upd_progress();
+  return 1;
+}
+
+
+function result {
+  # Debug prints were usefull for debugging weird garbagecollector bugs
+  #dbg(-3);
+  #print("->given here:");
+  print("->Given: a0: " + arg0 + " a1: " + arg1 + " a2: " + arg2);
+  print("->Right: a0: " + r1+r2 + " a1: " + r1 + r2 + " a3: " + r3);
+  if (arg0 != r1 + r2 or arg1 != r1 + r2 or arg2 != r3) {
+    GLOB_FAIL = 1;
+    tested = 1;
+    add_result("Wrong result on n=" + test_monkey, GLOB_FAIL);
+    print("->After: a0: " + arg0 + " a1: " + arg1 + " a2: " + arg2);
+  }
+}
+

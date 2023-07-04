@@ -1,0 +1,34 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  sys.gui.addText(1, 0, 10, 10,"Doing stuff", scr);
+  n = 10;
+  
+  retval = arg0 + arg1;
+  
+  retval2 = arg2;
+  
+  progress = arg1 + 1;
+}
+
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100;
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+
+function update {
+  n--;
+  
+  upd_progress();
+  
+  if (n == 0) {
+    sys.os.subRetval(retval, retval, retval2);
+    sys.os.exit();
+  }
+}

@@ -1,7 +1,8 @@
 function init {
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1,0,10,10,"Configtest 1.1", scr);
+  test_name = "Configtest 1.1";
+  sys.gui.addText(1,0,10,10,test_name, scr);
   result = sys.gui.addText(1,1,10,10,"Result:", scr);
   
   progress = 0;
@@ -9,7 +10,10 @@ function init {
   GLOB_FAIL = 0;
   
   ignore_glob = 0;
-
+  
+  if (arg0 == 1) {
+    autoreturn = 1;
+  }
 }
 
 function update {
@@ -17,6 +21,11 @@ function update {
     test();
     if (not ignore_glob) add_result("Final result", GLOB_FAIL);
     tested = 1;
+    
+    if (autoreturn) {
+      sys.os.subRetval(GLOB_FAIL, test_name, 0);
+      sys.os.exit();
+    }
   }
 }
 
