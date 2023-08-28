@@ -63,6 +63,7 @@ function init {
   sys.os.gui.setMainScr(scr);
 
   btn_cvik = sys.gui.addButton(3, 0, 7, 1, "Start/Stop", scr2);
+  cinfo = sys.gui.addButton(3, 13, 7, 14, "info", scr2);
 
   bar1 = sys.gui.addBar(0, 2, 10, 4, 10, 0, scr2);
 
@@ -87,6 +88,7 @@ function init_runner {
   rselect = sys.gui.addButton(1, 1, 9, 2, "Choose file", runscr);
 
   rbtn = sys.gui.addButton(1, 3, 5, 4, "RUN!", runscr);
+  
 
   rloop = sys.gui.addCheckBox(1, 5, 5, 6, "loop it!", runscr);
 
@@ -379,6 +381,12 @@ function update_cvik {
 
     sys.hw.lockSleep(start);
   }
+  
+  if(sys.gui.getEventC(cinfo) == EV_RELEASED) {
+    dbg(-4);
+  }
+  
+
   sys.gui.setEvent(btn_cvik,0);
 }
 
