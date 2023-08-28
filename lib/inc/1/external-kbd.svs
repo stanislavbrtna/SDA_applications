@@ -50,11 +50,7 @@ function decode {
   local id = 0;
   local type = "";
   
-  for(i = 1; getcp(arg0, i) != "$";i++;) {
-    if (i > 200) {
-      return "";
-    }
-  }
+  i = instr(arg0, "$");
   i++;
   
   type = getcp(arg0, i); # P - pressed, R - released, H - hold
@@ -96,13 +92,7 @@ function decode {
     return "";
   }
   
-  while(getcp(arg0, i) != "$") {
-    i++;
-    if (i > 200) {
-      return "";
-    }
-  }
-  i++;
+  i += instr(substr(arg0, i, len(arg0)), "$");
   
   # regular char.
   if (getcp(arg0, i + 1) == "!" and type == "P") {
@@ -114,6 +104,7 @@ function decode {
       return "";
     }
   }
+
   kbd_spec = substr(arg0, i, b);
   return "";
 }
@@ -178,7 +169,6 @@ function decode_arrows #*(str, gr2_id )*# {
           sys.gui.setBlk(arg1, sys.gui.getBlkStart(arg1), sys.gui.getBlkEnd(arg1) + 1);
         }
     }
-    
     
     return;
   }
