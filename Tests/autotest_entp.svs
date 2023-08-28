@@ -18,8 +18,10 @@ function init {
 function update {
   if (tested == 0) {
     if(test_files()) return;
-    if(test_conf()) return;
-    if(test_monk()) return;
+    if(test_conf())  return;
+    if(test_csv())   return;
+    if(test_monk())  return;
+    if(test_timer()) return;
     
     tested = 1;
   }
@@ -95,6 +97,18 @@ function test_conf {
   return 1;
 }
 
+function test_csv {
+  if (test_csv) {
+    return 0;
+  }
+  
+  sys.os.subProcess("Tests/csv.svs", &result, 1, 0, 0);
+  
+  test_csv = 1;
+  
+  return 1;
+}
+
 function test_monk {
   if (test_monk) {
     return 0;
@@ -103,6 +117,18 @@ function test_monk {
   sys.os.subProcess("Tests/call_monkey.svs", &result, 1, 0, 0);
   
   test_monk = 1;
+  
+  return 1;
+}
+
+function test_timer {
+  if (test_timer) {
+    return 0;
+  }
+  
+  sys.os.subProcess("Tests/timer.svs", &result, 1, 0, 0);
+  
+  test_timer = 1;
   
   return 1;
 }

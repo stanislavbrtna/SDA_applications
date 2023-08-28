@@ -1,0 +1,79 @@
+function init {
+  # setup screen and basic gui
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  text = sys.gui.addText(1, 1, 10, 2, "Timer test!", scr);
+  set_timer = sys.gui.addButton(1, 3, 8, 4, "set timer 3m", scr);
+  set_timer2 = sys.gui.addButton(1, 5, 8, 6, "set timer 10s", scr);
+
+  autotest = 0;
+
+  if (arg0 == 1) {
+    sys.gui.setGrayout(set_timer, 1);
+    sys.gui.setGrayout(set_timer2, 1);
+    sys.gui.setStr(text, "Automatic testing...");
+    autotest = 1;
+    
+    sys.time.setTimer(10000, &auto10);
+    uptimePr = sys.time.getUptime();
+    uptimeMs = sys.time.getAppUptime();
+    
+    sys.gui.addText(1, 7, 10, 8, "This will take three minutes.", scr);
+  }
+  
+  FAIL = 0;
+  test_name = "Timer test";
+}
+
+function update {
+  #button handling
+  if (sys.gui.getEventC(set_timer) == EV_RELEASED) {
+    sys.time.setTimer(3*60*1000, &callback2);
+    uptimePr = sys.time.getUptime();
+    uptimeMs = sys.time.getAppUptime();
+    sys.gui.setSelect(set_timer, 1);
+    sys.gui.setSelect(set_timer2, 0);
+  }
+  if (sys.gui.getEventC(set_timer2) == EV_RELEASED) {
+    sys.time.setTimer(10000, &callback2);
+    uptimePr = sys.time.getUptime();
+    uptimeMs = sys.time.getAppUptime();
+    sys.gui.setSelect(set_timer, 0);
+    sys.gui.setSelect(set_timer2, 1);
+  }
+}
+
+function callback2 {
+  sys.gui.setStr(text, "final time: " + sys.time.getUptime() - uptimePr + "s (" +sys.time.getAppUptime() - uptimeMs + "ms)");
+  print("called2: time:" + sys.time.getUptime() - uptimePr);
+  print("called2: timeMs:" + sys.time.getAppUptime() - uptimeMs);
+  sys.gui.setSelect(set_timer, 0);
+  sys.gui.setSelect(set_timer2, 0);
+  sys.os.arise(); # this will wake the app from background
+}
+
+function auto10 {
+  sys.gui.setStr(text, "final time: " + sys.time.getUptime() - uptimePr + "s (" +sys.time.getAppUptime() - uptimeMs + "ms)");
+  
+  if((sys.time.getUptime() - uptimePr + 1)*1000 < (sys.time.getAppUptime() - uptimeMs)
+      and (sys.time.getUptime() - uptimePr - 1)*1000 > (sys.time.getAppUptime() - uptimeMs)
+  ) {
+    FAIL = 1;
+    sys.os.exit(FAIL, test_name, 0);
+  } else {
+    sys.time.setTimer(3*60*1000, &auto3m);
+  }
+}
+
+function auto3m {
+  sys.gui.setStr(text, "final time: " + sys.time.getUptime() - uptimePr + "s (" +sys.time.getAppUptime() - uptimeMs + "ms)");
+  
+  if((sys.time.getUptime() - uptimePr + 1)*1000 < (sys.time.getAppUptime() - uptimeMs)
+      and (sys.time.getUptime() - uptimePr - 1)*1000 > (sys.time.getAppUptime() - uptimeMs)
+  ) {
+    FAIL = 1;
+    sys.os.subRetval(FAIL, test_name, 0);
+  } else {
+    sys.os.exit(FAIL, test_name, 0);
+  }
+}

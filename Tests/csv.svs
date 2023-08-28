@@ -1,0 +1,295 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  test_name = "CSV Test 1.0";
+  sys.gui.addText(1, 0, 10, 10, test_name, scr);
+  result = sys.gui.addText(1, 1, 10, 10, "Result:", scr);
+  
+  progress  = 0;
+  tested    = 0;
+  GLOB_FAIL = 0;
+  
+  ignore_glob = 0;
+  
+  if (arg0 == 1) {
+    autoreturn = 1;
+  }
+}
+
+function update {
+  if (tested == 0) {
+    test();
+    if (not ignore_glob) add_result("Final result", GLOB_FAIL);
+    tested = 1;
+    
+    if (autoreturn) {
+      sys.os.subRetval(GLOB_FAIL, test_name, 0);
+      sys.os.exit();
+    }
+  }
+}
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+function add_result{
+  if (arg1 == 1) {
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Failed");
+    if (not ignore_glob) GLOB_FAIL = 1;
+  } else
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Passed");
+}
+
+function cleanup {
+  if (sys.fs.exists("test.csv")) {
+     sys.fs.delete("test.csv");
+  }
+}
+
+function init_test {
+  if (sys.fs.exists("test.csv")) {
+    sys.fs.delete("test.csv");
+  }
+}
+
+function test {
+  init_test();
+  if (not GLOB_FAIL) test_open();
+  if (not GLOB_FAIL) test_rw();
+  if (not GLOB_FAIL) test_sep();
+  if (not GLOB_FAIL) test_rm_ex();
+  
+  if (not GLOB_FAIL) {
+    #cleanup when ok  
+    cleanup();
+  }
+}
+
+function test_open {
+  local FAIL;
+  FAIL = 0;
+
+  # close on empty
+  if (sys.fs.csv.close() != 0) {
+    FAIL = 1;
+  }
+  
+  if (sys.fs.csv.open("test.csv") != 1) {
+    FAIL = 1;
+  }
+  
+  if (sys.fs.csv.close() != 1) {
+    FAIL = 1;
+  }
+    
+  add_result("Open, Close", FAIL);
+}
+
+function test_rw {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  sys.fs.csv.open("test.csv");
+  
+  sys.fs.csv.newLine(4);
+  sys.fs.csv.setCell(0, "value1");
+  sys.fs.csv.setCell(1, "value2");
+  sys.fs.csv.setCell(2, "value3");
+  sys.fs.csv.setCell(3, "value4");
+
+  
+  if (sys.fs.csv.getCell(0, "") != "value1" or sys.fs.csv.getCell(1, "") != "value2" or sys.fs.csv.getCell(3, "") != "value4") {
+    FAIL = 1;
+    print("Read failed");
+    print("value1: " + sys.fs.csv.getCell(0, ""));
+    print("value2: " + sys.fs.csv.getCell(1, ""));
+    print("value3: " + sys.fs.csv.getCell(3, ""));
+  }
+  
+  sys.fs.csv.setCell(1, "xyz");
+  
+  if (sys.fs.csv.getCell(0, "") != "value1" or sys.fs.csv.getCell(1, "") != "xyz" or sys.fs.csv.getCell(3, "") != "value4") {
+    FAIL = 1;
+    print("Rewrite failed");
+  }
+  
+  
+  # fill few lines
+  for (i = 0; i < 5; i++;) {
+    sys.fs.csv.newLine(4);
+    sys.fs.csv.setCell(0, "value1 " + i);
+    sys.fs.csv.setCell(1, "value2 " + i);
+    sys.fs.csv.setCell(2, "value3 " + i);
+    sys.fs.csv.setCell(3, "value4 " + i);
+  }
+  
+  sys.fs.csv.rewind();
+    
+  if (sys.fs.csv.getCell(0, "") != "value1" or sys.fs.csv.getCell(1, "") != "xyz" or sys.fs.csv.getCell(3, "") != "value4") {
+    FAIL = 1;
+    print("Rewind failed");
+  }
+  
+  if (sys.fs.csv.getCell(7, "default") != "default") {
+    FAIL = 1;
+    print("Default failed");
+  }
+
+  sys.fs.csv.close();
+  add_result("Read, Write", FAIL);
+}
+
+
+function test_sep {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  sys.fs.csv.open("test.csv");
+  
+  sys.fs.csv.setSeparator(",");
+  
+  sys.fs.csv.newLine(4);
+  sys.fs.csv.setCell(0, "value1");
+  sys.fs.csv.setCell(1, "value2");
+  sys.fs.csv.setCell(2, "value3");
+  sys.fs.csv.setCell(3, "value4");
+
+  
+  if (sys.fs.csv.getCell(0, "") != "value1" or sys.fs.csv.getCell(1, "") != "value2" or sys.fs.csv.getCell(3, "") != "value4") {
+    FAIL = 1;
+    print("Read failed");
+    print("value1: " + sys.fs.csv.getCell(0, ""));
+    print("value2: " + sys.fs.csv.getCell(1, ""));
+    print("value3: " + sys.fs.csv.getCell(3, ""));
+  }
+  
+  sys.fs.csv.setCell(1, "xyz");
+  
+  if (sys.fs.csv.getCell(0, "") != "value1" or sys.fs.csv.getCell(1, "") != "xyz" or sys.fs.csv.getCell(3, "") != "value4") {
+    FAIL = 1;
+    print("Rewrite failed");
+  }
+  
+  # fill few lines
+  for (i = 0; i < 5; i++;) {
+    sys.fs.csv.newLine(4);
+    sys.fs.csv.setCell(0, "value1 " + i);
+    sys.fs.csv.setCell(1, "value2 " + i);
+    sys.fs.csv.setCell(2, "value3 " + i);
+    sys.fs.csv.setCell(3, "value4 " + i);
+  }
+  
+  sys.fs.csv.rewind();
+    
+  if (sys.fs.csv.getCell(0, "") != "value1" or sys.fs.csv.getCell(1, "") != "xyz" or sys.fs.csv.getCell(3, "") != "value4") {
+    FAIL = 1;
+    print("Rewind failed");
+  }
+
+  sys.fs.csv.close();
+  
+  if (sys.fs.readStr("test.csv") !=
+  # exploiting the \n inside strings "feature"
+"value1,xyz,value3,value4,
+value1 0,value2 0,value3 0,value4 0,
+value1 1,value2 1,value3 1,value4 1,
+value1 2,value2 2,value3 2,value4 2,
+value1 3,value2 3,value3 3,value4 3,
+value1 4,value2 4,value3 4,value4 4,"
+  ) {
+    FAIL = 1;
+    print("Separator failed");
+  }
+  
+  add_result("Set separator", FAIL);
+}
+
+
+function test_rm_ex {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  sys.fs.csv.open("test.csv");
+  
+  for (i = 0; i < 2; i++;) {
+    sys.fs.csv.newLine(4);
+    sys.fs.csv.setCell(0, "value1 " + i);
+    sys.fs.csv.setCell(1, "value2 " + i);
+    sys.fs.csv.setCell(2, "value3 " + i);
+    sys.fs.csv.setCell(3, "value4 " + i);
+  }
+  
+  sys.fs.csv.newLine(4);
+  sys.fs.csv.setCell(0, "value1");
+  sys.fs.csv.setCell(1, "value2");
+  sys.fs.csv.setCell(2, "value3");
+  sys.fs.csv.setCell(3, "value4");
+
+  for (i = 2; i < 5; i++;) {
+    sys.fs.csv.newLine(4);
+    sys.fs.csv.setCell(0, "value1 " + i);
+    sys.fs.csv.setCell(1, "value2 " + i);
+    sys.fs.csv.setCell(2, "value3 " + i);
+    sys.fs.csv.setCell(3, "value4 " + i);
+  }
+  
+  sys.fs.csv.rewind();
+  sys.fs.csv.lineFeed();
+  sys.fs.csv.lineFeed();
+
+  
+  if (sys.fs.csv.getCell(0, "") != "value1" or sys.fs.csv.getCell(1, "") != "value2" or sys.fs.csv.getCell(3, "") != "value4") {
+    FAIL = 1;
+    print("Read failed");
+    print("value1: " + sys.fs.csv.getCell(0, ""));
+    print("value2: " + sys.fs.csv.getCell(1, ""));
+    print("value3: " + sys.fs.csv.getCell(3, ""));
+  }
+  
+  sys.fs.csv.removeLine();
+  
+  sys.fs.csv.rewind();
+  
+  #check
+  
+  for (i = 0; i < 5; i++;) {     
+    if (sys.fs.csv.getCell(0, "") != "value1 " + i or sys.fs.csv.getCell(1, "") != "value2 " + i or sys.fs.csv.getCell(3, "") != "value4 " + i) {
+      FAIL = 1;
+      print("Read after delete failed");
+      print("value1 " + i +": " + sys.fs.csv.getCell(0, ""));
+      print("value2 " + i +": " + sys.fs.csv.getCell(1, ""));
+      print("value4 " + i +": " + sys.fs.csv.getCell(3, ""));
+    }
+    sys.fs.csv.lineFeed();
+  }
+  
+  sys.fs.csv.close();
+  add_result("Linefeed, Remove", FAIL);
+}
+
+
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+
+  return new_str;
+}
+
+ # TODO: create some stresstest
+ 
+ 
