@@ -37,6 +37,8 @@ function init {
     
     timestr = "";
     
+    s_prevtime = 0;
+    
     load_state();
 }
 
@@ -200,9 +202,10 @@ function update_ov_time {
 
 function update_time {
 
-    if (time_current/60 + " m " + time_current%60 +" s ("+ time_overall/60 + " m " + time_overall%60 + " s)" != timestr) {
+    if (time_current + time_overall != s_prevtime) {
       timestr = time_current/60 + " m " + time_current%60 +" s ("+ time_overall/60 + " m " + time_overall%60 + " s)";
       sys.gui.setStr(t_time, timestr);
+      s_prevtime = time_current + time_overall;
     }
     
     sys.gui.setParam(bar_progress, time_overall);
