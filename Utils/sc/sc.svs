@@ -33,7 +33,7 @@ function init {
   bRemove = sys.gui.addButton(3, 13, 4, 1, "Remove", scr);
 
   sys.gui.setSelect(bData, 1);
-  sys.gui.setSelect(bTabA, 1);
+  sys.gui.setGhost(bTabB, 1);
   sys.gui.setGrayout(bEdit, 1);
   sys.gui.setVisible(bMove, 0);
 
@@ -456,26 +456,26 @@ function update {
   }
   
   # tab control
-  if (sys.gui.getEventC(bTabA) == EV_RELEASED and sys.gui.getSelect(bTabB)) {
+  if (sys.gui.getEventC(bTabA) == EV_RELEASED and sys.gui.getGhost(bTabA)) {
     tabBpath = getPath();
     tabBapps = inApps;
     tabBsc   = sys.gui.getValue(scrollbar);
     
     switchDir(tabApath, tabAapps);
     sys.gui.setValue(scrollbar, tabAsc);
-    sys.gui.setSelect(bTabA, 1);
-    sys.gui.setSelect(bTabB, 0);
+    sys.gui.setGhost(bTabA, 0);
+    sys.gui.setGhost(bTabB, 1);
   }
   
-  if (sys.gui.getEventC(bTabB) == EV_RELEASED and sys.gui.getSelect(bTabA)) {
+  if (sys.gui.getEventC(bTabB) == EV_RELEASED and sys.gui.getGhost(bTabB)) {
     tabApath = getPath();
     tabAapps = inApps;
     tabAsc   = sys.gui.getValue(scrollbar);
     
     switchDir(tabBpath, tabBapps);
     sys.gui.setValue(scrollbar, tabBsc);
-    sys.gui.setSelect(bTabA, 0);
-    sys.gui.setSelect(bTabB, 1);
+    sys.gui.setGhost(bTabA, 1);
+    sys.gui.setGhost(bTabB, 0);
   }
 
   if (sys.gui.getEventC(bCopy) == EV_RELEASED) {
