@@ -211,6 +211,27 @@ function store_entry {
   sys.fs.conf.close();
 }
 
+function show_status {
+  local avg = "n/a";
+  local prc = "n/a";
+    
+  if (float(sKm) != 0.0) {
+    avg = float(sL)/float(sKm) * 100.0;
+    prc = float(sPriceO)/float(sKm);
+  } 
+  
+  sys.gui.setStr(tStatus, crop(avg) + " l/100km, " + crop(prc) + " Kč/km");
+}
+
+
+function crop {
+  arg0 = "" + arg0;
+  if (instr(arg0, ".")) {
+    return substr(arg0, 0, instr(arg0, ".") + 2);
+  }
+  
+  return arg0;
+}
 
 function count_values {
   sys.fs.conf.open(confCurrent);
@@ -247,7 +268,7 @@ function count_values {
   fc_avg = (l/km) *100.0;
   fc_km = kc/km;
   
-  sys.gui.setStr(tInfo, fc_avg + " l/100km\n" + fc_km + " kč/km");
+  sys.gui.setStr(tInfo, crop(fc_avg) + " l/100km\n" + crop(fc_km) + " kč/km");
   
   return 1;
 }
@@ -298,10 +319,15 @@ function note_get_fmt {
   local amnt   = sys.fs.conf.read("fc_l_"+arg0);
   local price  = sys.fs.conf.read("fc_price_"+arg0);
   local priceO = sys.fs.conf.read("fc_price_o_"+arg0);
-  local km     = sys.fs.conf.read("fc_km_"+arg0);
+  local km     = sys.fs.conf.read("fc_km_"+arg0); 
   
-  local avg = float(amnt)/float(km) * 100.0;
-  local prc = float(priceO)/float(km);
+  local avg = 0.0;
+  local prc = 0.0;
+  
+  if (float(km) != 0.0) {
+    avg = float(amnt)/float(km) * 100.0;
+    prc = float(priceO)/float(km);
+  }
   
   local date = num(sys.fs.conf.read("fc_date_"+arg0));
   
@@ -314,7 +340,7 @@ function note_get_fmt {
                  +"\nPrice: " + price + " Kč/l"
                  +"\nTotal: " + priceO + " Kč"
                  +"\nTrip: "  + km + " Km"
-                 +"\n\n" + avg + " l/100km\n" + prc + " Kč/km";
+                 +"\n\n" + crop(avg) + " l/100km\n" + crop(prc) + " Kč/km";
 }
 
 
@@ -402,13 +428,15 @@ function load_project {
   if (odo) {
     bOdo = sys.gui.addButton(7, 6, 2, 1, "Odo", sProj);
   } else {
-    bOdo = sys.gui.addButton(7, 6, 2, 1, "Trip", sProj);
+    bOdo = sys.gui.addButton(7, 6, 2, 1, "Trip", sProj);  
   }
   
   bDate = sys.gui.addButton(0, 7, 5, 1, sys.time.getDay() + ". " + sys.time.getMonth() + ". " + sys.time.getYear(), sProj);
   date = sys.time.get();
   
-  bAdd = sys.gui.addButton(0, 9, 4, 1, "Add entry", sProj);
+  tStatus = sys.gui.addText(0, 8, 10, 1, "", sProj);
+  
+  bAdd = sys.gui.addButton(5, 7, 4, 1, "Add entry", sProj);
   
   bBack = sys.gui.addButton(0, 11, 3, 1, "Back", sProj);
   
@@ -487,12 +515,26 @@ function upd_timer {
   }
   
   if (sys.gui.getEventC(bAdd) == EV_RELEASED) {
-    store_entry();
-    sL = "";
-    sPrice = "";
-    sPriceO = "";
-    sKm = "";
-    count_values();
+    if (isnum(sL)
+        and isnum(sPrice)
+        and isnum(sPriceO)
+        and isnum(sKm)
+        and float(sL) != 0.0
+        and float(sPrice) != 0.0
+        and float(sPriceO) != 0.0
+        and float(sKm) != 0.0
+  ) { 
+      store_entry();
+      show_status();
+      sL = "";
+      sPrice = "";
+      sPriceO = "";
+      sKm = "";
+      count_values();
+    } else {
+      sys.gui.setStr(tStatus, "Fill the form first!");  
+    }
+    sys.os.hideKbd();
   }
   
   if (sys.gui.getEventC(bNote) == EV_RELEASED) {
@@ -500,9 +542,7 @@ function upd_timer {
   }
   
   if (sys.gui.getEventC(bDate) == EV_RELEASED) {
-    sys.gui.setRelInit(0); #TODO: fix this in the os...
     dateOvr = sys.o.date.add(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay());
-    sys.gui.setRelInit(1);
   }
   
   sys.o.date.update(dateOvr);
