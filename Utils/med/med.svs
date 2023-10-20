@@ -5,7 +5,7 @@ function init {
   
   fnameT = sys.gui.addText(1, 0, 6, 1, "Menu editor", mainScr);
   
-  frame = sys.gui.addFrame(0, 1, 10, 12, newScr, mainScr);
+  frame = sys.gui.addFrame(0, 1, 10, 10, newScr, mainScr);
   
   openB = sys.gui.addButton(1, 1, 3, 1, "Otevřít", newScr);
   newB = sys.gui.addButton(5, 1, 3, 1, "Nový", newScr);
@@ -32,12 +32,14 @@ function init {
   saveB = sys.gui.addButton(7, 13, 3, 1, "Uložit", mainScr);
   closeB = sys.gui.addButton(5, 13, 2, 1, "Zpět", mainScr);
   
-  tool_gray(1);
+  page = 0;
+  
+  
   
   # list screen
   
   listScr = sys.gui.addScreen();
-  MAX_APP = 25; # max app count for the sda app screen
+  MAX_APP = 6*9; # max app count for the sda app screen
   array icons[MAX_APP];
   array names[MAX_APP];
   array files[MAX_APP];
@@ -46,6 +48,15 @@ function init {
   listCurrent = 0;
   selectedIcon = -1;
   
+  array pageB[MAX_APP/9];
+  
+  for(local i = 0; i < MAX_APP/9; i++;) {
+    pageB[i] = sys.gui.addButton(1 + i, 11, 1, 1, ""+i+1, mainScr);
+    sys.gui.setVisible(pageB[i], 0);
+  }
+  sys.gui.setSelect(pageB[0], 1);
+  
+  tool_gray(1);
   
   # edit screen
   
@@ -104,6 +115,10 @@ function tool_gray {
   sys.gui.setGrayout(removeB, arg0);
   sys.gui.setGrayout(saveB, arg0);
   sys.gui.setGrayout(closeB, arg0);
+  
+  for(local i = 0; i < MAX_APP/9; i++;) {
+    sys.gui.setGrayout(pageB[i], arg0);
+  }
 }
 
 
@@ -225,15 +240,29 @@ function save_mnu {
 
 }
 
+function set_page {
+  sys.gui.setYscroll(listScr, 10*32*arg0);
+  for(local i = 0; i < MAX_APP/9; i++;) {
+    sys.gui.setSelect(pageB[i], arg0 == i);
+  }
+  sys.gui.setModif(frame);
+  page = arg0;
+}
+
 function refresh {
   sys.gui.destroy(listScr);
   listScr = sys.gui.addScreen();
   local i;
   for(i = 0; i < listCount; i++;) {
-    iconsI[i] = sys.gui.addIcon(1 + 3*(i%3), 1 + 3*(i/3), 3, 3, names[i], icons[i], listScr);
+    iconsI[i] = sys.gui.addIcon(1 + 3*(i%3), 1 + 3*(i/3) + i/9, 3, 3, names[i], icons[i], listScr);
     if (i == selectedIcon) {
       sys.gui.setStr(iconsI[i], "->" + names[i]);
     }
+  }
+  set_page(page);
+  
+  for(local i = 0; i < MAX_APP/9; i++;) {
+    sys.gui.setVisible(pageB[i], i*9 < listCount);
   }
 }
 
@@ -267,7 +296,14 @@ function update_list {
 }
 
 function update_tb {
-  if (clicked(addB)) {
+ 
+  for(local i = 0; i < MAX_APP/9; i++;) {
+    if(sys.gui.getEventC(pageB[i]) == EV_RELEASED) {
+      set_page(i);
+    }
+  }
+
+  if (clicked(addB) and listCount < MAX_APP) {
     tool_gray(1);
     sys.gui.setValue(frame, editScr);
     listCurrent = listCount;
@@ -278,7 +314,6 @@ function update_tb {
     sys.gui.setVisible(eOpenB, 0);
     sys.gui.setIcon(eIconI, currentIcon);
     sys.gui.setStr(eFileB, "Select file");
-    
   }
   
   if (clicked(saveB)) {
@@ -310,6 +345,10 @@ function update_tb {
     
     selectedIcon--;
     
+    if (page != selectedIcon/9) {
+      set_page(selectedIcon/9);
+    }
+    
     refresh();
     }
   }
@@ -333,6 +372,10 @@ function update_tb {
     names[selectedIcon] = name;
     
     selectedIcon++;
+    
+    if (page != selectedIcon/9) {
+      set_page(selectedIcon/9);
+    }
     
     refresh();
     }
@@ -390,6 +433,7 @@ function update_ed {
     sys.gui.setValue(frame, listScr);
     refresh();
     sys.gui.texDeact();
+    set_page(listCurrent/9);
   }
 }
 
