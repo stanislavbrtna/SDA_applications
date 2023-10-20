@@ -1,0 +1,66 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  rtxt = sys.gui.addText(1, 1, 8, 1, "", scr);
+  
+  rselect = sys.gui.addButton(1, 3, 8, 1, "Choose file", scr);
+
+  rbtn = sys.gui.addCButton(6, 5, 3, 1, "RUN!", scr);
+  
+  sys.gui.setValue(rbtn, sys.ds.mixColor(200, 0, 0));
+
+  sys.gui.setTexAlign(rbtn, ALIGN_CENTER);
+
+  rloop = sys.gui.addCheckBox(1, 5, 4, 1, "loop it!", scr);
+
+  sys.gui.setTexEd(rtxt, 1);
+
+  rfname = "";
+  
+  if(typeof(arg0) == TYPE_STR) {
+    print("Got: " + arg0);
+    rfname = arg0;
+  }
+}
+
+
+function runhandle {
+  if (arg1 == 1 and arg0 != "") {
+    rfname = arg0;
+    sys.gui.setStr(rselect, rfname);
+  }
+}
+
+
+function update {
+  rfname = sys.os.gui.handleText(rtxt, rfname);
+
+  if(sys.gui.getEventC(rselect) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl2.svs", &runhandle, rfname, 1, "-lock -filter svs");
+    return;
+  }
+
+  if(sys.gui.getEventC(rbtn) == EV_RELEASED) {
+    sys.gui.setValue(rtxt, 0);
+    sys.os.hideKbd();
+    sys.os.subProcNC();
+    runapp();
+    return;
+  }
+}
+
+
+function runapp {
+  if (sys.gui.getValue(rloop)) {
+    sys.os.subProcess(rfname, "runapp", 0, 0, 0);
+  } else {
+    sys.os.subProcess(rfname, "", 0, 0, 0);
+  }
+}
+
+
+function exit {
+
+}
