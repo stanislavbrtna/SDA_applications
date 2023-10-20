@@ -399,7 +399,7 @@ function upd_list_scr {
     upd_sleep();
   }
   
-  if (sys.gui.getEventC(bl_current) == EV_RELEASED) {
+  if (sys.gui.getEventC(bl_current) == EV_RELEASED and currentSong != 0) {
     # reload to current on top
     sys.gui.setValue(bl_slider, (currentSong - 1)*32);
     upd_sleep();
