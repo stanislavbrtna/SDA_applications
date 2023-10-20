@@ -1,13 +1,7 @@
 function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
-  btn = sys.gui.addButton(1, 1, 8, 1, "Choose background", scr);
   
-  set = sys.gui.addButton(1, 11, 8, 1, "Set background", scr);
-  rem = sys.gui.addButton(1, 12, 8, 1, "Remove background", scr);
-
-  sys.gui.setGrayout(set, 1);
-
   sys.os.gui.setMainScr(scr);
   
   sys.fs.chDir(1); #move to apps
@@ -16,18 +10,282 @@ function init {
   if (sys.fs.conf.exists("background")) {
     sys.gui.setGrayout(rem, 0);
     sys.fs.conf.open("homescreen.cfg");
-    sys.gui.setStr(scr,sys.fs.conf.read("background"));
-    sys.fs.conf.close();
+    sys.gui.setStr(scr, sys.fs.conf.read("background"));
   } else {
     sys.gui.setGrayout(set, 1);
   }
-  sys.fs.conf.close();
+  
+  array fonts = [12, 18, 32, 70, 87];
+  current_font = 0;
+  
+  save = sys.gui.addIcon(2, 10, 2, 3, "Save", "Icons/apps.p16", scr);
+  setup = sys.gui.addIcon(6, 10, 2, 3, "Setup", "Icons/options.p16", scr);
+  
+  hx1 = num(read_def("heading_x1", 1));
+  hy1 = num(read_def("heading_y1", 5));
+  hw = num(read_def("heading_m", 8));
+  hh = num(read_def("heading_h", 2));
+  ha = num(read_def("heading_align", 2));
+  hf = num(read_def("heading_fsize", 70));
+  
+  sHead = read_def("heading_str", "");
+  
+  moHead = sys.gui.addText(hx1, hy1, hw, hh, sHead, scr);
+  sys.gui.setTxtSize(moHead, hf);
+  sys.gui.setTexAlign(moHead, ha);
+  
+  sx1 = num(read_def("sub_heading_x1", 0));
+  sy1 = num(read_def("sub_heading_y1", 7));
+  sw = num(read_def("sub_heading_w", 10));
+  sh = num(read_def("sub_heading_h", 1));
+  sa = num(read_def("sub_heading_align", 2));
+  sf = num(read_def("sub_heading_fsize", 70));
+  
+  sSub = read_def("sub_heading_str", "");
+  
+  moSub = sys.gui.addText(sx1, sy1, sw, sh, sSub, scr);
+  sys.gui.setTxtSize(moSub, sf);
+  sys.gui.setTexAlign(moSub, sa);
+  
+  tx1 = num(read_def("time_x1", 0));
+  ty1 = num(read_def("time_y1", 7));
+  tw = num(read_def("time_w", 10));
+  th = num(read_def("time_h", 1));
+  ta = num(read_def("time_align", 2));
+  tf = num(read_def("time_fsize", 70));
+  
+  moTim = sys.gui.addText(tx1, ty1, tw, th, "11:11", scr);
+  sys.gui.setTxtSize(moTim, tf);
+  sys.gui.setTexAlign(moTim, ta);
+  
+  dx1 = num(read_def("date_x1", 0));
+  dy1 = num(read_def("date_y1", 7));
+  dw = num(read_def("date_w", 10));
+  dh = num(read_def("date_h", 1));
+  da = num(read_def("date_align", 2));
+  df = num(read_def("date_fsize", 70));
+  
+  moDate = sys.gui.addText(dx1, dy1, dw, dh, "28. 1. 2023", scr);
+  sys.gui.setTxtSize(moDate, df);
+  sys.gui.setTexAlign(moDate, da);
+  
+  bL = sys.gui.addButton(0, 13, 1, 1, "<", scr);
+  bU = sys.gui.addButton(1, 13, 1, 1, "/\\", scr);
+  bD = sys.gui.addButton(2, 13, 1, 1, "\\/", scr);
+  bR = sys.gui.addButton(3, 13, 1, 1, ">", scr);
+  bA = sys.gui.addButton(4, 13, 1, 1, "A", scr);
+  bF = sys.gui.addButton(5, 13, 1, 1, "F", scr);
+  
+  bWp = sys.gui.addButton(7, 13, 1, 1, "w+", scr);
+  bWm = sys.gui.addButton(6, 13, 1, 1, "w-", scr);
+  
+  bHp = sys.gui.addButton(9, 13, 1, 1, "h+", scr);
+  bHm = sys.gui.addButton(8, 13, 1, 1, "h-", scr);
+  
+  sys.gui.setTexAlign(bWp, ALIGN_CENTER);
+  sys.gui.setTexAlign(bWm, ALIGN_CENTER);
+  sys.gui.setTexAlign(bHp, ALIGN_CENTER);
+  sys.gui.setTexAlign(bHm, ALIGN_CENTER);
+  
+  
+  tool_vis(0);
+  
+  scr2 = sys.gui.addScreen();
+  
+  btn = sys.gui.addButton(1, 1, 8, 1, "Choose background", scr2); 
+  rem = sys.gui.addButton(1, 2, 8, 1, "Remove background", scr2);
+
+  bHead = sys.gui.addCheckBox(1, 4, 8, 1, "Show heading", scr2);
+  bSub = sys.gui.addCheckBox(1, 5, 8, 1, "Show sub-heading", scr2);
+  
+  sys.gui.setTexEd(tHead, 1);
+  sys.gui.setTexEd(tSub, 1);
+  
+  back = sys.gui.addButton(1, 12, 3, 1, "Back", scr2);
+
+  sys.gui.setGrayout(set, 1);
   
   background = "";
+  
+  sys.gui.setValue(bHead, sys.fs.conf.exists("heading_str"));
+  sys.gui.setValue(bSub, sys.fs.conf.exists("sub_heading_str"));
+  sys.gui.setVisible(moHead, sys.gui.getValue(bHead));
+  sys.gui.setVisible(moSub, sys.gui.getValue(bSub));
+  
+  sys.fs.conf.close();
 }
 
 
+function read_def {
+  if(sys.fs.conf.exists(arg0)) {
+    return sys.fs.conf.read(arg0);
+  } else {
+    return arg1;
+  }
+}
+
+
+function tool_vis {
+  sys.gui.setVisible(bL, arg0);
+  sys.gui.setVisible(bR, arg0);
+  sys.gui.setVisible(bU, arg0);
+  sys.gui.setVisible(bD, arg0);
+  
+  sys.gui.setVisible(bA, arg0);
+  sys.gui.setVisible(bF, arg0);
+  
+  sys.gui.setVisible(bWp, arg0);
+  sys.gui.setVisible(bWm, arg0);
+  
+  sys.gui.setVisible(bHp, arg0);
+  sys.gui.setVisible(bHm, arg0);
+}
+
+
+function activate {
+  if(active_el == arg0) {
+    sys.gui.setTexEd(active_el, 0);
+    active_el = 0;
+    tool_vis(0);
+  } else {
+    if (active_el != 0) {
+      sys.gui.setTexEd(active_el, 0);  
+    }
+    active_el = arg0;
+    tool_vis(1);
+    sys.gui.setTexEd(active_el, 1);
+  }
+}
+
+
+function move {
+  sys.gui.setRelInit(0);
+  if (sys.gui.getEventC(bL) == EV_RELEASED) {
+    sys.gui.setX1(active_el, sys.gui.getX1(active_el) - 1);
+    sys.gui.setX2(active_el, sys.gui.getX2(active_el) - 1);
+  }
+  
+  if (sys.gui.getEventC(bR) == EV_RELEASED) {
+    sys.gui.setX1(active_el, sys.gui.getX1(active_el) + 1);
+    sys.gui.setX2(active_el, sys.gui.getX2(active_el) + 1);
+  }
+  
+  if (sys.gui.getEventC(bU) == EV_RELEASED) {
+    sys.gui.setY1(active_el, sys.gui.getY1(active_el) - 1);
+    sys.gui.setY2(active_el, sys.gui.getY2(active_el) - 1);
+  }
+  
+  if (sys.gui.getEventC(bD) == EV_RELEASED) {
+    sys.gui.setY1(active_el, sys.gui.getY1(active_el) + 1);
+    sys.gui.setY2(active_el, sys.gui.getY2(active_el) + 1);
+  }
+  
+  if (sys.gui.getEventC(bWp) == EV_RELEASED) {
+    sys.gui.setX2(active_el, sys.gui.getX2(active_el) + 1);
+  }
+  
+  if (sys.gui.getEventC(bWm) == EV_RELEASED and sys.gui.getX2(active_el) > 2) {
+    sys.gui.setX2(active_el, sys.gui.getX2(active_el) - 1);
+  }
+  
+  if (sys.gui.getEventC(bHp) == EV_RELEASED) {
+    sys.gui.setY2(active_el, sys.gui.getY2(active_el) + 1);
+  }
+  
+  if (sys.gui.getEventC(bHm) == EV_RELEASED and sys.gui.getY2(active_el) > 2) {
+    sys.gui.setY2(active_el, sys.gui.getY2(active_el) - 1);
+  }
+  
+  if (sys.gui.getEventC(bA) == EV_RELEASED) {
+    if (sys.gui.getTexAlign(active_el) < 2) {
+      sys.gui.setTexAlign(active_el, sys.gui.getTexAlign(active_el) + 1);
+    } else {
+      sys.gui.setTexAlign(active_el, 0);
+    }
+  }
+  
+  if (sys.gui.getEventC(bF) == EV_RELEASED) {
+    if (current_font < len(fonts) - 1) {
+      current_font++;
+    } else {
+      current_font = 0;
+    }
+    print("font: " + fonts[current_font] + " i: "+ current_font);
+    sys.gui.setTxtSize(active_el, fonts[current_font]);
+  }
+  
+  sys.gui.setRelInit(1);
+}
+
 function update {
+  
+  move();
+
+  sHead = sys.os.gui.handleText(moHead, sHead);
+  sSub = sys.os.gui.handleText(moSub, sSub);
+
+  if (sys.gui.getEventC(bHead) == EV_RELEASED) {
+    sys.gui.setVisible(moHead, sys.gui.getValue(bHead));
+  }
+  
+  if (sys.gui.getEventC(bSub) == EV_RELEASED) {
+    sys.gui.setVisible(moSub, sys.gui.getValue(bSub));
+  }
+
+  if (sys.gui.getEventC(moTim) == EV_RELEASED) {
+    activate(moTim);
+  }
+  
+  if (sys.gui.getEventC(moDate) == EV_RELEASED) {
+    activate(moDate);
+  }
+  
+  if (sys.gui.getEventC(moHead) == EV_RELEASED) {
+    activate(moHead);
+  }
+  
+  if (sys.gui.getEventC(moSub) == EV_RELEASED) {
+    activate(moSub);
+  }
+
+  if (sys.gui.getEventC(setup) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr2);
+  }
+  
+  if (sys.gui.getEventC(save) == EV_RELEASED) {
+    sys.fs.conf.open("homescreen.cfg");
+    save_element("time", moTim);
+    save_element("date", moDate);
+    
+    save_element("sub_heading", moSub);
+    save_element("heading", moHead);
+    
+    if(sys.gui.getVisible(moSub)) {
+      sys.fs.conf.write("sub_heading_str", "" + sys.gui.getStr(moSub));
+    } else {
+      sys.fs.conf.remove("sub_heading_str");
+    }
+    
+    if(sys.gui.getVisible(moHead)) {
+      sys.fs.conf.write("heading_str", "" + sys.gui.getStr(moHead));
+    } else {
+      sys.fs.conf.remove("heading_str");
+    }
+  
+    if (sys.gui.getStr(scr) == "") {
+      sys.fs.conf.remove("background");  
+    } else {
+      sys.fs.conf.write("background", sys.gui.getStr(scr));
+    }
+    
+    sys.fs.conf.close();
+    sys.os.settings.homeRld();
+  }
+  
+  if (sys.gui.getEventC(back) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr);
+  }
+
   if(sys.gui.getEventC(btn) == EV_RELEASED) {
     sys.gui.setGrayout(set, 1);
     sys.gui.setStr(scr, "");
@@ -35,20 +293,27 @@ function update {
     return;
   }
   
-  if(sys.gui.getEventC(set) == EV_RELEASED) {
-    sys.fs.conf.open("homescreen.cfg");
-    sys.fs.conf.write("background", background);
-    sys.fs.conf.close();
-    sys.os.settings.homeRld();
+  if(sys.gui.getEventC(rem) == EV_RELEASED) {
+    sys.gui.setStr(scr,"");
   }
   
-  if(sys.gui.getEventC(rem) == EV_RELEASED) {
-    sys.fs.conf.open("homescreen.cfg");
-    sys.fs.conf.remove("background");
-    sys.fs.conf.close();
-    sys.gui.setStr(scr,"");
-    sys.os.settings.homeRld();
-  }
+}
+
+
+ # "heading" element_id
+function save_element {
+  sys.gui.setRelInit(0);
+
+  
+  sys.fs.conf.write(arg0 + "_x1", "" + sys.gui.getX1(arg1));
+  sys.fs.conf.write(arg0 + "_y1", "" + sys.gui.getY1(arg1));
+  
+  sys.fs.conf.write(arg0 + "_w", "" + sys.gui.getX2(arg1) - sys.gui.getX1(arg1));
+  sys.fs.conf.write(arg0 + "_h", "" + sys.gui.getY2(arg1) - sys.gui.getY1(arg1));
+  
+  sys.fs.conf.write(arg0 + "_align", "" + sys.gui.getTexAlign(arg1));
+  sys.fs.conf.write(arg0 + "_fsize", "" + sys.gui.getTxtSize(arg1));
+  sys.gui.setRelInit(1);
 }
 
 
@@ -66,6 +331,7 @@ function callRet {
     } else {
       sys.gui.setParam(scr, 1);
     }
+    sys.os.gui.setMainScr(scr);
     return;
   }
 
