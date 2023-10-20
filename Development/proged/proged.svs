@@ -3,6 +3,7 @@
 import "lib/inc/1/external-kbd.svs"
 import "lib/inc/ddm.svs"
 
+
 function init {
   scr = sys.gui.addScreen();
 
@@ -65,11 +66,8 @@ function init {
       sys.gui.setStr(fnameT, "Editing: " + filename);
     }
   }
-
-  
   
   textOvr = 0;
-  
   menuOvr = 0;
   
   sld_old = -1;
@@ -186,6 +184,7 @@ function update {
       ddm_add_btn("Open");
       ddm_add_btn("Run");
       ddm_add_btn("Save");
+      ddm_add_btn("Save as ...");
       ddm_add_btn("Rotate screen");
       ddm_add_btn("Options");
       if (fileRoot == 0 or filename == "") {
@@ -220,16 +219,17 @@ function update {
   if (d > 0) {
     if (d == 1) { # new
       new_store = 0;
-      newOvInit();
+      sys.os.subProcess("lib/fsl2.svs", &newRet, 0, 0, "-new file.txt");
       return;
     }
     if (d == 2) { # open
-      sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+      sys.os.subProcess("lib/fsl2.svs", &callRet, 0, 0, 0);
     }
     if (d == 3) { #run
       sys.fs.chDir(fileRoot); # goto apps
       sys.fs.writeStr(program, filename);
       if (fileRoot == 1) {
+        sys.os.subProcNC();
         sys.os.subProcess(filename, "", 0, 0, 0);
       }
     }
@@ -237,16 +237,17 @@ function update {
       if (filename != "") {
         sys.fs.writeStr(program, filename);
       } else {
-        new_store = 1;
-        newOvInit();
-        return;
+        sys.os.subProcess("lib/fsl2.svs", &saveRet, "", 1, "-new file.txt");
       }
     }
-    if (d == 5) { # rotate
+    if (d == 5) { #save as
+      sys.os.subProcess("lib/fsl2.svs", &saveRet, filename, fileRoot, "-new file.txt");
+    }
+    if (d == 6) { # rotate
       sys.os.gui.setLandscape(1 - sys.os.gui.getLandscape());
       #TODO: handle layout
     }
-    if (d == 6) { # options
+    if (d == 7) { # options
       menuOvInit();
       return;
     }
@@ -300,6 +301,33 @@ function callRet {
     upd_liner();
     resize_bar();
   }
+}
+
+function saveRet {
+  if("" + arg0 == "" or "" + arg0 == "0") {
+    return;
+  }
+
+  filename = arg0;
+  sys.fs.chDir(arg1);
+  fileRoot = arg1;
+  
+  sys.fs.writeStr(program, filename);
+  sys.gui.setStr(fnameT, "Editing: " + filename);
+}
+
+function newRet {
+  if("" + arg0 == "" or "" + arg0 == "0") {
+    return;
+  }
+
+  filename = arg0;
+  sys.fs.chDir(arg1);
+  fileRoot = arg1;
+  
+  program = "";
+  resize_bar();
+  sys.gui.setStr(fnameT, "Editing: " + filename);
 }
 
 

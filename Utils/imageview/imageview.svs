@@ -184,7 +184,7 @@ function update {
   if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
     sys.gui.setGrayout(bl, 0);
     sys.gui.setGrayout(br, 0);
-    sys.os.subProcess("lib/fsl.svs", &set_img_clb, 0, 0, 0);
+    sys.os.subProcess("lib/fsl2.svs", &set_img_clb, 0, 0, "-filter p16");
     return;
   }
   

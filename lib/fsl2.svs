@@ -1,0 +1,502 @@
+ # file selector overlay, heavily based on SDA Commander code.
+ # arg0 - [str]default path
+ # arg1 - [num] 1 - APPS 0 - DATA
+ # arg3: argument string
+ # string: -filter extenstion
+ #         -new filename
+ #         -folder
+ #         -lock
+ 
+ # example string: -filter p16
+ # example string 2: -folder 
+ # example string 3: -new something.txt -lock
+ 
+ # returns filename with path in first argument and second argument specifies if the path is in data (0) or apps (1)
+
+function init {
+  scr = sys.gui.addScreen();
+  escr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(0);
+  sys.gui.setRelInit(1);
+  
+  # just to be sure
+  if(sys.o.getId()) {
+    sys.o.destroy();
+  }
+  
+  local l = sys.os.gui.getLandscape()*5;
+  
+  newS = "";
+  
+  filter = "";
+  
+  if(hasArg(arg2, "-folder")) {
+    pickFolder = 1;
+  } else {
+    pickFolder = 0;
+  } 
+  
+  if (getArg(arg2, "-new") != "") {
+    pickNew = 1;
+    newS = getArg(arg2, "-new");
+  }
+  
+  if (getArg(arg2, "-filter") != "") {
+    filter = getArg(arg2, "-filter");
+  }
+
+  if(pickNew == 1) {
+    newT = sys.gui.addText(0, 2, 8, 1, "", scr);
+    sys.gui.setTexEd(newT, 1);
+    #pickFolder = 1;
+  }
+
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    if(pickFolder) {
+      sys.gui.addText(0, 0, 8, 1, "Vyber složku:", scr);
+    } else {
+      sys.gui.addText(0, 0, 8, 1, "Vyber soubor:", scr);
+    }
+    btnCancel = sys.gui.addButton(5, 12 - l, 3, 1, "Zrušit", scr);
+    tReplace = sys.gui.addText(0, 12 - l, 3, 1, "Přepsat?", scr);
+
+  } else {
+    if(pickFolder) {
+      sys.gui.addText(0, 0, 8, 1, "Choose folder:", scr);
+    } else {
+      sys.gui.addText(0, 0, 8, 1, "Choose file:", scr);
+    }
+    btnCancel = sys.gui.addButton(5, 12 - l, 3, 1, "Cancel", scr);
+    tReplace = sys.gui.addText(0, 12 - l, 3, 1, "Replace?", scr);
+  }
+  
+  sys.gui.setVisible(tReplace, 0);
+  
+  btnOk = sys.gui.addButton(3, 12 - l, 2, 1, "Ok", scr);
+  
+  file_scr = sys.gui.addScreen();
+  scrollbar = sys.gui.addSliderV(8, 2 + pickNew, 1, 10 - l - pickNew, 100, 0, scr);
+
+  sys.gui.setScreen(file_scr, scr);
+  sys.gui.setXYXY(file_scr, 0, 2 + pickNew, 8, 10 - l - pickNew);
+
+  bUp = sys.gui.addButton(0, 1, 1, 1, "/\\", scr);
+  bData = sys.gui.addButton(4, 1, 2, 1, "Data", scr);
+  bApps = sys.gui.addButton(6, 1, 2, 1, "Apps", scr);
+  
+  print("bApps str: 1" + sys.gui.getStr(bApps));
+  
+  sys.gui.setSelect(bData, 1);
+
+  selfOvr = sys.o.setScr(scr);
+  
+  sys.o.setXYXY(16 + sys.os.gui.getLandscape()*80, 48, 304  +  sys.os.gui.getLandscape()*80, 464 - sys.os.gui.getLandscape()*160);
+  array fScrBtns[200];
+  array path[30];
+  
+  sys.gui.setGrayout(bUp, 1);
+
+  inApps = 0;
+  selectedFile = "";
+  upCount = 0;
+  
+  if (typeof (arg1) == TYPE_NUM) {
+    if (arg1 == 1) {
+      sys.fs.chDir(1);
+      sys.gui.setSelect(bData, 0);
+      sys.gui.setSelect(bApps, 1);
+      inApps = 1;
+    }
+  } else {
+    sys.fs.chDir(0);
+    sys.gui.setSelect(bData, 1);
+    sys.gui.setSelect(bApps, 0);
+    inApps = 0;
+  }
+  
+  if (typeof(arg0) == TYPE_STR) {
+    print("defdir: " + arg0 + "(" + getFolder(arg0) + ")");
+    sys.fs.chDir(getFolder(arg0));
+    updatePath(getFolder(arg0));
+    upCount = getUpCount(arg0);
+    
+    if (upCount > 0) {
+      sys.gui.setGrayout(bUp, 0);
+    }
+  }
+  
+  print("argstring:" + arg2);
+  
+  if(pickFolder == 0 and pickNew == 0) {
+    sys.gui.setVisible(btnOk, 0);
+  }
+  
+  if(hasArg(arg2, "-lock")) {
+    sys.gui.setGrayout(bData, 1);
+    sys.gui.setGrayout(bApps, 1);
+  } 
+    
+  print("bApps str: 5" + sys.gui.getStr(bApps));
+  
+  rldFiles();
+  
+  sys.os.gui.setMainScr(0);
+  sys.os.hideKbd();
+  
+  print("bApps:" + bApps);
+  print("bApps str:" + sys.gui.getStr(bApps));
+}
+
+function parseArgs {
+  for(local i = 0; i < arg1; i++;) {
+    arg0 = substr(arg0, instr(arg0, " ") + 1, len(arg0));
+  }
+  if(instr(arg0, " ")) {
+    return substr(arg0, 0, instr(arg0, " ") - 1);
+  } else {
+    return arg0;
+  }
+}
+
+function getArg {
+  for(local i = 0; i < 10; i++;) {
+    if(parseArgs("" + arg0, i) == arg1) {
+      return parseArgs("" + arg0, i + 1);
+    }
+  }
+  
+  return "";
+}
+
+function hasArg {
+  for(local i = 0; i < 10; i++;) {
+    if(parseArgs("" + arg0, i) == arg1) {
+      return 1
+    }
+  }
+  return 0;
+}
+
+function getFolder {
+  arg3 = 0;
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+    if (getcp(arg0, arg2) == ".") {
+      arg3 = 1;
+    }
+  }
+  if (arg3) return ""; # 
+  
+  return arg0;
+}
+
+function getUpCount {
+  arg4 = 0;
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      arg4++;
+    }
+  }
+  return arg4;
+}
+
+
+function updatePath {
+  arg4 = 0;
+  arg5 = 0;
+  for(arg2 = 0; arg2 <= len(arg0); arg2++;) {
+    if (getcp(arg0, arg2) == "/") {
+      path[arg5] = substr(arg0, arg4, arg2 - 1);
+      #print("path:" + arg5 + " " + substr(arg0, arg4, arg2 - 1));
+      arg5++;
+      arg4 = arg2 + 1;
+    }
+  }
+  return arg4;
+}
+
+
+function getsize {
+  local x;
+  sys.fs.open(arg0);
+  x = sys.fs.size();
+  sys.fs.close();
+  return x;
+}
+
+
+function rldFiles {
+  sys.gui.setVisible(tReplace, 0);
+  sys.gui.destroy(file_scr);
+  print("removing: " + file_scr);
+  for (x = 0; x < 200; x++;) {
+    fScrBtns[x] = 0;
+  }
+
+  file_scr = sys.gui.addScreen();
+  sys.gui.setScreen(file_scr, scr);
+  sys.gui.setXYXY(file_scr, 0, 2 + pickNew, 8, 10 - sys.os.gui.getLandscape()*5 - pickNew);
+
+  i = 0;
+
+  #load directory
+  for(findfil = sys.fs.find("", "."); findfil != ""; findfil = sys.fs.findNext();) {
+    if(filter == "") {
+      fScrBtns[i] = findfil;
+      i++;
+    } else {
+      if(sys.fs.isDir(findfil) or instr(findfil, "."+filter)) {
+        fScrBtns[i] = findfil;
+        i++;
+      }
+    }
+  }
+
+  numOfFiles = i;
+
+  #sortOutDirs
+  lastdir = 0;
+  for(i = 0; i < numOfFiles; i++;) {
+    if (sys.fs.isDir(fScrBtns[i])) {
+      prac = fScrBtns[lastdir];
+
+      fScrBtns[lastdir] = fScrBtns[i];
+
+      fScrBtns[i] = prac;
+
+      lastdir++;
+    }
+  }
+  
+  if (pickFolder) {
+    numOfFiles = lastdir - 1;
+  }
+
+  sortstring = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  # alphabetical sort dirs
+  {
+    local sorted;
+    local i;
+    local b;
+    local sortchar;
+    sorted = 0;
+    for(i = 1; i < len(sortstring); i++;) {
+      sortchar = getcp(sortstring, i);
+      for(b = sorted; b < lastdir; b++;){
+        if (getcp(fScrBtns[b], 1) == sortchar) {
+          local prac;
+          prac = fScrBtns[b];
+          fScrBtns[b] = fScrBtns[sorted];
+          fScrBtns[sorted] = prac;
+          sorted++;
+        }
+      }
+    }
+  }
+
+  # alphabetical sort files
+  {
+    local sorted;
+    local i;
+    local b;
+    local sortchar;
+    sorted = lastdir;
+    for(i = 1; i < len(sortstring); i++;) {
+      sortchar = getcp(sortstring, i);
+      for(b = sorted; b < numOfFiles; b++;){
+        if (getcp(fScrBtns[b], 1) == sortchar) {
+          local prac;
+          prac = fScrBtns[b];
+          fScrBtns[b] = fScrBtns[sorted];
+          fScrBtns[sorted] = prac;
+          sorted++;
+        }
+      }
+    }
+  }
+
+  #load sorted buttons
+  for(i = 0; i < numOfFiles; i++;) {
+    findfil =  fScrBtns[i];
+    fScrBtns[i] = sys.gui.addButton(0, i, 5, 1, findfil, file_scr);
+
+    if (sys.fs.isDir(findfil)) {
+      sys.gui.addText(6, i, 2, 1, "(Dir)", file_scr);
+    } else {
+      sys.gui.addText(6, i, 4, 1, "" + getsize(findfil) + "B", file_scr);
+    }
+  }
+
+  sys.gui.setValue(scrollbar, 0);
+
+  if (i > 9) {
+    sys.gui.setParam(scrollbar, 32 * i - 8 * 32);
+    sys.gui.setGrayout(scrollbar, 0);
+  } else {
+    sys.gui.setGrayout(scrollbar, 1);
+  }
+
+  selected = -1;
+}
+
+
+function getPath {
+  local i;
+  local pathStr;
+  pathStr = "";
+  for (i = 0; i < upCount; i++;) {
+    pathStr += path[i] + "/";
+  }
+
+  return pathStr;
+}
+
+function tryOpen {
+  if(pickNew == 1) {
+    newS = arg0;
+  } else {
+    selectedFile = getPath()+arg0;
+    setReturn();
+    sys.os.exit();
+  }
+}
+
+function selectTrg {
+  print("selected: " + arg0);
+  selectedFolder = arg0;
+}
+
+
+function updFiles {
+  local x;
+  for (x = 0; x < numOfFiles; x++;) {
+    if (sys.gui.getEventC(fScrBtns[x]) == EV_RELEASED) {
+        if (selected == -1) {
+          sys.gui.setSelect(fScrBtns[x], 1);
+          selected = x;
+          selectTrg(sys.gui.getStr(fScrBtns[selected]));
+        } else {
+        if (selected == x) {
+          if (sys.fs.isDir(sys.gui.getStr(fScrBtns[x]))) {
+            path[upCount] = sys.gui.getStr(fScrBtns[x]);
+            sys.fs.chDir(sys.gui.getStr(fScrBtns[x]));
+            rldFiles();
+            sys.gui.setGrayout(bUp, 0);
+            upCount++;
+          } else {
+            print ("clicked:" + sys.gui.getStr(fScrBtns[x]));
+            tryOpen(sys.gui.getStr(fScrBtns[x]));
+            sys.gui.setVisible(tReplace, 0);
+          }
+        } else {
+          sys.gui.setSelect(fScrBtns[selected], 0);
+          sys.gui.setSelect(fScrBtns[x], 1);
+          selected = x;
+          selectTrg(sys.gui.getStr(fScrBtns[selected]));
+        }
+      }
+    }
+  }
+}
+
+
+function update {
+  # First thing is to check validity of the overlay
+  if (sys.o.getId() != selfOvr) {
+    # exit and return if not valid
+    # only if keyboard is not shown, to enable copy&paste overlay
+    if(sys.os.kbdGetState() == 0) {
+      sys.os.exit();
+    } 
+    return;
+  }
+  
+  if(pickNew == 1) {
+    newS = sys.os.gui.handleText(newT, newS);
+  }
+  
+  if(sys.gui.getTexAct(newT) != newTActO) {
+    if(sys.gui.getTexAct(newT) == 1) {
+      sys.o.setY(464 - 160 - sys.os.gui.getLandscape()*160);
+      # opening of the keyboard messes up the screen drawn by the parent app
+      # so I set the main app screen as empty one to get rid of any
+      # artefacts...
+      sys.os.gui.setMainScr(escr); 
+      sys.os.setRedraw();
+      sys.gui.setVisible(tReplace, 0);
+    } else {
+      sys.o.setY(464 - sys.os.gui.getLandscape()*160);
+      sys.os.gui.setMainScr(escr);
+      sys.os.setRedraw();
+    }
+  }
+  
+  newTActO = sys.gui.getTexAct(newT);
+  
+  updFiles();
+
+  sys.gui.setYscroll(file_scr, sys.gui.getValue(scrollbar) - 8);
+
+  if (sys.gui.getEventC(bUp) == EV_RELEASED) {
+    sys.fs.chDir("..");
+    rldFiles();
+    upCount--;
+    if (upCount == 0){
+      sys.gui.setGrayout(bUp, 1);
+    }
+  }
+  
+  if (sys.gui.getEventC(bData) == EV_RELEASED) {
+    sys.fs.chDir();
+    inApps = 0;
+    sys.gui.setSelect(bData, 1);
+    sys.gui.setSelect(bApps, 0);
+    sys.gui.setGrayout(bUp, 1);
+    upCount = 0;
+    rldFiles();
+  }
+  
+  if (sys.gui.getEventC(bApps) == EV_RELEASED) {
+    sys.fs.chDir(1);
+    inApps = 1;
+    sys.gui.setSelect(bData, 0);
+    sys.gui.setSelect(bApps, 1);
+    sys.gui.setGrayout(bUp, 1);
+    upCount = 0;
+    rldFiles();
+  }
+
+  if (sys.gui.getEventC(btnCancel) == EV_RELEASED) {
+    sys.os.subRetval("", 0, 0);
+    sys.os.exit();
+  }
+  
+  if (sys.gui.getEventC(btnOk) == EV_RELEASED) {
+    if (pickNew) {
+      if(sys.fs.exists(newS) and sys.gui.getVisible(tReplace) == 0) {
+        sys.gui.setVisible(tReplace, 1);
+        return;
+      }
+    }
+    
+    setReturn();
+    sys.os.exit();
+  }
+}
+
+function setReturn {
+  if(pickFolder and pickNew == 0) {
+    if(selected != -1) {
+      sys.os.subRetval(getPath() + selectedFolder, inApps, 0);
+    } else {
+      sys.os.subRetval(getPath(), inApps, 0);
+    }
+  } else if(pickNew) {
+    sys.os.subRetval(getPath() + newS, inApps, 0);
+  } else {
+    sys.os.subRetval(selectedFile, inApps, 0);
+  }
+}

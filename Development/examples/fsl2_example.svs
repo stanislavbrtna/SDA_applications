@@ -1,0 +1,64 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  bFsl = sys.gui.addButton(1, 1, 8, 1, "Choose file", scr);
+  
+  bFolder = sys.gui.addCheckBox(1, 3, 5, 1, "FolderSelect", scr);
+  
+  bRes = sys.gui.addCheckBox(1, 5, 5, 1, "Restrict", scr);
+  
+  bData = sys.gui.addButton(6, 5, 3, 1, "DATA", scr);
+  inApps = 0;
+  
+  bFilter = sys.gui.addCheckBox(1, 7, 5, 1, "Filter", scr);
+  
+  bNew = sys.gui.addCheckBox(1, 9, 5, 1, "New file", scr);
+}
+
+function callRet {
+  print("argument0: " + arg0);
+  sys.gui.setStr(bFsl, "-> " + arg0 + "(" + arg1 + ")");
+}
+
+
+function getConfStr {
+  local str = "";
+  
+  if(sys.gui.getValue(bFolder)) {
+    str += "-folder";
+  }
+  
+  if(sys.gui.getValue(bRes)) {
+    str += " -lock";
+  }
+  
+  if(sys.gui.getValue(bNew)) {
+    str += " -new default.txt";
+  }
+  
+  if(sys.gui.getValue(bFilter)) {
+    str += " -filter svs";
+  }
+  
+  return str;
+}
+
+
+function update {
+  # fsl
+  if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl2.svs", &callRet, "", inApps, getConfStr());
+    return;
+  }
+  
+  if(sys.gui.getEventC(bData) == EV_RELEASED) {
+    inApps = not inApps;
+    if (inApps) {
+      sys.gui.setStr(bData, "APPS");
+    } else {
+      sys.gui.setStr(bData, "DATA");
+    }
+  }
+}
