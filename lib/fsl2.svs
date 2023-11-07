@@ -11,7 +11,9 @@
  # example string 2: -folder 
  # example string 3: -new something.txt -lock
  
- # returns filename with path in first argument and second argument specifies if the path is in data (0) or apps (1)
+ # returns:
+ # arg1: [str] filename with path 
+ # arg2: [num] 1/0 specifies if the path is in data (0) or apps (1)
 
 function init {
   scr = sys.gui.addScreen();
@@ -30,11 +32,13 @@ function init {
   
   filter = "";
   
+  pickNew = 0;
+  
+  pickFolder = 0;
+  
   if(hasArg(arg2, "-folder")) {
     pickFolder = 1;
-  } else {
-    pickFolder = 0;
-  } 
+  }
   
   if (getArg(arg2, "-new") != "") {
     pickNew = 1;
@@ -48,7 +52,6 @@ function init {
   if(pickNew == 1) {
     newT = sys.gui.addText(0, 2, 8, 1, "", scr);
     sys.gui.setTexEd(newT, 1);
-    #pickFolder = 1;
   }
 
   if (sys.os.getLang() == SVP_LANG_CZ) {
@@ -83,9 +86,7 @@ function init {
   bUp = sys.gui.addButton(0, 1, 1, 1, "/\\", scr);
   bData = sys.gui.addButton(4, 1, 2, 1, "Data", scr);
   bApps = sys.gui.addButton(6, 1, 2, 1, "Apps", scr);
-  
-  print("bApps str: 1" + sys.gui.getStr(bApps));
-  
+   
   sys.gui.setSelect(bData, 1);
 
   selfOvr = sys.o.setScr(scr);
@@ -136,16 +137,15 @@ function init {
     sys.gui.setGrayout(bApps, 1);
   } 
     
-  print("bApps str: 5" + sys.gui.getStr(bApps));
-  
   rldFiles();
   
   sys.os.gui.setMainScr(0);
   sys.os.hideKbd();
-  
-  print("bApps:" + bApps);
-  print("bApps str:" + sys.gui.getStr(bApps));
+ 
+  # set default returns
+  sys.os.subRetval("", 0, 0);
 }
+
 
 function parseArgs {
   for(local i = 0; i < arg1; i++;) {
@@ -158,6 +158,7 @@ function parseArgs {
   }
 }
 
+
 function getArg {
   for(local i = 0; i < 10; i++;) {
     if(parseArgs("" + arg0, i) == arg1) {
@@ -168,6 +169,7 @@ function getArg {
   return "";
 }
 
+
 function hasArg {
   for(local i = 0; i < 10; i++;) {
     if(parseArgs("" + arg0, i) == arg1) {
@@ -176,6 +178,7 @@ function hasArg {
   }
   return 0;
 }
+
 
 function getFolder {
   arg3 = 0;
@@ -191,6 +194,7 @@ function getFolder {
   
   return arg0;
 }
+
 
 function getUpCount {
   arg4 = 0;
@@ -285,7 +289,7 @@ function rldFiles {
     sorted = 0;
     for(i = 1; i < len(sortstring); i++;) {
       sortchar = getcp(sortstring, i);
-      for(b = sorted; b < lastdir; b++;){
+      for(b = sorted; b < lastdir; b++;) {
         if (getcp(fScrBtns[b], 1) == sortchar) {
           local prac;
           prac = fScrBtns[b];
@@ -354,6 +358,7 @@ function getPath {
   return pathStr;
 }
 
+
 function tryOpen {
   if(pickNew == 1) {
     newS = arg0;
@@ -363,6 +368,7 @@ function tryOpen {
     sys.os.exit();
   }
 }
+
 
 function selectTrg {
   print("selected: " + arg0);
@@ -470,7 +476,6 @@ function update {
   }
 
   if (sys.gui.getEventC(btnCancel) == EV_RELEASED) {
-    sys.os.subRetval("", 0, 0);
     sys.os.exit();
   }
   
@@ -486,6 +491,7 @@ function update {
     sys.os.exit();
   }
 }
+
 
 function setReturn {
   if(pickFolder and pickNew == 0) {

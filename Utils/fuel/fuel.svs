@@ -38,8 +38,6 @@ function init {
   keypBack = 0;
   
   dateOvr = 0;
-  
-  dbg(-1);
 }
 
 function set_spacing {

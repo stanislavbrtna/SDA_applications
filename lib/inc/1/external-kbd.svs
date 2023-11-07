@@ -23,7 +23,7 @@ function kbd_update {
   }
 
   if (sys.com.uartGetRd() == 2) {
-    gc(0);
+    #gc(0);
     local x = sys.com.uartGetStr();
     if (x != "") {
       local s = decode(x);
@@ -36,7 +36,7 @@ function kbd_update {
         
         sys.os.gui.setKbdStr(s);
       } else {
-        gc(0);
+        #gc(0);
         decode_arrows(x, arg0);
       }
     }
@@ -152,7 +152,7 @@ function decode_arrows #*(str, gr2_id )*# {
   }
    
   if (id == 14 and sys.os.gui.getCPos(arg1) < len(sys.gui.getStr(arg1))) { # del
-    gc(0); # collect after strlen
+    #gc(0); # collect after strlen
     sys.os.gui.setKbdStr("\bd");
     return;
   }
