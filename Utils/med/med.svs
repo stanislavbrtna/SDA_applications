@@ -141,7 +141,7 @@ function clicked {
 
 function update_new {
   if(clicked(openB)) {
-    sys.os.subProcess("lib/fsl.svs", &newRet, 0, 1, 0);
+    sys.os.subProcess("lib/fsl2.svs", &newRet, 0, 1, "-lock -filter mnu");
   }
   if(clicked(newB)) {
     newFname = "";
@@ -405,11 +405,11 @@ function update_ed {
   }
   
   if(clicked(eFileB)) {
-    sys.os.subProcess("lib/fsl.svs", &fileRet, currentFile, 1, 0);
+    sys.os.subProcess("lib/fsl2.svs", &fileRet, currentFile, 1, "-lock -filter svs");
   }
   
   if(clicked(eIconI)) {
-    sys.os.subProcess("lib/fsl.svs", &icoRet, currentIcon, 1, 0);
+    sys.os.subProcess("lib/fsl2.svs", &icoRet, currentIcon, 1, "-lock -filter p16");
   }
   
   eName = sys.os.gui.handleText(eNameT, eName);
