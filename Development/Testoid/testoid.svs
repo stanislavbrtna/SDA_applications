@@ -92,7 +92,7 @@ function init_runner {
 
   rloop = sys.gui.addCheckBox(1, 5, 5, 6, "loop it!", runscr);
 
-  sys.gui.setTexEd(rtxt,1);
+  sys.gui.setTexEd(rtxt, 1);
 
   rfname = "";
 }
@@ -107,6 +107,7 @@ function upd_runner {
   if(sys.gui.getEventC(rbtn) == EV_RELEASED) {
     sys.gui.setValue(rtxt, 0);
     sys.os.hideKbd();
+    sys.os.subProcNC();
     if (sys.gui.getValue(rloop)) {
       sys.os.subProcess(rfname, "runloop", 0, 0, 0);
     } else {
