@@ -14,8 +14,11 @@ function init {
   bl = sys.gui.addButton(6, 0, 2, 1, "<-", scr);
   br = sys.gui.addButton(8, 0, 2, 1, "->", scr);
 
-  barv = sys.gui.addSliderV(9, 2, 1, 10, 100, 0, scr);
-  barh = sys.gui.addSliderH(0, 13, 8, 1, 100, 0, scr);
+  barv = sys.gui.addSliderV(9, 2, 1, 10, 1000, 0, scr);
+  barh = sys.gui.addSliderH(0, 13, 8, 1, 1000, 0, scr);
+  
+  parV = 0;
+  parH = 0;
   
   binfo = sys.gui.addButton(9, 13, 1, 1, "i", scr);
 
@@ -71,32 +74,30 @@ function set_img {
 
 function set_sizes {
   if(size > 0) {
-    sys.gui.setParam(barh, sys.ds.getImageW(fname)*size - 286);
-    sys.gui.setParam(barv, sys.ds.getImageH(fname)*size - 382);
+    parH = sys.ds.getImageW(fname)*size - 286;
+    parV = sys.ds.getImageH(fname)*size - 382;
   } else {
     if(size == 0) {
-      sys.gui.setParam(barh, sys.ds.getImageW(fname)/2 - 286);
-      sys.gui.setParam(barv, sys.ds.getImageH(fname)/2 - 382);
+      parH = sys.ds.getImageW(fname)/2 - 286;
+      parV = sys.ds.getImageH(fname)/2 - 382;
     }
     if(size == -1) {
-      sys.gui.setParam(barh, sys.ds.getImageW(fname)/4 - 286);
-      sys.gui.setParam(barv, sys.ds.getImageH(fname)/4 - 382);
+      parH = sys.ds.getImageW(fname)/4 - 286;
+      parV = sys.ds.getImageH(fname)/4 - 382;
     }
     if(size == -2) {
-      sys.gui.setParam(barh, sys.ds.getImageW(fname)/8 - 286);
-      sys.gui.setParam(barv, sys.ds.getImageH(fname)/8 - 382);
+      parH = sys.ds.getImageW(fname)/8 - 286;
+      parV = sys.ds.getImageH(fname)/8 - 382;
     }
     if(size == -3) {
-      sys.gui.setParam(barh, sys.ds.getImageW(fname)/16 - 286);
-      sys.gui.setParam(barv, sys.ds.getImageH(fname)/16 - 382);
+      parH = sys.ds.getImageW(fname)/16 - 286;
+      parV = sys.ds.getImageH(fname)/16 - 382;
     }
   }
-  sys.gui.setValue(barh, sys.gui.getParam(barh)/2);
-  sys.gui.setValue(barv, sys.gui.getParam(barv)/2);
-  sys.gui.setModif(barv);
-  sys.gui.setModif(barh);
-  xpos = - sys.gui.getValue(barh);
-  ypos = - sys.gui.getValue(barv);
+  sys.gui.setValue(barh, 500);
+  sys.gui.setValue(barv, 500);
+  xpos = - num(float(sys.gui.getValue(barh))/1000.0 * float(parH));
+  ypos = - num(float(sys.gui.getValue(barv))/1000.0 * float(parV));
 }
 
 
@@ -115,12 +116,12 @@ function update {
   }
   
   if(sys.gui.getEventC(barh) == EV_RELEASED) {
-    xpos = - sys.gui.getValue(barh);
+    xpos = - num(float(sys.gui.getValue(barh))/1000.0 * float(parH));
     img_redraw();
   }
   
   if(sys.gui.getEventC(barv) == EV_RELEASED) {
-    ypos = - sys.gui.getValue(barv);
+    ypos = - num(float(sys.gui.getValue(barv))/1000.0 * float(parV));
     img_redraw();
   }
   
