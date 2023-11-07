@@ -98,8 +98,7 @@ function init {
   bHead = sys.gui.addCheckBox(1, 4, 8, 1, "Show heading", scr2);
   bSub = sys.gui.addCheckBox(1, 5, 8, 1, "Show sub-heading", scr2);
   
-  sys.gui.setTexEd(tHead, 1);
-  sys.gui.setTexEd(tSub, 1);
+  bReset = sys.gui.addButton(1, 7, 8, 1, "Reset elements", scr2);
   
   back = sys.gui.addButton(1, 12, 3, 1, "Back", scr2);
 
@@ -159,25 +158,25 @@ function activate {
 
 
 function move {
-  sys.gui.setRelInit(0);
+  #sys.gui.setRelInit(0);
   if (sys.gui.getEventC(bL) == EV_RELEASED) {
     sys.gui.setX1(active_el, sys.gui.getX1(active_el) - 1);
-    sys.gui.setX2(active_el, sys.gui.getX2(active_el) - 1);
+    #sys.gui.setX2(active_el, sys.gui.getX2(active_el) - 1);
   }
   
   if (sys.gui.getEventC(bR) == EV_RELEASED) {
     sys.gui.setX1(active_el, sys.gui.getX1(active_el) + 1);
-    sys.gui.setX2(active_el, sys.gui.getX2(active_el) + 1);
+    #sys.gui.setX2(active_el, sys.gui.getX2(active_el) + 1);
   }
   
   if (sys.gui.getEventC(bU) == EV_RELEASED) {
     sys.gui.setY1(active_el, sys.gui.getY1(active_el) - 1);
-    sys.gui.setY2(active_el, sys.gui.getY2(active_el) - 1);
+    #sys.gui.setY2(active_el, sys.gui.getY2(active_el) - 1);
   }
   
   if (sys.gui.getEventC(bD) == EV_RELEASED) {
     sys.gui.setY1(active_el, sys.gui.getY1(active_el) + 1);
-    sys.gui.setY2(active_el, sys.gui.getY2(active_el) + 1);
+    #sys.gui.setY2(active_el, sys.gui.getY2(active_el) + 1);
   }
   
   if (sys.gui.getEventC(bWp) == EV_RELEASED) {
@@ -214,7 +213,7 @@ function move {
     sys.gui.setTxtSize(active_el, fonts[current_font]);
   }
   
-  sys.gui.setRelInit(1);
+  #sys.gui.setRelInit(1);
 }
 
 function update {
@@ -289,12 +288,42 @@ function update {
   if(sys.gui.getEventC(btn) == EV_RELEASED) {
     sys.gui.setGrayout(set, 1);
     sys.gui.setStr(scr, "");
-    sys.os.subProcess("lib/fsl.svs", &callRet, "Backgrounds/", 1, 0);
+    sys.os.subProcess("lib/fsl2.svs", &callRet, "Backgrounds/", 1, "-lock -filter p16");
     return;
   }
   
   if(sys.gui.getEventC(rem) == EV_RELEASED) {
     sys.gui.setStr(scr,"");
+  }
+  
+  if (sys.gui.getEventC(bReset) == EV_RELEASED) {
+    sys.gui.setXYXY(moHead, 1, 5, 8, 2);
+    sys.gui.setXYXY(moSub, 0, 7, 10, 1);
+    
+    sys.gui.setTxtSize(moHead, 32);
+    sys.gui.setTxtSize(moSub, 18);
+    
+    sys.gui.setXYXY(moTim, 0, 1, 10, 2);
+    sys.gui.setXYXY(moDate, 0, 4, 10, 1);
+    
+    sys.gui.setTxtSize(moTim, 70);
+    sys.gui.setTxtSize(moDate, 18);
+    
+    sHead = "Heading";
+    sSub = "Sub-heading";
+    
+    sys.gui.setVisible(moHead, 1);
+    sys.gui.setValue(bHead, 1);
+    
+    sys.gui.setVisible(moSub, 1);
+    sys.gui.setValue(bSub, 1);
+    
+    sys.gui.setTexAlign(moHead, ALIGN_CENTER);
+    sys.gui.setTexAlign(moSub, ALIGN_CENTER);
+    sys.gui.setTexAlign(moTim, ALIGN_CENTER);
+    sys.gui.setTexAlign(moDate, ALIGN_CENTER);
+    
+    sys.os.gui.setMainScr(scr);
   }
   
 }
