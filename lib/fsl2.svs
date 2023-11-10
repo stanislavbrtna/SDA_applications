@@ -79,6 +79,7 @@ function init {
   
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(8, 2 + pickNew, 1, 10 - l - pickNew, 100, 0, scr);
+  sys.gui.setSliderSize(scrollbar, 80);
 
   sys.gui.setScreen(file_scr, scr);
   sys.gui.setXYXY(file_scr, 0, 2 + pickNew, 8, 10 - l - pickNew);
