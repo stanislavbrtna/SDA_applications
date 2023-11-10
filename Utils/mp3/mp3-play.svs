@@ -338,6 +338,12 @@ function update {
     sys.gui.setEvent(btn_p, EV_RELEASED);
   }
   
+  if (sys.hw.btn.getEvent(BTN_B) == EV_PRESSED) {
+    upd_sleep();
+    sys.os.wake();
+    sys.gui.setEvent(btn, EV_RELEASED);
+  }
+  
   if (sys.gui.getEventC(btn_r) == EV_RELEASED) {
     sys.os.gui.setLandscape(1 - sys.os.gui.getLandscape());
     landscape = sys.os.gui.getLandscape();
