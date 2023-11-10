@@ -2,7 +2,7 @@
  # todo: - multi select
  #
 function init {
-  sys.os.checkVer(1100);
+  sys.os.checkVer(1310);
   sys.os.setSingular();
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
@@ -10,6 +10,7 @@ function init {
   sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.0", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
+  sys.gui.setSliderSize(scrollbar, 80);
 
   sys.gui.setScreen(file_scr, scr);
   sys.gui.setXYXY(file_scr, 0, 2, 9, 9);
@@ -37,7 +38,7 @@ function init {
   sys.gui.setGrayout(bEdit, 1);
   sys.gui.setVisible(bMove, 0);
 
-  array fScrBtns[200];
+  array fScrBtns[300];
   array path[30];
   
   tabApath = "";
