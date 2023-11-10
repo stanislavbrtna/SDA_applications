@@ -16,6 +16,10 @@ function init {
 
   barv = sys.gui.addSliderV(9, 2, 1, 10, 1000, 0, scr);
   barh = sys.gui.addSliderH(0, 13, 8, 1, 1000, 0, scr);
+  sys.gui.setValue(barh, 500);
+  sys.gui.setValue(barv, 500);
+  sys.gui.setSliderSize(barv, 64);
+  sys.gui.setSliderSize(barh, 64);
   
   parV = 0;
   parH = 0;
@@ -70,6 +74,8 @@ function set_img {
   size = 1;
   size_adjust();
   set_sizes();
+  sys.gui.setValue(barh, 500);
+  sys.gui.setValue(barv, 500);
 }
 
 function set_sizes {
@@ -94,8 +100,8 @@ function set_sizes {
       parV = sys.ds.getImageH(fname)/16 - 382;
     }
   }
-  sys.gui.setValue(barh, 500);
-  sys.gui.setValue(barv, 500);
+  #sys.gui.setValue(barh, 500);
+  #sys.gui.setValue(barv, 500);
   xpos = - num(float(sys.gui.getValue(barh))/1000.0 * float(parH));
   ypos = - num(float(sys.gui.getValue(barv))/1000.0 * float(parV));
 }
@@ -167,6 +173,8 @@ function update {
     ypos = 0;
     set_sizes();
     img_redraw();
+    sys.gui.setValue(barh, 500);
+    sys.gui.setValue(barv, 500);
   }
   
   if(sys.gui.getEventC(bp) == EV_RELEASED) {
