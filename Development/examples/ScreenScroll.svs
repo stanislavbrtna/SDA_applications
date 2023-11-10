@@ -4,8 +4,8 @@ function init {
   innerScreen = sys.gui.addScreen();
 
   # fill them
-  sys.gui.addText(1,5,7,6, "Some Text!", innerScreen);
-  scrollbar = sys.gui.addSliderV(9, 1, 10, 8, 100, 50, scr);
+  sys.gui.addText(1, 1, 7, 6, "Some Text!", innerScreen);
+  scrollbar = sys.gui.addSliderV(8, 1, 9, 8, 100, 50, scr);
 
   # set innerScreen position inside the scr
   sys.gui.setScreen(innerScreen, scr);
@@ -17,11 +17,10 @@ function init {
 
 function update {
   # manage the scrollbar
-  sys.gui.setYscroll(innerScreen, sys.gui.getValue(scrollbar));
+  sys.gui.setYscroll(innerScreen, -sys.gui.getValue(scrollbar));
 
   # Scrolling with buttons
   buttonScroll(scrollbar, 10);
-
 }
 
 
