@@ -1,13 +1,13 @@
-Development/examples/HelloWorld.svs|Icons/testoid.p16|Hello World|
-Development/examples/GetTimeDate.svs|Icons/testoid.p16|Get date|
-Development/examples/ScreenScroll.svs|Icons/testoid.p16|Scrolling|
-Development/examples/fileSelector.svs|Icons/testoid.p16|File select|
-Development/examples/timer.svs|Icons/testoid.p16|Timer|
-Development/examples/ADC_example.svs|Icons/testoid.p16|ADC|
-Development/examples/Alarms.svs|Icons/testoid.p16|Alarms|
-Development/examples/dropdown.svs|Icons/testoid.p16|Dropdown|
-Development/examples/GetColor.svs|Icons/testoid.p16|GetColor|
-Development/examples/keyboard-demo.svs|Icons/testoid.p16|Keyboard|
-Development/examples/lcd-rotate.svs|Icons/testoid.p16|LCD Rotate|
-Development/examples/sound.svs|Icons/testoid.p16|Sound|
-Development/examples/cursor_pos.svs|Icons/testoid.p16|CursorPos|
+Development/examples/HelloWorld.svs|Icons/testoid.p16|Hello World||
+Development/examples/GetTimeDate.svs|Icons/testoid.p16|Get date||
+Development/examples/ScreenScroll.svs|Icons/testoid.p16|Scrolling||
+Development/examples/fileSelector.svs|Icons/testoid.p16|File select||
+Development/examples/timer.svs|Icons/testoid.p16|Timer||
+Development/examples/ADC_example.svs|Icons/testoid.p16|ADC||
+Development/examples/Alarms.svs|Icons/testoid.p16|Alarms||
+Development/examples/dropdown.svs|Icons/testoid.p16|Dropdown||
+Development/examples/GetColor.svs|Icons/testoid.p16|GetColor||
+Development/examples/keyboard-demo.svs|Icons/testoid.p16|Keyboard||
+Development/examples/lcd-rotate.svs|Icons/testoid.p16|LCD Rotate||
+Development/examples/sound.svs|Icons/testoid.p16|Sound||
+Development/examples/cursor_pos.svs|Icons/testoid.p16|CursorPos||

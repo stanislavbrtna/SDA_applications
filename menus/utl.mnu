@@ -1,0 +1,14 @@
+Productivity/calc/Calc.svs|Productivity/calc/Calc.p16|Calc
+Productivity/checklist/checklist.svs|Productivity/checklist/checklist.p16|Tasks
+Productivity/tracker/tracker.svs|Productivity/tracker/tracker.p16|Tracker
+Utils/sv-run/sv-runtime.svs|Utils/sv-run/svs.p16|Run S!|
+Development/proged/proged.svs|Development/proged/proged.p16|ProgEd|
+Utils/imageview/imageview.svs|Utils/imageview/imageview.p16|ImgView|
+Utils/usb-runner/usb-runner.svs|Utils/usb-runner/usb-runner.p16|USB Rcv|
+Utils/sender/sender.svs|Utils/sender/sender.p16|Sender|
+Utils/gps/gps.svs|Utils/gps/gps.p16|GPS|
+Utils/darkclock/darkclock.svs|Utils/darkclock/darkclock.p16|darkclock|
+Utils/lightmet/lightmet.svs|Utils/lightmet/lightmet.p16|LightMet|
+Utils/serial-tool/serial-tool.svs|Icons/conf.p16|SerialTool|
+Utils/med/med.svs|Utils/med/med.p16|MenuEdit|
+Backgrounds/bg-changer.svs|Backgrounds/bg-changer.p16|BgChange|
