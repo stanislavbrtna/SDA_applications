@@ -1,0 +1,7 @@
+function get_app_folder {
+  for(arg2 = len(sys.os.getAppPath()); arg2 > 0; arg2--;) {
+    if (getcp(sys.os.getAppPath(), arg2) == "/") {
+      return substr(sys.os.getAppPath(), 0, arg2);
+    }
+  }
+}
