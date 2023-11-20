@@ -89,8 +89,14 @@ function update {
   
   if (sys.gui.getValue(b_receive)) {
     local x = "";
+    
+    # receive field cleanup
+    if (rlen(uart_str) > 2000) {
+      uart_str = "";
+    }
+    
     if (def_port == 1) {
-      if (sys.com.uartGetRd()==2) {
+      if (sys.com.uartGetRd() == 2) {
         x = sys.com.uartGetStr();
         if (x != "") {
           uart_str += x;
