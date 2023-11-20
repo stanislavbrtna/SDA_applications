@@ -1,0 +1,107 @@
+import "lib/inc/f/get_app_folder.svs"
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  test_name = "p16 benchmark 1.0";
+  sys.gui.addText(1, 0, 10, 10, test_name, scr);
+  result = sys.gui.addText(1, 1, 10, 10, "Result:", scr);
+  
+  progress = 0;
+  tested = 0;
+  GLOB_FAIL = 0;
+  
+  ignore_glob = 0;
+  
+  if (arg0 == 1) {
+    autoreturn = 1;
+  }
+}
+
+function update {
+  if (tested == 0) {
+    test();
+    if (not ignore_glob) add_result("Final result", GLOB_FAIL);
+    tested = 1;
+    
+    if (autoreturn) {
+      sys.os.subRetval(GLOB_FAIL, test_name, 0);
+      sys.os.exit();
+    }
+  }
+}
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+function add_result {
+  if (arg1 == 1) {
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Failed");
+    if (not ignore_glob) GLOB_FAIL = 1;
+  } else
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Passed");
+}
+
+###############################################################################
+
+function test {
+  prepare();
+  if (not GLOB_FAIL) test_draw();
+  if (not GLOB_FAIL) test_draw_scl();
+
+}
+
+
+## test functions
+
+function prepare {
+  sys.fs.chDir(1);
+  sys.fs.chDir(get_app_folder()+"/testimg");  
+}
+
+
+function test_draw {
+  local FAIL;
+  local test_name = "DrawBasic";
+  local time;
+  FAIL = 0;
+  sys.ds.setArea(0, 32, 319, 479);
+  sys.cnt.set(10000);
+  sys.ds.drawImage(0, 0, 1, 1, "screentest.p16");
+  cnt  = 10000 - sys.cnt.get();
+  
+  time = ": " + cnt + "ms";
+  
+  add_result(test_name + time, FAIL);
+}
+
+
+function test_draw_scl {
+  local FAIL;
+  local test_name = "Upscaled:";
+  local time;
+  FAIL = 0;
+  sys.ds.setArea(0, 32, 319, 479);
+  sys.cnt.set(10000);
+  sys.ds.drawImage(0, 0, 2, 2, "screentest.p16");
+  cnt  = 10000 - sys.cnt.get();
+  
+  time = ": " + cnt + "ms";
+  
+  add_result(test_name + time, FAIL);
+  
+  sys.cnt.set(10000);
+  sys.ds.drawImage(0, 0, -1, -1, "screentest.p16");
+  cnt  = 10000 - sys.cnt.get();
+  
+  time = " " + cnt + "ms";
+  
+  add_result("Downscaled:" + time, FAIL);
+}
+
