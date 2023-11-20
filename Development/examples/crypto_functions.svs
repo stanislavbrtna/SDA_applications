@@ -1,0 +1,155 @@
+function init {
+  scr = sys.gui.addScreen();
+  
+  sys.gui.setRelInit(1);
+
+  unlock = sys.gui.addButton(1, 1, 4, 1, "Unlock", scr);
+  
+  untext = sys.gui.addText(1, 2, 8, 1, "Locked", scr);
+  
+  tString = sys.gui.addText(1, 3, 8, 1, "", scr);
+  btn = sys.gui.addButton(1, 3, 8, 1, "Pick file", scr);
+  
+  bSwitch = sys.gui.addButton(1, 4, 6, 1, "Text", scr);
+  
+  bEncrypt = sys.gui.addButton(1, 6, 6, 1, "Encrypt", scr);
+  
+  bDecrypt = sys.gui.addButton(1, 7, 6, 1, "Decrypt", scr);
+  
+  bSetOSKey = sys.gui.addButton(1, 8, 6, 1, "set OS keyfile", scr);
+  
+  bSetOSPwd = sys.gui.addButton(1, 9, 6, 1, "set Key as PWD", scr);
+  
+  bLock = sys.gui.addButton(1, 11, 6, 1, "Lock", scr);
+
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.setTexEd(tString, 1);
+  
+  sys.gui.setVisible(btn, 0);
+  
+  mode = "Text";
+  
+  pwdOvr = 0;
+  
+  filename = "";
+  sString = "";
+  
+  unlocked = 0;
+  unlockPre = 0;
+  
+  gray(1);
+}
+
+
+function gray {
+  sys.gui.setGrayout(bEncrypt, arg0);
+  sys.gui.setGrayout(bDecrypt, arg0);
+  sys.gui.setGrayout(bSetOSKey, arg0);
+  sys.gui.setGrayout(bSetOSPwd, arg0);
+  sys.gui.setGrayout(bLock, arg0);
+  sys.gui.setGrayout(btn, arg0);
+  sys.gui.setGrayout(bSwitch, arg0);
+  sys.gui.setGrayout(unlock, 1 - arg0);
+  sys.gui.setGrayout(tString, arg0);
+}
+
+
+function update {
+
+  sString = sys.os.gui.handleText(tString, sString);
+
+  # Launch overlay
+  if (sys.gui.getEventC(unlock) == EV_RELEASED) {
+    pwdOvr = sys.cr.unLockInit();
+  }
+
+  # Updates given overlay id, does nothing if overlay is inactive
+  sys.cr.update(pwdOvr);
+
+  # Handles overlay success
+  ok = sys.cr.getOk(pwdOvr);
+  if (ok) {
+    sys.cr.clrOk(pwdOvr);
+    if (ok == 1) {
+      print("unlocked");
+    } else {
+      print("unlock failed");
+      sys.gui.setStr(untext, "Unlock failed!");
+    }
+  }
+  
+  if (sys.gui.getEventC(bSwitch) == EV_RELEASED) {
+    if (mode  == "Text") {
+      sys.gui.setVisible(btn, 1);
+      sys.gui.setVisible(tString, 0);
+      mode = "File";
+    } else {
+      mode = "Text";   
+      sys.gui.setVisible(btn, 0);
+      sys.gui.setVisible(tString, 1);
+    }
+    sys.gui.setStr(bSwitch, mode);
+  }
+  
+  # encrypt functions
+  if (sys.gui.getEventC(bEncrypt) == EV_RELEASED) {
+    if (filename != "" and mode == "File")
+      sys.cr.encrypt(filename);
+      
+    if (sString != "" and mode == "Text")
+      sString = sys.cr.encryptStr(sString);
+  }
+  
+  if (sys.gui.getEventC(bDecrypt) == EV_RELEASED) {
+    if (filename != "" and mode == "File")
+      sys.cr.decrypt(filename);
+      
+    if (sString != "" and mode == "Text")
+      sString = sys.cr.decryptStr(sString);
+  }
+  
+  if (sys.gui.getEventC(bSetOSKey) == EV_RELEASED) {
+    sys.cr.loadOSKey();
+    sys.gui.setStr(untext, "Key: keyfile");
+  }
+  
+  if (sys.gui.getEventC(bSetOSPwd) == EV_RELEASED) {
+    sys.cr.loadPass();
+    sys.gui.setStr(untext, "Key: password");
+  }
+  
+  if (sys.gui.getEventC(bLock) == EV_RELEASED) {
+    sys.cr.lock();
+  }
+  
+  # File selector
+  if(sys.gui.getEventC(btn) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  unlocked = sys.cr.getLock();
+  
+  if (unlocked != unlockPre) {
+    if (unlocked) {
+      sys.gui.setStr(untext, "Key: password");
+      gray(0);
+    } else {
+      sys.gui.setStr(untext, "Crypto locked!");
+      gray(1);
+    }
+  }
+  
+  unlockPre = unlocked;
+  
+}
+
+
+function callRet {
+  print("callback returned");
+  print("argument0: " + arg0);
+  filename = arg0;
+
+  sys.gui.setStr(btn, arg0);
+}
