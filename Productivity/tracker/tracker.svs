@@ -24,6 +24,8 @@ function init {
   array pButtons[32];
   array pFiles[32];
   
+  sys.fs.chDir("appdata");
+  
   if (not(sys.fs.exists("tracker") and sys.fs.isDir("tracker"))) {
     sys.fs.mkDir("tracker");
   }

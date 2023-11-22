@@ -31,14 +31,12 @@ function init {
         3 - edit
   *#
 
-  if (not sys.fs.exists("settings/cal.dat")) {
-    sys.fs.conf.open("settings/cal.dat");
-    sys.fs.conf.write("first", "-1");
+  if (sys.fs.exists("appdata/cal.dat")) {
+    sys.fs.conf.open("appdata/cal.dat");
   } else {
-    sys.fs.conf.open("settings/cal.dat");
+    sys.fs.conf.open("appdata/cal.dat");
+    sys.fs.conf.write("first", "-1");
   }
-
-
 
   if (not sys.fs.conf.exists("first")) {
     sys.fs.conf.write("first", "0");

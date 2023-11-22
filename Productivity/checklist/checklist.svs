@@ -29,7 +29,7 @@ function init {
     showComplete = sys.gui.addCheckBox(1, 12, 10, 13, "Hide done", scr);
   }
 
-  sys.fs.conf.open("settings/check.dat");
+  sys.fs.conf.open("appdata/check.dat");
 
   hide_done = sys.fs.conf.readInt("hideDone", 0);
 
@@ -111,7 +111,7 @@ function store {
 
   sys.fs.conf.write("hideDone", "" + hide_done);
   sys.fs.conf.close();
-  sys.fs.conf.open("settings/check.dat");
+  sys.fs.conf.open("appdata/check.dat");
 }
 
 function add {
