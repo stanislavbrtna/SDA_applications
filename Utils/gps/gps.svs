@@ -1,5 +1,40 @@
+###############################################################################
+## GPS App for SDA 2.0
+## 
+## This app needs an GPS module connected on the external serial port
+## 
+###############################################################################
+
+
 import "lib/inc/ddm.svs"
 
+ # misc
+function get_folder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+}
+
+
+function hw_init {
+  if(sys.os.inSim() == 1) return; 
+
+  # external pin defines
+  sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+  
+  # init rcv
+  sys.com.uartRcvIT();
+  
+  # clear rcv flags
+  sys.com.uartGetRd();
+  sys.com.uartGetStr();
+}
+
+
+ # main init 
 function init {
   sys.os.checkVer(1310);
   scr = sys.gui.addScreen();
@@ -35,61 +70,68 @@ function init {
   
   sys.os.gui.setMainScr(scr);
   
+  # Info screen
   sInfo = sys.gui.addScreen();
-  
   txt = sys.gui.addText(0, 0, 9, 5, "Initializing...", sInfo);
   
+  # Track screen
   sTrack = sys.gui.addScreen();
-  
   sys.gui.addText(0, 0, 9, 1, "Track info:", sTrack);
-  
   tTrInfo = sys.gui.addText(0, 1, 9, 1, "...", sTrack);
   tTrInfo2 = sys.gui.addText(0, 2, 9, 1, "", sTrack);
   tTrInfo3 = sys.gui.addText(0, 3, 9, 1, "", sTrack);
-  
   tBNew = sys.gui.addButton(0, 4, 4, 1, "New track", sTrack);
   tBLoad = sys.gui.addButton(5, 4, 4, 1, "Load track", sTrack);
   
   frame = sys.gui.addFrame(0, 9, 9, 5, sInfo, scr);
   
   sys.fs.chDir();
-  
   sys.fs.chDir("appdata");
   
   if(not sys.fs.exists("gps")) {
     sys.fs.mkDir("gps");
   }
   
-  
+  # move back to app folder
   sys.fs.chDir(1);
   sys.fs.chDir(get_folder(sys.os.getAppPath()));
 
-  fix = "";
-  menu1 = 0;
+  # Set up variables
+
+  #initial redraw
   redraw = 3;
-  scaler = 0.0;
   
-  mark_color = sys.ds.mixColor(255, 0, 0);
-  
-  track_enabled = 0;
-  track_display = 0;
-  
-  maps_setup();
+  # GPS fix
+  fix = "";
+  upd_fix = 0;
+  pos_acq = 0;
   
   gps_attempt = 0;
   
+  timeStamp = "";
+  
+  # Menus
+  menu1 = 0;
+  
+  # Display
+  scaler = 0.0;
+  mark_color = sys.ds.mixColor(255, 0, 0);
+  
+  # tracking
+  array trk_lat[120];
+  array trk_lon[120];
+  
+  track_enabled = 0;
+  track_display = 0;
   track_dist = 0.0;
   
-  upd_fix = 0;
-  
-  pos_acq = 0;
-  
-
-  
-  timeStamp = "";
+  maps_setup();
 }
 
 
+ ##############################################################################
+ ## Maps ######################################################################
+ ##############################################################################
 function maps_setup {
   map_max = 4;
   array map_file[map_max];
@@ -131,23 +173,6 @@ function maps_setup {
 }
 
 
-function hw_init {
-  
-  if(sys.os.inSim() == 1) return; 
-
-  # external pin defines
-  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
-  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
-  
-  # init rcv
-  sys.com.uartRcvIT();
-  
-  # clear rcv flags
-  sys.com.uartGetRd();
-  sys.com.uartGetStr();
-}
-
-
 function set_map {
   current_map = arg0;
 
@@ -162,15 +187,9 @@ function set_map {
   sys.gui.setValue(hBar, 500);
 }
 
-
-function get_folder {
-  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
-    if (getcp(arg0, arg2) == "/") {
-      return substr(arg0, 0, arg2);
-    }
-  }
-}
-
+##############################################################################
+## Geo math functions ########################################################
+##############################################################################
 
 function getDeg {
   local i;
@@ -189,6 +208,50 @@ function getMin {
   return substr(s, i - 2, i + 5);
 }
 
+
+function get_xpos { # lon, lonS
+  local r;
+  r = (float(getDeg(arg0)) + float(getMin(arg0))/60.0);
+    
+    if (arg1 == "W") {
+      r *= (-1.0);
+    }
+  return r;
+}
+
+
+function get_ypos { # lat, latS
+  local r;
+  r = (float(getDeg(arg0)) + float(getMin(arg0))/60.0);
+    
+  if (arg1 == "N") {
+    r *= (-1.0);
+  }
+  return r;
+}
+
+
+## formula is form https://www.movable-type.co.uk/scripts/latlong.html
+function get_distance { # lat1(a0) lon1(a1) lat2(a2) lon2(a3)
+  R       = float(6371 * 10*10*10); # metres
+  fi1     = arg0 * pi()/180.0; # φ, λ in radians
+  fi2     = arg2 * pi()/180.0;
+  dfi     = (arg2-arg0) * pi()/180.0;
+  dlambda = (arg3-arg1) * pi()/180.0;
+
+  a = sin(dfi/2.0) * sin(dfi/2.0) +
+          cos(fi1) * cos(fi2) *
+          sin(dlambda/2.0) * sin(dlambda/2.0);
+  c = 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
+
+  d = R * c; # in metres
+  
+  return d;
+}
+
+##############################################################################
+## Draw routines #############################################################
+##############################################################################
 
 function set_sizes {
   if(map_dscale > 0) {
@@ -229,15 +292,6 @@ function draw_cross {
 }
 
 
-function abs {
-  if (arg0 < 0.0) {
-    return arg0 * (-1.0);
-  } else {
-    return arg0;
-  }
-}
-
-
 function draw_lat_lon {
   draw_cross(
     xpos + num(((arg1 + map_x[current_map]*(-1.0)) * map_xscale[current_map])*scaler),
@@ -267,31 +321,8 @@ function draw_line { # lat, lon, lat, lon, color
 }
 
 
-function get_xpos { # lon, lonS
-  local r;
-  r = (float(getDeg(arg0)) + float(getMin(arg0))/60.0);
-    
-    if (arg1 == "W") {
-      r *= (-1.0);
-    }
-  return r;
-}
-
-
-function get_ypos { # lat, latS
-  local r;
-  r = (float(getDeg(arg0)) + float(getMin(arg0))/60.0);
-    
-  if (arg1 == "N") {
-    r *= (-1.0);
-  }
-  return r;
-}
-
-
 function redrawMap {
   sys.ds.setArea(1, 65, 286, 286);
-  #sys.ds.fillRect(0, 0, 285, 222, sys.ds.mixColor(255, 0, 0));
   set_sizes();
 
   if ((arg1 == 1) or xPos_o != xPos or yPos_o != yPos) {
@@ -311,11 +342,7 @@ function redrawMap {
     xPos = get_xpos(lon, lonS);
 
     yPos = get_ypos(lat, latS);
-
-    #print("pos: x:" + xPos + " y: " + yPos + " Map orgin: x: " + map_x[current_map] + " y: " + map_y[current_map]);
-
-    draw_lat_lon(yPos, xPos);
-    
+    draw_lat_lon(yPos, xPos);  
 
     xPos_o = xPos;
     yPos_o = yPos;
@@ -323,10 +350,10 @@ function redrawMap {
 }
 
 
-function center {
+function center { #xpos, ypos
   set_sizes();
-  local a = float(num(((xPos + map_x[current_map]*(-1.0)) * map_xscale[current_map])*scaler) - view_w/2)/float(parH)*1000.0;
-  local b = float(num(((yPos + map_y[current_map]*(-1.0)) * map_yscale[current_map])*scaler) - view_h/2)/float(parV)*1000.0;
+  local a = float(num(((arg0 + map_x[current_map]*(-1.0)) * map_xscale[current_map])*scaler) - view_w/2)/float(parH)*1000.0;
+  local b = float(num(((arg1 + map_y[current_map]*(-1.0)) * map_yscale[current_map])*scaler) - view_h/2)/float(parV)*1000.0;
 
   print("center x:" + a);
   print("center y:" + b);
@@ -342,11 +369,11 @@ function center {
 }
 
 
+##############################################################################
+## Track routines ############################################################
+##############################################################################
+
 function trk_reset {
-  array trk_lat[50];
-  array trk_lon[50];
-  array trk_time[50];
-  
   trk_len = 0;
   trk_rlen = 0;
   track_dist_p = 0.0;
@@ -358,6 +385,8 @@ function trk_reset {
                + sys.time.getHr() + "-" + sys.time.getMin() + ".gps";
   
   sys.gui.setStr(tTrInfo3, "(" + track_file + ")");
+  
+  sys.hw.lockSleep(1);
 }
 
 
@@ -366,15 +395,21 @@ function trk_add_point { #lat, lon
     if (arg0 == trk_lat[trk_len - 1] and trk_lon[trk_len - 1] == arg1) {
       return;
     }
+    
+    if (get_distance(arg0, arg1, trk_lat[trk_len - 1], trk_lon[trk_len - 1]) < 40.0) {
+      print("Points too close together...");
+      return;
+    }
   }
+  
+  # TODO: redukovat lineárně závislé body...
 
   trk_lat[trk_len] = arg0;
   trk_lon[trk_len] = arg1;
-  trk_time[trk_len] = sys.time.get();
   
   trk_len++;
   
-  if(trk_len == 50) {
+  if(trk_len == len(trk_lat) - 1) {
     trk_len = 0;
     track_dist_p += track_dist;
   }
@@ -411,32 +446,13 @@ function trk_draw {
     draw_dot(trk_lat[i], trk_lon[i], sys.ds.mixColor(200, 0, 0));
     if(lat_pre != 0.0) {
       draw_line(lat_pre, lon_pre, trk_lat[i], trk_lon[i], sys.ds.mixColor(200, 0, 0));
-      track_dist += trk_compute(lat_pre, lon_pre, trk_lat[i], trk_lon[i]);
+      track_dist += get_distance(lat_pre, lon_pre, trk_lat[i], trk_lon[i]);
     }
     lat_pre = trk_lat[i];
     lon_pre = trk_lon[i];
   }
   
   sys.gui.setStr(tTrInfo, "Distance: " + track_dist + track_dist_p + " m");
-}
-
-
- # formula is form https://www.movable-type.co.uk/scripts/latlong.html
-function trk_compute { # lat1(a0) lon1(a1) lat2(a2) lon2(a3)
-  R       = float(6371 * 10*10*10); # metres
-  fi1     = arg0 * pi()/180.0; # φ, λ in radians
-  fi2     = arg2 * pi()/180.0;
-  dfi     = (arg2-arg0) * pi()/180.0;
-  dlambda = (arg3-arg1) * pi()/180.0;
-
-  a = sin(dfi/2.0) * sin(dfi/2.0) +
-          cos(fi1) * cos(fi2) *
-          sin(dlambda/2.0) * sin(dlambda/2.0);
-  c = 2.0 * atan2(sqrt(a), sqrt(1.0 - a));
-
-  d = R * c; # in metres
-  
-  return d;
 }
 
 
@@ -459,11 +475,11 @@ function trk_load {
   while(sys.fs.conf.exists("lat_" + trk_rlen)) {
     trk_lat[trk_len] = float(sys.fs.conf.read("lat_" + trk_rlen));
     trk_lon[trk_len] = float(sys.fs.conf.read("lon_" + trk_rlen));
-    trk_time[trk_len] = float(sys.fs.conf.read("time_" + trk_rlen));
+    #trk_time[trk_len] = float(sys.fs.conf.read("time_" + trk_rlen));
     
     trk_len++;
     
-    if(trk_len == 50) {
+    if(trk_len == len(trk_lat) - 1) {
       trk_draw(); # to compute the dist, and also draw it on screen
       trk_len = 0;
       track_dist_p += track_dist;
@@ -477,27 +493,42 @@ function trk_load {
   sys.fs.chDir(1);
   sys.fs.chDir(get_folder(sys.os.getAppPath()));
   
+  sys.gui.setStr(tTrInfo2, "Data: " + trk_len + " points");
 }
 
 
-function fix_valid {
-  return (fix != "" and fix != "0");
+function trk_stop {
+  track_enabled = 0;
+  track_display = 0;
+  sys.gui.setStr(tTrInfo, "");
+  sys.gui.setStr(tTrInfo2, "");
+  sys.gui.setStr(tTrInfo3, "");
+  sys.hw.lockSleep(0);
 }
 
+
+##############################################################################
+## Gui update ################################################################
+##############################################################################
 
 function update {
-
+  
+  # Redraw handling
+  
   if(redraw > 1) {
     redraw--;
   }
+  
   if (redraw == 1) {
     redraw--;
     redrawMap((fix != "0") and (fix !=""), 1);
   }
+  
   if(sys.os.getRedraw()) {
     redrawMap((fix != "0") and (fix !=""), 1);
   }
   
+  # gui handlers
   if(sys.gui.getEventC(hBar) == EV_RELEASED or sys.gui.getEventC(vBar) == EV_RELEASED) {
     redraw = 1;
   }
@@ -512,11 +543,17 @@ function update {
     redraw = 1;
   }
   
-  if(sys.gui.getEventC(bS) == EV_RELEASED and pos_acq) {
-    center();
+  if(sys.gui.getEventC(bS) == EV_RELEASED) {
+    if (pos_acq) {
+      center(xPos, yPos);
+    } else {
+      if (track_display and trk_len != 0) {
+        center(trk_lon[0], trk_lat[0]);
+      }
+    }
+    
     redraw = 1;
   }
-  
   
   if(sys.gui.getEventC(tBNew) == EV_RELEASED) {
     if(track_enabled == 0 and track_display == 0) {
@@ -526,17 +563,13 @@ function update {
         sys.gui.setStr(tBNew, "Stop");
       }
     } else { 
-      track_enabled = 0;
-      track_display = 0;
-      sys.gui.setStr(tTrInfo, "");
-      sys.gui.setStr(tTrInfo2, "");
-      sys.gui.setStr(tTrInfo3, "");
+      # stop tracking
+      trk_stop();
       sys.gui.setStr(tBNew, "New track");
     }
     
     redraw = 1;
   }
-  
   
   if (sys.gui.getEventC(bMapSel) == EV_RELEASED) {
     # Overlay screen must be created right away before calling sys.o.setScr
@@ -567,15 +600,16 @@ function update {
   
   if (sys.gui.getEventC(bAutoFit) == EV_RELEASED and pos_acq) {
     map_dscale = 2;
-    center();
+    center(xPos, yPos);
     redraw = 1;
   }
 
   if(sys.gui.getEventC(tBLoad) == EV_RELEASED) {
-    sys.os.subProcess("lib/fsl2.svs", &trk_load, 0, 0, "-filter gps");
+    sys.os.subProcess("lib/fsl2.svs", &trk_load, "appdata/gps/", 0, "-filter gps");
     return;
   }
-    
+  
+  # read uart data
   if (sys.hw.getLcdState() == 1) {
     local x = "";
     
@@ -583,8 +617,6 @@ function update {
       if (sys.com.uartGetRd() == 2) {
         x = sys.com.uartGetStr();
         if (x != "") {
-          # todo: decode: x
-          #print("got: " + x);
           parseNMEA(x);
           x = 0;
           gps_attempt = 0;
@@ -597,19 +629,18 @@ function update {
       local fakepos;
       
       #fakepos = "$GPGGA,160230.00,,,,,0,00,99.99,,,,,,*60"; # Fix not yet valid
-      #fakepos = "$GPGGA,161134.00,5004.62525,N,01425.51380,E,1,04,2.46,395.5,M,44.0,M,,*5A"; # Prague
-      fakepos = "$GPGGA,161134.00,4858.47023,N,01428.45948,E,1,04,2.46,395.5,M,44.0,M,,*5A";
+      fakepos = "$GPGGA,161134.00,5004.62525,N,01425.51380,E,1,04,2.46,395.5,M,44.0,M,,*5A"; # Prague
+      #fakepos = "$GPGGA,161134.00,4858.47023,N,01428.45948,E,1,04,2.46,395.5,M,44.0,M,,*5A";
       
       # to better simulate real nmea input
       fakepos = "2,32,,*7D\n$GPGSV,3,3,11,24,67,141,,25,32,259,12,32,26,311,13*45\n$GPGLL,4858.95624,N,01427.85949,E,162151.00,A,A*6D\n$GPRMC,162152.00,A,4858.95585,N\n01427.85897,E,1.175,,191123,,,A*76\n$GPVTG,,T,,M,1.175,N,2.176,K,A*23" + fakepos +"\n$GPGSA,A,3,12,15,32,25,,,,,,,,,3.56,2.82,2.17*0F";
       
       parseNMEA(fakepos);
     }
-    
-     gc(200);
+    gc(200);
   }
   
-  
+  # update the gps info string
   if (upd_fix == 1) {
     if(timeStamp != "" or fix_valid()) {
       if(fix_valid()) {
@@ -641,13 +672,12 @@ function update {
       # map redraw
       redrawMap(1, 0);
     } else {
-      sys.gui.setStr(txt, "Waiting for fix.");
+      sys.gui.setStr(txt, "Waiting for fix. (" + num(sats) + " sats)");
     }
     upd_fix = 0;
   }
   
-  
-  
+  # periodical update of the tracking
   if (sys.time.getUptime() > updTime + 5 or upd_fix == 1) {
   
     updTime = sys.time.getUptime();
@@ -660,9 +690,12 @@ function update {
     if (sys.hw.getLcdState() == 1) {
       if (gps_attempt > 5) {
         sys.gui.setStr(txt, "GPS communication Failed.\nIs GPS module connected?");
+        pos_acq = 0;
       } else {
-        if(gps_attempt > 1)
+        if(gps_attempt > 1) {
           sys.gui.setStr(txt, "No NMEA sentence detected...");
+          pos_acq = 0;
+        }
         
         gps_attempt++;
       }     
@@ -672,6 +705,10 @@ function update {
   sys.gui.setValue(bar, 5 - (updTime + 5 - sys.time.getUptime()));
 }
 
+
+##############################################################################
+## Nmea parsing ##############################################################
+##############################################################################
 
 function parseNMEA {
   if( not instr(arg0, "$GPGGA")) {
@@ -685,8 +722,11 @@ function parseNMEA {
   fix = get_arg(cmd, 5);
   
   sats = get_arg(cmd, 6);
-  hdop = get_arg(cmd, 7);
-
+  
+  if (sats == "") {
+    stas = "0";
+  }
+  
   if(fix == "" or fix == "0") {
     fix = "0";
     return;
@@ -696,6 +736,7 @@ function parseNMEA {
   latS = get_arg(cmd, 2);
   lon  = get_arg(cmd, 3);
   lonS = get_arg(cmd, 4);
+  hdop = get_arg(cmd, 7);
   alt  = get_arg(cmd, 8);
   
   pos_acq = 1;
@@ -711,5 +752,10 @@ function get_arg #* str, arg_no *# {
   }
   
   return substr(out, 0, instr(out, ",") - 1);
+}
+
+
+function fix_valid {
+  return (fix != "" and fix != "0");
 }
 
