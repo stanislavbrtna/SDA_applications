@@ -1,6 +1,8 @@
 
 
 function cont_get_info {
+  sys.fs.chDir();
+  sys.fs.chDir("appdata");
   sys.fs.conf.open("phone/contacts.cfg");
   
   local array info[4]; #name, surname, image, company

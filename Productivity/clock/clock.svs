@@ -172,7 +172,7 @@ function init_budik {
   sys.gui.setVisible(bud_ok, 0);
   sys.gui.setVisible(bud_snooze, 0);
 
-  sys.fs.conf.open("settings/clock.dat");
+  sys.fs.conf.open("appdata/clock.dat");
 
   bud_min = sys.fs.conf.readInt("min", 0);
   bud_hour = sys.fs.conf.readInt("hour", 0);
@@ -197,7 +197,7 @@ function init_budik {
 }
 
 function resetAlarm {
-  sys.fs.conf.open("settings/clock.dat");
+  sys.fs.conf.open("appdata/clock.dat");
 
   sys.fs.conf.write("act_" + arg0 + 1 , "" + arg1);
 
@@ -237,7 +237,7 @@ function upd_bud {
       }
     }
 
-    sys.fs.conf.open("settings/clock.dat");
+    sys.fs.conf.open("appdata/clock.dat");
 
     sys.fs.conf.write("active" , "" + bud_active);
 
@@ -288,7 +288,7 @@ function upd_bud {
     }
 
     sys.o.time.clrOk(tim_ov);
-    sys.fs.conf.open("settings/clock.dat");
+    sys.fs.conf.open("appdata/clock.dat");
 
     sys.fs.conf.write("min", "" + bud_min);
     sys.fs.conf.write("hour", "" + bud_hour);

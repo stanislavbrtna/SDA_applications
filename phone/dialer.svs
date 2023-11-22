@@ -95,6 +95,11 @@ function init {
   
   t_at = at_command("AT");
   at_quiet = 1;
+  
+  sys.fs.chDir("appdata");
+  if(not sys.fs.exists("phone")) {
+    sys.fs.mkDir("phone");
+  }
 }
 
 

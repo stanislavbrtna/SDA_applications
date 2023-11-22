@@ -31,6 +31,12 @@ function init {
   
   list_start = 0;
   
+  sys.fs.chDir("appdata");
+  
+  if(not sys.fs.exists("phone")) {
+    sys.fs.mkDir("phone");
+  }
+  
   sys.fs.conf.open("phone/contacts.cfg");
   list_size = 0;
   while(sys.fs.conf.exists("name_" + list_size)) {
@@ -40,7 +46,7 @@ function init {
   
   print(list_size - 1 + " contacts found");
   
-  s_bar = sys.gui.addSliderV(9, 3, 1, 8, list_size - 10, 1, scr);
+  s_bar = sys.gui.addSliderV(9, 3, 1, 8, list_size - 10, 0, scr);
   
   b_up = sys.gui.addButton(9, 2, 1, 1, "/\\", scr);
   b_dn = sys.gui.addButton(9, 11, 1, 1, "\\/", scr);
@@ -162,7 +168,7 @@ function load_list {
   if(listFilter == "") {
     local b = 0;
     while(sys.fs.conf.exists("name_" + i)) {
-      #print("add: " + sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i));
+      print("add: " + sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i) + " pos: " + b);
       
       b_list[b] = sys.gui.addButton(0, b, 8, 1,
         sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i), list_scr);
@@ -193,7 +199,7 @@ function load_list {
     }
   }
   
-  
+  #sys.gui.setModif(list_scr);
   sys.fs.conf.close();
 }
 
@@ -214,6 +220,7 @@ function upd_list {
 
   if (sys.gui.getValue(s_bar) != s_bar_pval) {
     list_start = sys.gui.getValue(s_bar);
+    print("list_start: " + list_start);
     load_list();
   }
   
