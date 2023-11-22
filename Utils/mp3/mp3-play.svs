@@ -8,6 +8,9 @@ find . -maxdepth 1 -name '*.mp3' | awk 'BEGIN{ a=0 }{ printf "mp3info -p \"%d=%%
 | bash > ~/mp3-list.dat
 
 *#
+
+import "lib/inc/fs_misc.svs"
+
 function ds_cmd { # cmd, param1, param2
   sys.com.qAdd(0x7E);
   sys.com.qAdd(0xFF);
@@ -151,7 +154,7 @@ function init {
   sys.hw.iPinSet(16, 1);
 
   # load settings
-  sys.fs.conf.open("mp3-play.cfg");
+  sys.fs.conf.open("settings/mp3-play.cfg");
   
   if (sys.fs.conf.exists("volume")) {
     sys.gui.setValue(vol_sld, num(sys.fs.conf.read("volume")));
@@ -160,11 +163,19 @@ function init {
   if (sys.fs.conf.exists("random")) {
     sys.gui.setValue(btn_rnd, num(sys.fs.conf.read("random")));
   }
-
   sys.fs.conf.close();
   
-  # load list of songs
+  # load list of songs from appdata  
+  sys.fs.chDir();
+  sys.fs.chDir("appdata");
+  
+  if (not sys.fs.exists("mp3-list.dat")) {
+    sys.os.error("mp3-list.dat is missing\n\nShould be placed in:\nappdata/mp3-list.dat");
+    sys.os.exit();
+    return;
+  }
   sys.fs.conf.open("mp3-list.dat");
+  
   array btnList[30];
   array btnListSng[30];
   array prevSongs[15];
@@ -184,6 +195,8 @@ function init {
   add_big_list();
   upd_sleep();
   scr_adjust();
+  
+  fs_pop = 1;
 }
 
 function add_big_list {
@@ -283,6 +296,22 @@ function play_next {
 
 
 function update {
+  
+  # resource popping
+  # load icons
+  if(fs_pop != 0) {
+    fs_pop = 0;
+    if(fs_pop("mp3","play.p16")) {fs_pop += 1;}
+    if(fs_pop("mp3","next.p16")) {fs_pop += 1;}
+    if(fs_pop("mp3","pause.p16")) {fs_pop += 1;}
+    if(fs_pop("mp3","prev.p16")) {fs_pop += 1;}
+    
+    if (fs_pop == 0) {
+      sys.os.setRedraw();
+      sys.fs.chDir(); # back to data...
+    }
+  }
+
   # wait few cycles before setting the initial volume to let the DFPlayer boot
   if (setInitVolFlag != 0) {
     setInitVolFlag--;
@@ -590,7 +619,8 @@ function reload_list {
 
 function exit {
   sys.fs.conf.close();
-  sys.fs.conf.open("mp3-play.cfg");
+  sys.fs.chDir();
+  sys.fs.conf.open("settings/mp3-play.cfg");
   sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld) + " ");
   sys.fs.conf.write("random", "" + sys.gui.getValue(btn_rnd) + " ");
   sys.fs.conf.write("fixforbrokenConf", "" + sys.gui.getValue(vol_sld) + " ");
