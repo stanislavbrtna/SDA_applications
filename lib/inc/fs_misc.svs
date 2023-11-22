@@ -1,0 +1,82 @@
+ # moves to the appdata/app_name directory, fixes missing dirs
+function fs_confPath { # arg0: app_name
+  sys.fs.chDir();
+  sys.fs.chDir("appdata");
+  if(not sys.fs.exists(arg0)) {
+    sys.fs.mkDir(arg0);
+  }
+  sys.fs.chDir(arg0);
+}
+
+
+#* 
+  FS Populate:
+  
+  Usage:
+  
+  Init code:
+  
+  fs_pop = 1;
+
+  
+  Update code:
+  
+  # resource popping
+  if(fs_pop != 0) {
+    fs_pop = 0;
+    if(fs_pop("appname","resource1.p16")) {fs_pop += 1;}
+    if(fs_pop("appname","resource2.p16")) {fs_pop += 1;}
+    if(fs_pop("appname","resource3.cfg")) {fs_pop += 1;}
+    
+    if (fs_pop == 0) {
+      sys.os.setRedraw();
+      sys.fs.chDir(); # back to data...
+      }
+   }
+*#
+
+# populates appdata/app_name with files from APPS folder
+function fs_pop {
+  local appf = sys.os.getAppPath();
+  local i;
+  
+  if (sys.fs.copyStat(0) != 0) {
+    return 1;
+  }
+  
+  # make appdata folder
+  fs_confPath(arg0);
+  
+  if(sys.fs.exists(arg1)) {
+    return 0;
+  }
+  
+  for(i = len(appf); i > 0; i--;) {
+    if (getcp(appf, i) == "/") {
+      appf = substr(appf, 0, i);
+      break;
+    }
+  }
+  
+  sys.fs.chDir(1);
+  sys.fs.chDir(appf);
+  
+  if (not sys.fs.exists(arg1)) {
+    print("fs_pop: missing resource " + arg1);
+    return 1;
+  }
+    
+  sys.fs.copySource(arg1);
+  
+  sys.fs.chDir();
+  sys.fs.chDir("appdata/" + arg0);
+   
+  sys.fs.copyStart(arg1, 2048);
+  
+  print("Resource pop:");
+  print("Source: " + appf + arg1);
+  print("Dest: " + "appdata/" + arg0 + "/" + arg1);
+  
+  return 1;
+}
+
