@@ -43,8 +43,8 @@ function init {
   
   confCurrent = "";
   
-  dbg(-1);
 }
+
 
 function set_spacing {
   sys.gui.setSpacing(arg0, 1, 1, 1, 1);
@@ -54,8 +54,8 @@ function set_spacing {
   sys.gui.setXscroll(arg0, -6); # to change xscroll and xscroll old, prevents scroll artefacts
 }
 
+
 function load_projects {
-  # dummy, replace with correct
   sys.gui.destroy(sProjects);
   sProjects = sys.gui.addScreen(0, 1, 8, 10, scr);
   local i = 0; 
@@ -88,6 +88,7 @@ function load_projects {
   sys.gui.setValue(pSld, 0);
   sys.gui.setParam(pSld, (pCount - 1)*34 + 6);
 }
+
 
 function handle_proj {
   local i;
