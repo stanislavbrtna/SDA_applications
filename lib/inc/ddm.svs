@@ -7,6 +7,7 @@ misc configuration:
 
 function ddm_init {
   ddm_id = 0;
+  ddm_spacing = 0;
 }
 
  # creates new dropdown
@@ -50,11 +51,15 @@ function ddm_add_btn #* str name, return: id *# {
     ddm_y1 -= sys.gui.getYcell(sys.os.gui.getMainScr());
   }
   
+  while (ddm_x1 + sys.gui.getXcell(sys.os.gui.getMainScr()) * ddm_width > 320 + 160*sys.os.gui.getLandscape()) {
+    ddm_x1 -= sys.gui.getXcell(sys.os.gui.getMainScr());
+  }
+  
   sys.o.setXYXY(
     ddm_x1,
     ddm_y1,
-    ddm_x1 + ddm_width * sys.gui.getXcell(sys.os.gui.getMainScr()),
-    ddm_y1 + sys.gui.getYcell(sys.os.gui.getMainScr()) * ddm_btn_cnt
+    ddm_x1 + ddm_width * sys.gui.getXcell(sys.os.gui.getMainScr()) - ddm_spacing*ddm_width,
+    ddm_y1 + sys.gui.getYcell(sys.os.gui.getMainScr()) * ddm_btn_cnt - ddm_spacing*ddm_btn_cnt
   );
   
   return ddm_btn_cnt;
