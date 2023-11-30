@@ -1,0 +1,84 @@
+#*
+ * Custom overlay message
+*#
+
+function com_init {
+  com_id = 0;
+}
+
+function com_new { # title, if_str_input, if_informal
+  com_screen = sys.gui.addScreen();
+  com_title = sys.gui.addText(0, 0, 8, 1, arg0, com_screen);
+  
+  com_ok_val = 0;
+  com_str_val = 0;
+  
+  if(arg1 == 1) {
+    com_text = sys.gui.addText(0, 1, 7, 1, "", com_screen);
+    sys.gui.setTexEd(com_text, 1);
+    com_str = "";
+    com_str_val = 1;
+    com_ok = sys.gui.addButton(5, 2, 2, 1, "Ok", com_screen);
+    com_cancel = sys.gui.addButton(0, 2, 3, 1, "Cancel", com_screen);
+    sys.os.showKbd();
+    sys.gui.setTexAct(com_text);
+  } else {
+    com_ok = sys.gui.addButton(5, 1, 2, 1, "Ok", com_screen);
+    if(arg2 == 0) {
+      com_cancel = sys.gui.addButton(0, 1, 3, 1, "Cancel", com_screen);
+    }
+  }
+  
+  set_spacing(com_screen);
+  
+  com_ov_id = sys.o.setScr(com_screen);
+  com_id++;
+  sys.o.setY(156 + (arg1*32));
+  
+  if(not com_informal and arg2)
+    com_informal = 1;
+  
+  return com_id;
+}
+
+
+function com_handle {
+  if(sys.o.getId() != com_ov_id or sys.o.getId() == 0) {
+    return 0;
+  }
+  
+  if(com_id != arg0) {
+    if(com_informal) {
+      if (sys.gui.getEventC(com_ok) == EV_RELEASED) {
+        com_ov_id = 0;
+        sys.o.destroy();
+        com_informal = 0;
+      }
+    }
+  
+    return 0;
+  }
+  
+  if(com_str_val == 1) {
+    com_str = sys.os.gui.handleText(com_text, com_str);
+  }
+  
+  if (sys.gui.getEventC(com_ok) == EV_RELEASED) {
+    com_ok_val = 1;
+    com_ov_id = 0;
+    sys.o.destroy();
+    sys.os.hideKbd();
+    return com_ok_val;
+  }
+  
+  if (sys.gui.getEventC(com_cancel) == EV_RELEASED) {
+    com_ok_val = 2;
+    com_ov_id = 0;
+    sys.o.destroy();
+    sys.os.hideKbd();
+    return com_ok_val;
+  }
+  
+  return com_ok_val;
+}
+
