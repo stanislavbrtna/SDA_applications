@@ -1,0 +1,836 @@
+
+
+## ascii only -> to lib
+function ascii_only { # arg0: string arg1: ignore_spaces
+  local i;
+  local out = "";
+  local c = "";
+  
+  for(i = 0; i < len(arg0); i++;) {
+    c = getcp(arg0, i);
+    if(rlen(c) == 1) {
+      if(not (arg1 == 1 and c == " ")) 
+        out += c;
+    }
+  }
+  return out;
+}
+
+
+
+## Main int
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  
+  bDaily = sys.gui.addButton(0, 11, 4, 1, "Daily Todo", scr);
+  sys.gui.setSelect(bDaily, 1);
+  bTasks = sys.gui.addButton(4, 11, 3, 1, "Tasks", scr);
+  bNewTask = sys.gui.addButton(7, 11, 1, 1, "+", scr);
+  
+  sList = sys.gui.addScreen(0, 1, 8, 10, scr);
+  
+  scrBar = sys.gui.addSliderV(8, 1, 1, 10, 100, 50, scr);
+  
+  tTitle = sys.gui.addText(1, 0, 5, 1, "Daily Todo", scr);
+  
+  #bCPrev = sys.gui.addButton(0, 0, 1, 1, "<", scr);
+  #bCNext = sys.gui.addButton(6, 0, 1, 1, ">", scr);
+  bCategory = sys.gui.addButton(0, 0, 7, 1, "CATEG", scr);
+  bCMenu = sys.gui.addButton(7, 0, 1, 1, "...", scr);
+  
+  bMenuH = 0; # category menu handler
+  
+  bBack = sys.gui.addButton(0, 11, 3, 1, "Back", scr);
+  bNotes = sys.gui.addButton(4, 11, 3, 1, "Notes", scr);
+  bTMenu = sys.gui.addButton(0, 0, 1, 1, "...", scr);
+  
+  bTMenuH = 0;
+  
+  subMenu = 0;
+  
+  set_spacing(scr);
+  sys.os.gui.setMainScr(scr);
+  
+  # Task entry screen
+  sTaskE = sys.gui.addScreen();
+  
+  bCheckTE = sys.gui.addCheckBox(0, 0, 1, 1, "", sTaskE);
+  tNameTE = sys.gui.addText(1, 0, 6, 1, "", sTaskE);
+  bDelTE = sys.gui.addButton(7, 0, 1, 1, "X", sTaskE);
+  sys.gui.setTexEd(tNameTE, 1);
+  sys.gui.addText(0, 1, 7, 1, "Description:", sTaskE);
+  scDescrTE = sys.gui.addScreen(0, 2, 8, 6, sTaskE);
+  tDescrTE = sys.gui.addText(0, 0, 9, 21, "", scDescrTE);
+  sys.gui.setTexEd(tDescrTE, 1);
+  
+  bSaveTE  = sys.gui.addButton(6, 9, 2, 1, "Save", sTaskE);
+  
+  bBackTE  = sys.gui.addButton(0, 11, 3, 1, "Back", sTaskE);
+  bTrackTE = sys.gui.addButton(3, 11, 5, 1, "Start tracking",sTaskE);
+  
+  barTE = sys.gui.addSliderV(8, 2, 1, 6, 14*32, 0, sTaskE);
+  
+  set_spacing(sTaskE);
+  
+  sNameTE = "";
+  sDescrTE = "";
+  
+  idTE = 0;
+  
+  # notes screen
+  sNotes   = sys.gui.addScreen();
+  tTitleNo = sys.gui.addText(0, 0, 6, 1, "Title", sNotes);
+  bSaveNo  = sys.gui.addButton(5, 11, 3, 1, "Save", sNotes);
+  bBackNo  = sys.gui.addButton(0, 11, 3, 1, "Back", sNotes);
+  sListNo  = sys.gui.addScreen(0, 1, 8, 10, sNotes);
+  barNo    = sys.gui.addSliderV(8, 1, 1, 7, 22*32, 0, sNotes);
+  
+  tNotes = sys.gui.addText(0, 0, 9, 34, "", sListNo);
+  sys.gui.setTexEd(tNotes, 1);
+  
+  set_spacing(sNotes);
+  
+  tNotes_s = "";
+  
+  # setup
+  
+  categ_vis(0);
+  bottom_vis(0);
+  
+  com_init();
+  
+  ov_id = 0;
+  
+  mode = 0;
+  
+  com_ov_id = 0;
+  
+  new_task = 0;
+  
+  new_te_hndl = 0;
+  
+  tasksLen = 0;
+  
+  current_task = "";
+  current_cat = 0;
+  
+  sys.fs.chDir("appdata");
+  
+  if (not sys.fs.exists("tasks")) {
+    sys.fs.mkDir("tasks");
+  }
+  
+  print("chdir? " + sys.fs.chDir("tasks"));
+  
+  array pButtons[100];
+  array pFiles[100];
+  array IDs[100];
+  array cats[10];
+  array catID[10];
+  
+  cat_len = 0;
+   
+  if(not sys.fs.exists("daily.tsk")) {
+    sys.fs.conf.open("daily.tsk");
+    sys.fs.conf.write("name", "daily");
+    sys.fs.conf.close();
+  }
+  
+  load_task("daily.tsk");
+  
+  ddm_init();
+  
+  load_cats();
+  
+  sys.fs.conf.open("cats.cfg");
+  current_cat = num(sys.fs.conf.read("current"));
+  sys.fs.conf.close();
+  
+  set_cat(current_cat);
+}
+
+function set_spacing {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -8);
+  sys.gui.setXscroll(arg0, -8); # to change xscroll and xscroll old, prevents scroll artefacts
+  
+  sys.gui.setYscroll(arg0, -8);
+  
+  # for sropdowns
+  ddm_spacing = 2;
+}
+
+function categ_vis {
+  #sys.gui.setVisible(bCPrev, arg0);
+  #sys.gui.setVisible(bCNext, arg0);
+  sys.gui.setVisible(bCategory, arg0);
+  sys.gui.setVisible(bCMenu, arg0);
+  # hide/show the title
+  sys.gui.setVisible(tTitle, not arg0);
+}
+
+function bottom_vis {
+  sys.gui.setVisible(bBack, arg0);
+  sys.gui.setVisible(bNotes, arg0);
+  sys.gui.setVisible(bTMenu, arg0);
+  
+  sys.gui.setVisible(bDaily, not arg0);
+  sys.gui.setVisible(bTasks, not arg0);
+}
+
+function callRet {
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+}
+
+
+function init_overlay {
+  ov_screen = sys.gui.addScreen();
+  sys.gui.addText(1, 1, 8, 1, "This is the overlay", ov_screen);
+  ov_ok = sys.gui.addButton(5, 2, 2, 1, "Ok", ov_screen);
+  ov_cancel = sys.gui.addButton(1, 2, 3, 1, "Cancel", ov_screen);
+}
+
+
+function handle_overlay {
+  if (sys.gui.getEventC(ov_ok) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+    
+  if (sys.gui.getEventC(ov_cancel) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+}
+
+#*
+cat 0 - all/unsorted
+cat 1 - archived  
+*#
+
+function load_cats {
+  local i = 0;
+  sys.fs.conf.open("cats.cfg");
+  
+  while(sys.fs.conf.exists("" + i)) {
+    cats[i] = sys.fs.conf.read("" + i);
+    catID[i] = num(sys.fs.conf.read("id_"+i));
+    i++;
+  }
+  
+  cat_len = i;
+  
+  sys.fs.conf.close();
+}
+
+function new_cat {
+  local i = 0;
+  local new_id = 2;
+  local c = 0;
+  sys.fs.conf.open("cats.cfg");
+  
+  while(sys.fs.conf.exists("" + i)) {
+    c = num(sys.fs.conf.read("id_"+i));
+    if (c >= new_id) {
+      new_id = c + 1;
+    }
+    i++;
+  }
+  
+  sys.fs.conf.write("" + i, arg0);
+  sys.fs.conf.write("id_" + i, "" + new_id);
+  
+  sys.fs.conf.close();
+  
+  load_cats();
+  
+  return new_id;
+}
+
+function get_cat_name { # arg0: id
+  if(arg0 == 0)
+    return "Unsorted";
+  
+  if(arg0 == 1)
+    return "Archived";
+   
+  local i = 0;
+  
+  for(i = 0; i < cat_len; i++;) {
+    if(catID[i] == arg0) {
+      return cats[i];
+    }
+  }
+    
+    sys.gui.setStr(bCategory, "" + cats[i]);
+  
+}
+
+function set_cat {
+  sys.fs.conf.open("cats.cfg");
+  sys.fs.conf.write("current", "" + arg0);
+  sys.fs.conf.close();
+  
+  arg0 = num(arg0);
+  
+  if(arg0 != 0) {
+    local i = 0;
+    
+    for(i = 0; i < cat_len; i++;) {
+      if(catID[i] == arg0) {
+        break;
+      }
+    }
+    
+    sys.gui.setStr(bCategory, "" + cats[i]);
+  } else {
+    sys.gui.setStr(bCategory, "All");
+  }
+  
+  current_cat = arg0;
+  if (mode == 1) {
+    load_tasks();
+  }
+}
+
+function ren_cat { # arg0: id, arg1: new name
+  #sys.fs.conf.open("cats.cfg");
+  #sys.fs.conf.write("current", "" + arg0);
+  #sys.fs.conf.close();
+  
+  arg0 = num(arg0);
+  
+  local i = 0;  
+  for(i = 0; i < cat_len; i++;) {
+    if(catID[i] == arg0) {
+      cats[i] = arg1;
+      break;
+    }
+  } 
+  
+  if(current_cat == arg0) {
+    sys.gui.setStr(bCategory, cats[i]);
+  }
+  
+  store_cats();
+}
+
+
+function rem_cat {
+  if (arg0 == 0 or arg0 == 1){
+    return;
+  }
+
+  arg0 = num(arg0);
+  
+  local i = 0;  
+  for(i = 0; i < cat_len; i++;) {
+    if(catID[i] == arg0) {
+      break;
+    }
+  }
+
+  for(cat_len--; i < cat_len; i++;) {
+    catID[i] = catID[i + 1];
+    cats[i] = cats[i+1];
+  }
+  
+  # save
+  store_cats();
+  
+  # go to all
+  set_cat(0);
+}
+
+
+function store_cats {
+  sys.fs.delete("cats.cfg");
+  
+  sys.fs.conf.open("cats.cfg");
+  sys.fs.conf.write("current", "" + current_cat);
+  
+  local i = 0;
+    
+  for(i = 0; i < cat_len; i++;) {
+    sys.fs.conf.write("" + i, "" + cats[i]);
+    sys.fs.conf.write("id_" + i, "" + catID[i]);
+  } 
+  
+  sys.fs.conf.close();
+}
+
+
+ # loads list of tasks in the list screen
+function load_tasks {
+  sys.gui.destroy(sList);
+  sList = sys.gui.addScreen(0, 1, 8, 10, scr);
+  local i = 0; 
+  
+  for(findfil = sys.fs.find("tsk", "."); findfil != ""; findfil = sys.fs.findNext();) {
+    print("found: " + findfil);
+    
+    if (findfil != "daily.tsk") {
+      sys.fs.conf.open(findfil);
+      if(num(sys.fs.conf.read("cat")) == num(current_cat) or (num(current_cat) == 0 and num(sys.fs.conf.read("cat")) != 1)) {
+        pButtons[i] = sys.gui.addButton(0, i, 7, 1, sys.fs.conf.read("name"), sList);
+        pFiles[i] = findfil;
+        i++;
+      }
+      sys.fs.conf.close();
+    }
+  }
+  
+  set_spacing(sList);
+  
+  tasksLen = i;
+  
+  sys.gui.setValue(scrBar, 0);
+  sys.gui.setParam(scrBar, (i - 1)*34 + 6);
+  
+  current_task = "";
+}
+
+
+ # loads single task in the list screen
+function load_task { # arg0: task name
+  if (not sys.fs.exists(arg0)) {
+    sys.os.error("File " + arg0 + " does not exist!");
+    return;
+  }
+  
+  sys.gui.destroy(sList);
+  sList = sys.gui.addScreen(0, 1, 8, 10, scr);
+  local i = 0;
+  local b = 0;
+  
+  sys.fs.conf.open(arg0);
+
+  while(sys.fs.conf.exists("t_" + i)) {
+    if(sys.fs.conf.read("tv_" + i) == "1") {
+      pButtons[b] = sys.gui.addCheckBox(0, b, 6, 1, sys.fs.conf.read("t_" + i), sList);
+      pFiles[b] = sys.gui.addButton(6, b, 1, 1, "...", sList);
+      IDs[b] = i;
+      if (sys.fs.conf.read("tc_" + i) == "1") {
+        sys.gui.setValue(pButtons[b], 1);
+      }
+      b++;
+    }
+    i++;
+  }
+  
+  if (arg0 != "daily.tsk") {
+    set_mode(2, sys.fs.conf.read("name"));
+  } else {
+    set_mode(0);
+  }
+
+  sys.fs.conf.close();
+  
+  set_spacing(sList);
+  
+  tasksLen = b;
+  
+  sys.gui.setValue(scrBar, 0);
+  sys.gui.setParam(scrBar, (b - 1)*34 + 6);
+  
+  current_task = arg0;
+}
+
+function new_te {
+  if (current_task == "") {
+    print("new_te: no current task...");
+    return;
+  }
+  local i = tasksLen;
+  
+  pButtons[i] = sys.gui.addCheckBox(0, i, 6, 1, arg0, sList);
+  pFiles[i] = sys.gui.addButton(6, i, 1, 1, "...", sList);
+  
+  sys.fs.conf.open(current_task);
+  sys.fs.conf.write("tv_" + i, "1");
+  sys.fs.conf.write("t_" + i, arg0);
+  sys.fs.conf.write("tc_" + i, "0");
+  sys.fs.conf.write("td_" + i, "");
+  sys.fs.conf.close();
+  
+  tasksLen++;
+}
+
+
+function new_task_g {
+  local fname = "";
+  local i = 1;
+  
+  fname = ascii_only(arg0);
+
+  while(sys.fs.exists(fname + ".tsk")) {
+    fname = i;
+  }
+  
+  fname += ".tsk";
+
+  sys.fs.conf.open(fname);
+  
+  sys.fs.conf.write("name", arg0);
+  sys.fs.conf.write("cat", "" + current_cat);
+  sys.fs.conf.write("note", "");
+  sys.fs.conf.write("encrypted", "0"); #todo inclement encryption
+  sys.fs.conf.close();
+  
+  return fname;
+}
+
+
+function load_te { # arg0 task_entry_id
+  sys.fs.conf.open(current_task);
+  sNameTE = sys.fs.conf.read("t_" + arg0);
+  sys.gui.setValue(bCheckTE, num(sys.fs.conf.read("tc_" + arg0)));
+  sDescrTE = sys.fs.conf.read("td_" + arg0);
+  sys.fs.conf.close();
+  
+  sys.gui.setValue(barTE, 0);
+  
+  idTE = arg0;
+}
+
+
+function upd_te {
+  sNameTE = sys.os.gui.handleText(tNameTE, sNameTE);
+  sDescrTE = sys.os.gui.handleText(tDescrTE, sDescrTE);
+  
+  if(com_handle(oDelTE) == 1) {
+    #del/hide task...
+    print("removing:" + sNameTE);
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("tv_" + idTE, "0");
+    sys.fs.conf.close();
+    load_task(current_task);
+  }
+  
+  if (sys.gui.getEventC(bDelTE) == EV_RELEASED) {
+    oDelTE = com_new("Remove: " + sNameTE);
+  }
+  
+  if (sys.gui.getEventC(bBackTE) == EV_RELEASED) {
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("t_" + idTE, sNameTE);
+    sys.fs.conf.write("tc_" + idTE, "" + sys.gui.getValue(bCheckTE));
+    sys.fs.conf.close();
+    load_task(current_task);
+  }
+  
+  if (sys.gui.getEventC(bSaveTE) == EV_RELEASED) {
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("td_" + idTE, sDescrTE);
+    sys.fs.conf.close();
+  }
+  
+  if (sys.gui.getEventC(bTrackTE) == EV_RELEASED) {
+    com_new("not implemented", 0, 1);
+  }
+  
+  sys.gui.setYscroll(scDescrTE, sys.gui.getValue(barTE));
+}
+
+
+function upd_tasks {
+  local i;
+  
+  for(i = 0; i < tasksLen; i++;) {
+    if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
+      load_task(pFiles[i]);
+    }
+  }
+}
+
+function upd_task {
+  local i;
+  
+  for(i = 0; i < tasksLen; i++;) {
+    if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("tc_" + i, "" + sys.gui.getValue(pButtons[i]));
+      sys.fs.conf.close();
+    }
+    
+    if (sys.gui.getEventC(pFiles[i]) == EV_RELEASED) {
+      set_mode(3, IDs[i]);
+    }
+  }
+}
+
+
+function set_mode {
+  if (arg0 == 0) {  # daily tasks
+    sys.gui.setSelect(bDaily, 1);
+    sys.gui.setSelect(bTasks, 0);
+    categ_vis(0);
+    bottom_vis(0);
+    mode = 0;
+    sys.os.gui.setMainScr(scr);
+    sys.gui.setStr(tTitle, "Daily Todo");
+  }
+  
+  if (arg0 == 1) {  # tasks
+    sys.gui.setSelect(bDaily, 0);
+    sys.gui.setSelect(bTasks, 1);
+    categ_vis(1);
+    bottom_vis(0);
+    mode = 1;
+    
+    load_tasks();
+  }
+  
+  if(arg0 == 2) { # task selected
+    categ_vis(0);
+    bottom_vis(1);
+    sys.os.gui.setMainScr(scr);
+    sys.gui.setStr(tTitle, arg1);
+    sys.gui.setVisible(tTitle, 1);
+    mode = 2;
+  }
+  
+  if(arg0 == 3) { # task entry config
+    load_te(arg1)
+    sys.os.gui.setMainScr(sTaskE);
+    mode = 3;
+  }
+  
+  if(arg0 == 4) { # task notes
+    sys.os.gui.setMainScr(sNotes);
+    sys.fs.conf.open(current_task);
+    tNote_s = sys.fs.conf.read("note");
+    sys.fs.conf.close();
+    sys.gui.setStr(tTitleNo, "Note: " + sys.gui.getStr(tTitle));
+    mode = 4;
+  }
+}
+
+import "lib/inc/ddm.svs"
+import "lib/inc/com.svs"
+
+function update {
+  if(com_handle(new_te_hndl) == 1) {
+    print("add task: " + com_str);
+    new_te(com_str);
+  }
+  
+  if(com_handle(new_task) == 1) {
+    print("add task group: " + com_str);
+    load_task(new_task_g(com_str));
+  }
+
+  # gui
+  if (sys.gui.getEventC(bDaily) == EV_RELEASED) {
+    set_mode(0);
+    load_task("daily.tsk");
+  }
+  
+  if (sys.gui.getEventC(bTasks) == EV_RELEASED) {
+    set_mode(1);
+  }
+  
+  if (sys.gui.getEventC(bNewTask) == EV_RELEASED) {
+    if(mode == 0 or mode == 2) {
+      new_te_hndl = com_new("New task:", 1);
+    }
+    
+    if (mode == 1) {
+      new_task = com_new("New task group:", 1);
+    }
+  }
+  
+  # subscreens
+  if(mode == 1) {
+    upd_tasks();
+  }
+  
+  if(mode == 2 or mode == 0) {
+    upd_task();
+  }
+  
+  if(mode == 3) {
+    upd_te();
+  }
+  
+  if (sys.gui.getEventC(bBack) == EV_RELEASED) {
+    set_mode(1);
+  }
+  
+  if (sys.gui.getEventC(bNotes) == EV_RELEASED) {
+    set_mode(4);
+  }
+  
+  # notes screen
+  if (mode == 4) {
+    if (sys.gui.getEventC(bBackNo) == EV_RELEASED) {
+      # hard switch
+      sys.os.gui.setMainScr(scr);
+      mode = 2;
+    }
+    
+    if (sys.gui.getEventC(bSaveNo) == EV_RELEASED) {
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("note", tNote_s);
+      sys.fs.conf.close();
+    }
+    
+    tNotes_s = sys.os.gui.handleText(tNotes, tNotes_s);
+    sys.gui.setYscroll(sListNo, sys.gui.getValue(barNo));
+  }
+  
+  # category menu
+  if (sys.gui.getEventC(bCMenu) == EV_RELEASED) {
+    bMenuH = ddm_create(bCMenu);
+    ddm_width = 5;
+    ddm_add_btn("Show archive");
+    ddm_add_btn("New category");
+    ddm_add_btn("Rename cat.");
+    ddm_add_btn("Remove cat.");
+    
+    if(current_cat == 1 or current_cat == 0) {
+      sys.gui.setGrayout(ddm_options[2], 1);
+      sys.gui.setGrayout(ddm_options[3], 1);
+    }
+  }
+  
+  i = ddm_handle(bMenuH);
+  if (i > 0) {
+    if (i == 1) { # archive
+      current_cat = 1;
+      load_tasks();
+      ddm_exit();
+      sys.gui.setStr(bCategory, "Archived");
+    }
+    
+    if (i == 2) { # new
+      ddm_exit();
+      catNewH = com_new("New category name:", 1);
+    }
+    
+    if (i == 3) { # rename
+      ddm_exit();
+      catRenH = com_new("New name:", 1);
+      com_str = get_cat_name(current_cat);
+    }
+    
+    if (i == 4) { # remove
+      ddm_exit();
+      catRmH = com_new("Remove " + get_cat_name(current_cat));
+    }
+  }
+  
+  if(com_handle(catNewH) == 1) {
+    print("new_category: " + com_str);
+    new_cat(com_str);
+  }
+  
+  if(com_handle(catRenH) == 1) {
+    print("new_category_name: " + com_str);
+    ren_cat(current_cat, com_str);
+  }
+  
+  if(com_handle(catRmH) == 1) {
+    rem_cat(current_cat);
+  }
+  
+  # task group menu
+  if (sys.gui.getEventC(bTMenu) == EV_RELEASED) {
+    bTMenuH = ddm_create(bTMenu);
+    ddm_width = 6;
+    ddm_add_btn("Archive");
+    ddm_add_btn("Change color");
+    ddm_add_btn("Rename");
+    ddm_add_btn("Change category");
+  }
+  
+  i = ddm_handle(bTMenuH);
+  if (i > 0) {
+    if (i == 1) { # Archive
+      ddm_exit();
+      taskArchH = com_new("Archive task?");
+    }
+    
+    if (i == 2) { # Change color
+      ddm_exit();
+    }
+    
+    if(i == 3) { # rename
+      ddm_exit();
+      task_rename = com_new("New task name:", 1);
+      com_str = sys.gui.getStr(tTitle);
+    }
+    
+    if (i == 4) { #change category
+      subMenu = ddm_create_sub(i);
+      ddm_add_btn("Unsorted");
+      for(i = 0; i < cat_len; i++;) {
+        ddm_add_btn(cats[i]);
+      }
+    }
+  }
+  
+  i = ddm_handle(subMenu);
+  if (i > 0) {
+    if(i == 1) {
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("cat", "0");
+      sys.fs.conf.close();
+      set_mode(1);
+    } else {
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("cat", "" + catID[i - 2]);
+      sys.fs.conf.close();
+      set_mode(1);
+    }
+    
+    ddm_exit();
+  }
+  
+  if(com_handle(taskArchH) == 1) {
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("cat", "1");
+    sys.fs.conf.close();
+    set_mode(1);
+  }
+  
+  if(com_handle(task_rename) == 1) {
+    print("renaming: " + com_str);
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("name", com_str);
+    sys.fs.conf.close();
+    load_task(current_task);
+  }
+  
+  # category switching
+  if (sys.gui.getEventC(bCategory) == EV_RELEASED) {
+    catMenuH = ddm_create(bCategory);   
+    local i = 0;
+    ddm_add_btn("All tasks");
+    for(i = 0; i < cat_len; i++;) {
+      ddm_add_btn(cats[i]);
+    }
+  }
+  
+  i = ddm_handle(catMenuH);
+  if (i > 0) {
+    if(i == 1) {
+      set_cat(0);
+      ddm_exit();
+    } else {
+      set_cat(catID[i - 2]);
+      ddm_exit();
+    }
+  }
+  
+  sys.gui.setYscroll(sList, sys.gui.getValue(scrBar) - 6);
+}
+
+
+function exit {
+
+}
