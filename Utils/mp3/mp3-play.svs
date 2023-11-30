@@ -129,15 +129,26 @@ function scr_adjust {
   reload_list();
 }
 
+function get_folder {
+  for(i = len(arg0); i > 0; i--;) {
+    if (getcp(arg0, i) == "/") {
+      arg0 = substr(arg0, 0, i);
+      break;
+    }
+  }
+  
+  return arg0;
+}
+
 function init {
-  sys.os.checkVer(1000);
+  sys.os.checkVer(1310);
   sys.os.setSingular();
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   t_name = sys.gui.addText(1,1,7,1, "SDA Player", scr);
-  btn = sys.gui.addIcon(4, 11, 2, 3, "", "appdata/mp3/play.p16", scr);
-  btn_n = sys.gui.addIcon(7, 11, 2, 3, "", "appdata/mp3/next.p16", scr);
-  btn_p = sys.gui.addIcon(1, 11, 2, 3, "", "appdata/mp3/prev.p16", scr);
+  btn = sys.gui.addIcon(4, 11, 2, 3, "", "play.p16", scr);
+  btn_n = sys.gui.addIcon(7, 11, 2, 3, "", "next.p16", scr);
+  btn_p = sys.gui.addIcon(1, 11, 2, 3, "", "prev.p16", scr);
   btn_rnd = sys.gui.addCheckBox(2,8,4,1, "Random", scr);
   btn_r = sys.gui.addButton(1,8,1,1, "R", scr);
   t_curr = sys.gui.addText(1,3,4,1, "Current:", scr);
@@ -167,14 +178,14 @@ function init {
   
   # load list of songs from appdata  
   sys.fs.chDir();
-  sys.fs.chDir("appdata");
+  #sys.fs.chDir("appdata");
   
-  if (not sys.fs.exists("mp3-list.dat")) {
+  if (not sys.fs.exists("appdata/mp3-list.dat")) {
     sys.os.error("mp3-list.dat is missing\n\nShould be placed in:\nappdata/mp3-list.dat");
     sys.os.exit();
     return;
   }
-  sys.fs.conf.open("mp3-list.dat");
+  sys.fs.conf.open("appdata/mp3-list.dat");
   
   array btnList[30];
   array btnListSng[30];
@@ -197,6 +208,8 @@ function init {
   scr_adjust();
   
   fs_pop = 1;
+  
+  sys.os.gui.setRoot(1, get_folder(sys.os.getAppPath()));
 }
 
 function add_big_list {
@@ -251,7 +264,7 @@ function upd_sleep {
 
 function play_no {
   play = 1;
-  sys.gui.setIcon(btn, "appdata/mp3/pause.p16");
+  sys.gui.setIcon(btn, "pause.p16");
   ds_play_s(arg0);
   update_song(arg0);
   print("play: " + arg0);
@@ -276,7 +289,7 @@ function play_no {
 
 function play_next {
   if ((sleep_timer + 60*60) < sys.time.get()) {
-    sys.gui.setIcon(btn, "appdata/mp3/play.p16");
+    sys.gui.setIcon(btn, "play.p16");
     ds_pause();
     play = 0;
     sys.time.clearTimer();
@@ -296,21 +309,6 @@ function play_next {
 
 
 function update {
-  
-  # resource popping
-  # load icons
-  if(fs_pop != 0) {
-    fs_pop = 0;
-    if(fs_pop("mp3","play.p16")) {fs_pop += 1;}
-    if(fs_pop("mp3","next.p16")) {fs_pop += 1;}
-    if(fs_pop("mp3","pause.p16")) {fs_pop += 1;}
-    if(fs_pop("mp3","prev.p16")) {fs_pop += 1;}
-    
-    if (fs_pop == 0) {
-      sys.os.setRedraw();
-      sys.fs.chDir(); # back to data...
-    }
-  }
 
   # wait few cycles before setting the initial volume to let the DFPlayer boot
   if (setInitVolFlag != 0) {
@@ -329,7 +327,7 @@ function update {
   if (sys.gui.getEventC(btn) == EV_RELEASED) {
     upd_sleep();
     if (play == 0) {
-      sys.gui.setIcon(btn, "appdata/mp3/pause.p16");
+      sys.gui.setIcon(btn, "pause.p16");
       ds_vol(sys.gui.getValue(vol_sld));
       if (currentSong != 0) {
         play_no(currentSong);
@@ -337,7 +335,7 @@ function update {
         play_next();
       }
     } else {
-      sys.gui.setIcon(btn, "appdata/mp3/play.p16");
+      sys.gui.setIcon(btn, "play.p16");
       ds_pause();
       play = 0;
       sys.time.clearTimer();
