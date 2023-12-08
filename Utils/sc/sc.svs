@@ -7,7 +7,7 @@ function init {
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.0", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.1", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
   sys.gui.setSliderSize(scrollbar, 80);
@@ -43,26 +43,27 @@ function init {
   
   tabApath = "";
   tabAapps = 0;
-  tabAsc = 0;
+  tabAsc   = 0;
   tabBpath = "";
   tabBapps = 0;
-  tabBsc = 0;
+  tabBsc   = 0;
 
   rldFiles();
-  copyFname = "";
-  copyPath = 0;
+  
+  copyFname  = "";
+  copyPath   = 0;
   copyInApps = 0;
-  copyMove = 0;
-  renameOp  = -1;
-  mkdirOp   = -1;
-  ppmOvr = -1;
-  infoOvr = 0;
+  copyMove   = 0;
+  renameOp   = -1;
+  mkdirOp    = -1;
+  ppmOvr     = -1;
+  infoOvr    = 0;
 
   sys.gui.setGrayout(bUp, 1);
 
   pasteOvr = -1;
-  remOvr = -1;
-  inApps = 0;
+  remOvr   = -1;
+  inApps   = 0;
 }
 
 import "~sc-overlays.svs"
@@ -284,7 +285,9 @@ function rldFiles {
   } else {
     sys.gui.setGrayout(scrollbar, 1);
   }
-
+  
+  sys.gui.setGrayout(bEdit, 1);
+  sys.gui.setGrayout(bInfo, 1);
   selected = -1;
 }
 
@@ -387,6 +390,7 @@ function updFiles {
   local x;
   for (x = 0; x < numOfFiles; x++;) {
     if (sys.gui.getEventC(fScrBtns[x]) == EV_RELEASED) {
+      sys.gui.setGrayout(bInfo, 0);
       if(sys.fs.isDir(sys.gui.getStr(fScrBtns[x]))) {
         sys.gui.setGrayout(bEdit, 1);
       } else {
@@ -441,7 +445,6 @@ function update {
     sys.gui.setStr(tPath, "Dir: /");
     upCount = 0;
     rldFiles(0);
-    sys.gui.setGrayout(bEdit, 1);
   }
 
   if (sys.gui.getEventC(bApps) == EV_RELEASED) {
@@ -453,7 +456,6 @@ function update {
     sys.gui.setStr(tPath, "Dir: /");
     upCount = 0;
     rldFiles(0);
-    sys.gui.setGrayout(bEdit, 1);
   }
   
   # tab control
@@ -516,7 +518,7 @@ function update {
     }
   }
   
-  if (sys.gui.getEventC(bInfo) == EV_RELEASED) {
+  if (sys.gui.getEventC(bInfo) == EV_RELEASED and selected >= 0) {
     local txt = "";
     
     txt += "Name: " + sys.gui.getStr(fScrBtns[selected]) + "\n" + infoDir(sys.gui.getStr(fScrBtns[selected]));
