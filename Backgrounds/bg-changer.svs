@@ -21,6 +21,9 @@ function init {
   save = sys.gui.addIcon(2, 10, 2, 3, "Save", "Icons/apps.p16", scr);
   setup = sys.gui.addIcon(6, 10, 2, 3, "Setup", "Icons/options.p16", scr);
   
+  sys.gui.setTexAlign(save, ALIGN_CENTER);
+  sys.gui.setTexAlign(setup, ALIGN_CENTER);
+  
   hx1 = num(read_def("heading_x1", 1));
   hy1 = num(read_def("heading_y1", 5));
   hw = num(read_def("heading_m", 8));
