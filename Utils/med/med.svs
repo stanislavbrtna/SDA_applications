@@ -63,6 +63,7 @@ function init {
   editScr = sys.gui.addScreen();
   sys.gui.setSpacing(editScr, 1, 1, 1, 1);
   eIconI = sys.gui.addIcon(3, 1, 3, 3, "", "none.p16", editScr);
+  sys.gui.setTexAlign(eIconI, ALIGN_CENTER);
   eNameT = sys.gui.addText(1, 4, 7, 1, "", editScr);
   sys.gui.setTexEd(eNameT, 1);
   eName = "";
@@ -252,9 +253,11 @@ function set_page {
 function refresh {
   sys.gui.destroy(listScr);
   listScr = sys.gui.addScreen();
+  sys.gui.setXscroll(listScr, 16);
   local i;
   for(i = 0; i < listCount; i++;) {
     iconsI[i] = sys.gui.addIcon(1 + 3*(i%3), 1 + 3*(i/3) + i/9, 3, 3, names[i], icons[i], listScr);
+    sys.gui.setTexAlign(iconsI[i], ALIGN_CENTER);
     if (i == selectedIcon) {
       sys.gui.setStr(iconsI[i], "->" + names[i]);
     }
