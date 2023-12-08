@@ -3,6 +3,14 @@ function init {
     sys.os.gui.setMainScr(screen);
 
     # Element options
+    sys.gui.addText(1, 8, 3, 9, "Width", screen);
+    sys.gui.addText(1, 9, 3, 10, "Height", screen);
+    
+    bar_w = sys.gui.addSliderH(4, 8, 8, 9, 8, 2, screen);
+    bar_h = sys.gui.addSliderH(4, 9, 8, 10, 8, 3, screen);
+    
+    bg_disable = sys.gui.addCheckBox(1, 10, 5, 11,"bg disable", screen);
+    
     grayout = sys.gui.addCheckBox(1, 11, 5, 12,"grayout", screen);
     ghost = sys.gui.addCheckBox(1, 12, 5, 13,"ghost", screen);
     select = sys.gui.addCheckBox(1, 13, 5, 14,"select", screen);
@@ -11,55 +19,86 @@ function init {
     al_left = sys.gui.addCheckBox(5, 12, 9, 13,"Left", screen);
     al_right = sys.gui.addCheckBox(5, 13, 9, 14,"Right", screen);
 
+    path = sys.os.getAppPath();
+    
+    for(i = len(path); i > 0; i--;) {
+      if (getcp(path, i) == "/") {
+        path = substr(path, 0, i);
+        break;
+      }
+    }
+
     # DUT
-    element = sys.gui.addIcon(2, 2, 8, 5, "icon", "none.p16", screen);
+    element = sys.gui.addIcon(2, 2, 4, 5, "Icon", "none2.p16", screen); # none2.p16 wide.p16
+    
+    sys.gui.setTxtSize(element, 16);
+    
+    sys.os.gui.setRoot(1, path);
 }
 
 function update {
-    # Handle element options
-    if (sys.gui.getEventC(grayout)) {
-        sys.gui.setGrayout(element, sys.gui.getValue(grayout));
-    }
+  # Handle element options
+  if (sys.gui.getEventC(bg_disable) == EV_RELEASED) {
+    # this sets the param to 1 or 0
+    # if param is not zero, then color == param - 1 will be painted as bg
+    # so value of 1 will result in black being the background 
+    sys.gui.setParam(element, sys.gui.getValue(bg_disable));
+  }
+  
+  if (sys.gui.getEventC(bar_w)) {
+    sys.gui.setX2(element, 2 + sys.gui.getValue(bar_w));
+  }
+  
+  if (sys.gui.getEventC(bar_h)) {
+    sys.gui.setY2(element, 2 + sys.gui.getValue(bar_h));
+  }
+  
+  if (sys.gui.getEventC(grayout)) {
+    sys.gui.setGrayout(element, sys.gui.getValue(grayout));
+  }
 
-    if (sys.gui.getEventC(ghost)) {
-        sys.gui.setGhost(element, sys.gui.getValue(ghost));
-    }
+  if (sys.gui.getEventC(ghost)) {
+    sys.gui.setGhost(element, sys.gui.getValue(ghost));
+  }
 
-    if (sys.gui.getEventC(select)) {
-        sys.gui.setSelect(element, sys.gui.getValue(select));
-    }
-    
-    if (sys.gui.getEventC(al_left) == EV_RELEASED) {
-      sys.gui.setTexAlign(element, ALIGN_LEFT);
-      sys.gui.setValue(al_right, 0);
-      sys.gui.setValue(al_center, 0);
-    }
-    
-    if (sys.gui.getEventC(al_center) == EV_RELEASED) {
-      sys.gui.setTexAlign(element, ALIGN_CENTER);
-      sys.gui.setValue(al_right, 0);
-      sys.gui.setValue(al_left, 0);
-    }
-    
-    if (sys.gui.getEventC(al_right) == EV_RELEASED) {
-      sys.gui.setTexAlign(element, ALIGN_RIGHT);
-      sys.gui.setValue(al_center, 0);
-      sys.gui.setValue(al_left, 0);
-    }
+  if (sys.gui.getEventC(select)) {
+    sys.gui.setSelect(element, sys.gui.getValue(select));
+  }
+  
+  if (sys.gui.getEventC(al_left) == EV_RELEASED) {
+    sys.gui.setTexAlign(element, ALIGN_LEFT);
+    sys.gui.setValue(al_right, 0);
+    sys.gui.setValue(al_center, 0);
+    sys.gui.setModif(screen);
+  }
+  
+  if (sys.gui.getEventC(al_center) == EV_RELEASED) {
+    sys.gui.setTexAlign(element, ALIGN_CENTER);
+    sys.gui.setValue(al_right, 0);
+    sys.gui.setValue(al_left, 0);
+    sys.gui.setModif(screen);
+  }
+  
+  if (sys.gui.getEventC(al_right) == EV_RELEASED) {
+    sys.gui.setTexAlign(element, ALIGN_RIGHT);
+    sys.gui.setValue(al_center, 0);
+    sys.gui.setValue(al_left, 0);
+    sys.gui.setModif(screen);
+  }
 
-    # Handle element events
-    if (sys.gui.getEvent(element) == EV_PRESSED) {
-        print("element pressed");
-    }
+  # Handle element events
+  if (sys.gui.getEvent(element) == EV_PRESSED) {
+      print("element pressed");
+  }
 
-    if (sys.gui.getEvent(element) == EV_HOLD) {
-        print("element hold");
-    }
+  if (sys.gui.getEvent(element) == EV_HOLD) {
+      print("element hold");
+  }
 
-    if (sys.gui.getEvent(element) == EV_RELEASED) {
-        print("element released");
-    }
+  if (sys.gui.getEvent(element) == EV_RELEASED) {
+      print("element released");
+  }
 
-    # Clear event
-    sys.gui.setEvent(element, EV_NONE);
+  # Clear event
+  sys.gui.setEvent(element, EV_NONE);
 }
