@@ -20,6 +20,9 @@ function ascii_only { # arg0: string arg1: ignore_spaces
 
 ## Main int
 function init {
+  sys.os.checkVer(1310);
+  sys.os.setSingular();
+  
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   
