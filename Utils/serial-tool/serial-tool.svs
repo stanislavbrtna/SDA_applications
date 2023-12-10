@@ -182,8 +182,8 @@ function update {
       sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
       sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
       
-      sys.hw.iPinDef(13, PIN_IN, PIN_NOPULL);
-      sys.hw.iPinDef(15, PIN_IN, PIN_NOPULL);
+      sys.hw.iPinDef(7, PIN_IN, PIN_NOPULL);
+      sys.hw.iPinDef(8, PIN_IN, PIN_NOPULL);
       
       sys.gui.setStr(b_port, "Exp-Ext");
       sys.gui.setValue(b_receive, 0);
@@ -193,8 +193,8 @@ function update {
       sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
       sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
       
-      sys.hw.iPinDef(13, PIN_ALT, PIN_NOPULL);
-      sys.hw.iPinDef(15, PIN_ALT, PIN_NOPULL);
+      sys.hw.iPinDef(7, PIN_ALT, PIN_NOPULL);
+      sys.hw.iPinDef(8, PIN_ALT, PIN_NOPULL);
       sys.gui.setStr(b_port, "Exp-Int");
       sys.gui.setValue(b_receive, 0);
     }

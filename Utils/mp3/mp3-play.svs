@@ -160,7 +160,7 @@ function init {
   sys.hw.btn.stdbyEn(1);
   # DFPlayer on the internal expansion by default
   # Pin16 is used to enable power for the player
-  sys.hw.iPinDef(15, PIN_ALT, 0);
+  sys.hw.iPinDef(8, PIN_ALT, 0);
   sys.hw.iPinDef(16, PIN_OUT, 0);
   sys.hw.iPinSet(16, 1);
 
@@ -624,6 +624,6 @@ function exit {
   sys.fs.conf.write("fixforbrokenConf", "" + sys.gui.getValue(vol_sld) + " ");
   sys.fs.conf.close();
   ds_pause();
-  sys.hw.iPinDef(15, PIN_IN, 0);
+  sys.hw.iPinDef(8, PIN_IN, 0);
   sys.hw.iPinSet(16, 0);
 }
