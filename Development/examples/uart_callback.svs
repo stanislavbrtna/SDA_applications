@@ -1,0 +1,59 @@
+#*
+  Uart callbacks have been introduced in SDA_OS v.1.3.1
+  they work similar to system timers. If rd flag of currentyl
+  active uart has value given in uartRcvClb, process is 
+  waken up and given callback is called. If sys.os.arise();
+  is called in this callback, application is moved on top.
+  Otherwise the previously running application is put back in foreground.
+*#
+
+function init {
+  # setup screen and basic gui
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  text = sys.gui.addText(1, 1, 8, 2, "Hello, world!", scr);
+  set_call_i = sys.gui.addButton(1, 3, 8, 4, "Register on iExp", scr);
+  set_call_e = sys.gui.addButton(1, 5, 8, 6, "Register on eExp", scr);
+}
+
+function update {
+  #button handling
+  if (sys.gui.getEventC(set_call_i) == EV_RELEASED) {
+    sys.hw.iPinDef(7, PIN_ALT, PIN_NOPULL);
+    sys.hw.iPinDef(8, PIN_ALT, PIN_NOPULL);
+    
+    sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+    sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+    
+    sys.com.uartRcvIT();   
+    sys.com.uartRdClb(&callback, 2);
+  }
+  if (sys.gui.getEventC(set_call_e) == EV_RELEASED) {
+    sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+    sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+    
+    sys.hw.iPinDef(7, PIN_IN, PIN_NOPULL);
+    sys.hw.iPinDef(8, PIN_IN, PIN_NOPULL);
+    
+    sys.com.uartRcvIT();   
+    sys.com.uartRdClb(&callback2, 2);
+  }
+}
+
+function callback {
+  sys.gui.setStr(text, "called back!");
+  print("called");
+  sys.snd.beep(); # this will beep on the background
+  # here we should read the uart and clear the rd flag
+  # for now we only unregister the callback
+  sys.com.uartRdClb("", 0);
+}
+
+function callback2 {
+  sys.gui.setStr(text, "called back2!");
+  print("called2");
+  sys.os.arise(); # this will wake the app from background
+  
+  # unregister
+  sys.com.uartRdClb("", 0);
+}
