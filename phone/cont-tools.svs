@@ -5,12 +5,18 @@ function cont_get_info {
   sys.fs.chDir("appdata");
   sys.fs.conf.open("phone/contacts.cfg");
   
+  if(DEBUG) print("cont_get_info: num:" + arg0);
+  
   local array info[4]; #name, surname, image, company
   
-  info[0] = "unknown";
+  info[0] = "Unknown";
   info[1] = "";
   info[2] = "";
   info[3] = "";
+  
+  if (arg0 == "") {
+    return info;
+  }
   
   local sane = cont_numsane(arg0);
   local i = 0;
@@ -35,6 +41,29 @@ function cont_get_info {
   return info;
 }
 
+function cont_get_id {
+  sys.fs.chDir();
+  sys.fs.chDir("appdata");
+  sys.fs.conf.open("phone/contacts.cfg");
+  
+  local sane = cont_numsane(arg0);
+  local i = 0;
+  local key = "phone_" + i + "_0";
+  
+  while(sys.fs.conf.exists(key)) {
+    if (cont_numsane(sys.fs.conf.read(key)) == sane) {
+      sys.fs.conf.close();
+      return i;
+    }
+
+    i++;
+    key = "phone_" + i + "_0";
+  }
+  
+  return -1;
+  sys.fs.conf.close();
+}
+
 function cont_numsane {
   local new = "";
   local c = "";
@@ -52,7 +81,7 @@ function cont_numsane {
   } else if (len(new) == 12) {
     new = "+" + new;
   } else if (len(new) != 9 and len(new) != 12) {
-    print("number error! number:" + arg0);
+    if (DEBUG) print("number error! number:" + arg0);
     new = arg0;
   }
   

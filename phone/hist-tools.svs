@@ -1,0 +1,21 @@
+function add_to_hist {
+  sys.fs.chDir();
+  sys.fs.conf.open("appdata/phone/history.cfg");
+  
+  local id = 0;
+  while(sys.fs.conf.exists("number_" + id)) {
+    id++;
+  }
+  
+  sys.fs.conf.write("number_" + id, "" + callNumber);
+  sys.fs.conf.write("name_" + id, "" + callName);
+  sys.fs.conf.write("start_" + id, "" + callStart);
+  sys.fs.conf.write("stop_" + id, "" + callEnd);
+  sys.fs.conf.write("type_" + id, "" + callType);
+  
+  #list_size++;
+  #sys.gui.setParam(s_bar, list_size);
+  
+  sys.fs.conf.close();
+}
+

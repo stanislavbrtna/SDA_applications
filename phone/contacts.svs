@@ -1,3 +1,5 @@
+import "~cont-tools.svs"
+
 function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
@@ -44,7 +46,7 @@ function init {
   }
   sys.fs.conf.close();
   
-  print(list_size - 1 + " contacts found");
+  if(DEBUG) print(list_size - 1 + " contacts found");
   
   s_bar = sys.gui.addSliderV(9, 3, 1, 8, list_size - 10, 0, scr);
   
@@ -110,14 +112,20 @@ function init {
   i_tphone   = sys.gui.addText(2, 8, 6, 1, "", cont_scr);
   i_tcomp    = sys.gui.addText(2, 9, 6, 1, "", cont_scr);
   
+  op_cont_exit = 0;
+  
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "ONLYBACK") {
        sys.gui.setVisible(b_exit, 1);
        sys.gui.setVisible(b_dial, 0);
     }
+    
+    if (arg0 == "OPEN") {
+      op_cont_exit = 1;
+      local id = cont_get_id(arg1);
+      if (id != -1) open_cont(id);
+    }
   }
-  
- 
   
 }
 
@@ -168,7 +176,7 @@ function load_list {
   if(listFilter == "") {
     local b = 0;
     while(sys.fs.conf.exists("name_" + i)) {
-      print("add: " + sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i) + " pos: " + b);
+      if(DEBUG) print("add: " + sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i) + " pos: " + b);
       
       b_list[b] = sys.gui.addButton(0, b, 8, 1,
         sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i), list_scr);
@@ -220,7 +228,7 @@ function upd_list {
 
   if (sys.gui.getValue(s_bar) != s_bar_pval) {
     list_start = sys.gui.getValue(s_bar);
-    print("list_start: " + list_start);
+    if(DEBUG) print("list_start: " + list_start);
     load_list();
   }
   
@@ -268,41 +276,50 @@ function upd_list {
   for(local i = 0; i < 10; i++;) {
     if (b_list[i] != 0) {     
       if(sys.gui.getEventC(b_list[i]) == EV_RELEASED) {
-        sys.os.gui.setMainScr(cont_scr);
-        sys.os.hideKbd();
-        local id = i_list[i];
-        sys.fs.conf.open("phone/contacts.cfg");
-        
-        sys.gui.setStr(i_tname, sys.fs.conf.read("name_" + id));
-        sys.gui.setStr(i_tsurname, sys.fs.conf.read("surname_" + id));
-        sys.gui.setStr(i_tcompany, sys.fs.conf.read("company_" + id));
-        sys.gui.setStr(i_tphone, sys.fs.conf.read("phone_" + id + "_0"));
-        
-        if (sys.gui.getStr(i_tphone) == "") {
-          sys.gui.setGrayout(i_bcall, 1);
-          sys.gui.setGrayout(i_bmsg, 1);
-        } else {
-          sys.gui.setGrayout(i_bcall, 0);
-          sys.gui.setGrayout(i_bmsg, 0);
-        }
-        
-        sys.fs.conf.close();
-        
-        currentContId = id;
+        open_cont(i_list[i]);
       }
     }
   }
 }
 
+function open_cont {
+  sys.os.gui.setMainScr(cont_scr);
+  sys.os.hideKbd();
+  local id = arg0;
+  sys.fs.conf.open("phone/contacts.cfg");
+  
+  sys.gui.setStr(i_tname, sys.fs.conf.read("name_" + id));
+  sys.gui.setStr(i_tsurname, sys.fs.conf.read("surname_" + id));
+  sys.gui.setStr(i_tcompany, sys.fs.conf.read("company_" + id));
+  sys.gui.setStr(i_tphone, sys.fs.conf.read("phone_" + id + "_0"));
+  
+  if (sys.gui.getStr(i_tphone) == "") {
+    sys.gui.setGrayout(i_bcall, 1);
+    sys.gui.setGrayout(i_bmsg, 1);
+  } else {
+    sys.gui.setGrayout(i_bcall, 0);
+    sys.gui.setGrayout(i_bmsg, 0);
+  }
+  
+  sys.fs.conf.close();
+  
+  currentContId = id;
+}
+
 
 function upd_cont {
   if (sys.gui.getEventC(i_bback) == EV_RELEASED) {
-    sys.os.gui.setMainScr(scr);
+    if(op_cont_exit == 1) {
+      sys.os.exit();
+      return;
+    } else {
+      sys.os.gui.setMainScr(scr);
+    }
   }
   
   if (sys.gui.getEventC(i_bcall) == EV_RELEASED) {
     #TODO: Add multiple number support
-    sys.os.subProcess("phone/dialer.svs", &callRet, "CALL", sys.gui.getStr(i_tphone), 0);
+    sys.os.subProcess("phone/caller.svs", &callRet, "CALL", sys.gui.getStr(i_tphone), 0);
     return;
   }
   

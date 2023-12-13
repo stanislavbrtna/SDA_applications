@@ -10,15 +10,17 @@ function init {
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr);
   
-  array buttons[10];
+  array buttons[25];
   
-  array commands = ["AT","ATA", "ATH", "AT+CSPN?", "AT+CSQ", "AT+CPIN?", "AT+CPIN=5110", "AT+CLCC", "AT+CSCLK=1", "AT+CMGL=\"ALL\""];
+  array commands [20];
   
-  reset = sys.gui.addButton(1, 3, 5, 1, "HW reset", scr);
-  dtr = sys.gui.addButton(1, 4, 5, 1, "Sleep mode", scr);
   
-  ri = sys.gui.addButton(7, 3, 1, 1, "RI", scr);
+  commands[0] = "AT+CALS=0,0";
   
+  for (i = 1; i < 20; i++;) {
+    commands[i] = "AT+CALS=" + i + ",1";
+  }
+    
   dtr_val = 0;
   
   cscr = sys.gui.addScreen(1, 6, 8, 7, scr);
@@ -49,16 +51,6 @@ function update {
     if(sys.gui.getEventC(buttons[i]) == EV_RELEASED) {
       ticket = at_command(sys.gui.getStr(buttons[i]));
     }
-  }
-  
-  if(sys.gui.getEventC(reset) == EV_RELEASED) {
-    at_reset_hw();
-  }
-  
-  if(sys.gui.getEventC(dtr) == EV_RELEASED) {
-    dtr_val = not dtr_val;
-    at_set_dtr(dtr_val);
-    sys.gui.setSelect(dtr, dtr_val);
   }
   
   if (at_result(ticket)) {

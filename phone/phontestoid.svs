@@ -17,7 +17,7 @@ function callRet {
 
 function update {
   if(sys.gui.getEventC(call) == EV_RELEASED) {
-    sys.os.subProcess("phone/dialer.svs", &callRet, "INCOMMING", "123456789", 0);
+    sys.os.subProcess("phone/caller.svs", &callRet, "INCOMMING", "123456789", 0);
     return;
   }
   
@@ -27,7 +27,7 @@ function update {
   }
   
   if(sys.gui.getEventC(fill2) == EV_RELEASED) {
-    sys.os.subProcess("phone/dialer.svs", &callRet, "CALL", "123456789", 0);
+    sys.os.subProcess("phone/caller.svs", &callRet, "CALL", "123456789", 0);
     return;
   }
 }

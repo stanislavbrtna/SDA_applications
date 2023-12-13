@@ -1,0 +1,271 @@
+import "~cont-tools.svs"
+import "~hist-tools.svs"
+import "~at-cmd.svs"
+
+
+function init {
+  at_init();
+
+  scr_c = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  
+  # call screen
+  
+  t_mode = sys.gui.addText(1, 1, 6, 1, "Calling:", scr_c);
+  
+  t_name = sys.gui.addText(1, 2, 8, 2, "...", scr_c);
+  sys.gui.setTxtSize(t_name, 32);
+  
+  t_cnumber = sys.gui.addText(1, 4, 6, 1, "...", scr_c);
+  
+  t_ccompany = sys.gui.addText(1, 5, 6, 1, "", scr_c);
+  
+  b_cend = sys.gui.addButton(3, 12, 4, 1, "End Call", scr_c);
+  sys.gui.setTexAlign(b_cend, ALIGN_CENTER);
+  
+  
+  t_ok = sys.gui.addText(3, 11, 4, 1, "Call ended.", scr_c);
+  b_ok = sys.gui.addButton(3, 12, 4, 1, "Ok", scr_c);
+  sys.gui.setTexAlign(b_ok, ALIGN_CENTER);
+  sys.gui.setTexAlign(t_ok, ALIGN_CENTER);
+  
+  b_caccept = sys.gui.addButton(6, 6, 3, 1, "Accept", scr_c);
+  sys.gui.setTexAlign(b_caccept, ALIGN_CENTER);
+  
+  b_cdecline = sys.gui.addButton(1, 6, 3, 1, "Decline", scr_c);
+  sys.gui.setTexAlign(b_cdecline, ALIGN_CENTER);
+  
+  sys.gui.setVisible(b_cend, 0);
+  
+  killOnEnd = 0;
+  inCall = 0;
+  
+  callNumber = "";
+  callName = "?unresolved";
+  callType = "";
+  ring_enabled = 0;
+  
+  # arg0 - type of request
+  if (typeof(arg0) == TYPE_STR) {
+    if (arg0 == "INCOMMING") {
+      perform_inc();
+    }
+    
+    if (arg0 == "CALL") {
+      perform_call(arg1);
+      callType = "OUTGOING";
+      callNumber = arg1;
+    }
+  }
+  
+  upd_call_t = sys.time.getAppUptime() + 50 + sys.os.inSim() * 10000;
+  
+  t_clcc = 0;
+  
+  inc_setnum = 0;
+  
+  vis_ok(0);
+  
+  at_quiet = 1;
+}
+
+function vis_ok {
+  sys.gui.setVisible(t_ok, arg0);
+  sys.gui.setVisible(b_ok, arg0);
+}
+
+function perform_inc #* number, kill_on_end*# {
+  sys.gui.setVisible(b_cend, 0); 
+  ring_enabled = 1;
+  callStart = sys.time.get();
+  callEnd = sys.time.get();
+  callType = "INCOMMING";
+  # this will be resolved with clcc
+  callNumber = "?";
+  callName = "?";
+  
+  noise_stop = 1;
+}
+
+function perform_call {  
+  if (arg0 == "") {
+    return;
+  }
+  
+  local number = cont_numsane(arg0);
+  
+  sys.os.hideKbd();
+  sys.os.gui.setMainScr(scr_c);
+  sys.gui.setVisible(b_cend, 1);
+  sys.gui.setVisible(b_caccept, 0);
+  sys.gui.setVisible(b_cdecline, 0);
+
+  sys.gui.setStr(t_cnumber, number);
+  
+  local nfo;
+  nfo = cont_get_info(number);
+  
+  sys.gui.setStr(t_name, nfo[0] + " " + nfo[1]);
+  sys.gui.setStr(t_ccompany, nfo[3]);
+  
+  #perform call
+  t_dummy = at_command("ATD" + number + ";");
+  
+  inCall = 1;
+  
+  callStart = sys.time.get();
+  callEnd = sys.time.get();
+  callType = "OUTGOING";
+  callNumber = number;
+  callName = nfo[0] + " " + nfo[1];
+}
+
+
+function check_end {
+
+  sys.gui.setVisible(b_cend, 0);
+  sys.gui.setVisible(b_caccept, 1);
+  sys.gui.setVisible(b_cdecline, 1);
+  
+  inCall = 0;
+  inc_setnum = 0;
+  
+  add_to_hist();
+  
+  sys.os.exit();
+}
+
+
+function noise {
+  if (noise_stop == 0)
+    sys.snd.beepC(440,50, &noise2);
+}
+
+function noise2 {
+  if (noise_stop == 0)
+    sys.snd.beepC(880,50, &noise);
+}
+
+function update {
+
+  if(ring_enabled) {
+    if (ring_time < sys.time.getAppUptime()) {
+      noise_stop = not noise_stop;
+      
+      if (not noise_stop) {
+        sys.snd.beepC(sys.os.rnd()%20000,1 , &noise);
+      }
+      
+      ring_time = sys.time.getAppUptime() + 1500;
+    }
+  } else {
+    noise_stop = 1;
+  }
+
+  if (sys.gui.getEventC(b_cend) == EV_RELEASED) {
+    at_reset();
+    t_dummy = at_command("ATH");
+    callEnd = sys.time.get();
+    check_end();
+  }
+  
+  if (sys.gui.getEventC(b_ok) == EV_RELEASED) {
+    sys.os.exit();
+  }
+  
+  if (sys.gui.getEventC(b_cdecline) == EV_RELEASED) {
+    at_reset();
+    t_dummy = at_command("ATH");
+    check_end();
+  }
+  
+  if (sys.gui.getEventC(b_caccept) == EV_RELEASED) {
+    ring_enabled = 0;
+    #call accept
+    at_reset();
+    t_dummy = at_command("ATA");
+    inCall = 1;
+    at_ring = 0;
+    sys.gui.setVisible(b_cend, 1);
+    sys.gui.setVisible(b_caccept, 0);
+    sys.gui.setVisible(b_cdecline, 0);
+  }
+  
+  if (upd_call_t < sys.time.getAppUptime() and upd_call_t != 0 and t_clcc == 0) {
+    upd_call_t = sys.time.getAppUptime() + 5000;
+    
+    print("CLCC auto update");
+    t_clcc = at_command("AT+CLCC", 2);
+  }
+  
+  local res = at_result(t_clcc);
+  
+  if(res == 1) {
+    local number = "";
+    print("AT+CLCC: " + at_success + " result: " + at_result);
+    
+    # set the nubmer
+    if (inc_setnum == 0 and callType == "INCOMMING") {
+      number = substr(at_result, instr(at_result, "\"") + 1, len(at_result));
+      number = substr(number, 0, instr(number, "\"") - 1);
+      print("clcc got number: " + number);
+      
+      if (number != "") {
+        inc_setnum(number);
+        inc_setnum = 1;
+      }
+      
+      # call updater
+      upd_call_t = sys.time.getAppUptime() + 5000;
+    }
+    
+    # hangup when nothing
+    if (not instr(at_result, "+CLCC: ")) {
+      sys.gui.setVisible(b_cend, 0);
+      sys.gui.setVisible(b_caccept, 0);
+      sys.gui.setVisible(b_cdecline, 0);
+      upd_call_t = 0;
+      
+      # save missed call
+      if (callType == "INCOMMING" and ring_enabled == 1) {
+        ring_enabled = 0;
+        callType = "MISSED";
+      }
+      
+      add_to_hist();
+      
+      vis_ok(1);
+    }
+    
+    t_clcc = 0;
+  }
+  
+  if(res == 2) {
+    print("CLCC retry");
+    t_clcc = at_command("AT+CLCC", 2);
+  }
+  
+  at_result(t_dummy);
+  
+  at_update();
+}
+
+
+function inc_setnum {
+  local nfo;
+  nfo = cont_get_info(arg0);
+  print("inc setnum num:" + arg0);
+  sys.gui.setStr(t_cnumber, arg0);
+  sys.gui.setStr(t_name, nfo[0] + " " + nfo[1]);
+  sys.gui.setStr(t_ccompany, nfo[3]);
+  
+  callNumber = arg0;
+  callName = nfo[0] + " " + nfo[1];
+}
+
+
+function exit {
+  if (inCall) {
+    t_dummy = at_command("ATH");
+  }
+}
