@@ -76,6 +76,7 @@ function vis_ok {
 
 function perform_inc #* number, kill_on_end*# {
   sys.gui.setVisible(b_cend, 0); 
+  sys.gui.setStr(t_mode, "Incomming call:");
   ring_enabled = 1;
   callStart = sys.time.get();
   callEnd = sys.time.get();
@@ -153,7 +154,7 @@ function update {
       noise_stop = not noise_stop;
       
       if (not noise_stop) {
-        sys.snd.beepC(sys.os.rnd()%20000,1 , &noise);
+        sys.snd.beepC(sys.os.rnd()%20000, 1, &noise);
       }
       
       ring_time = sys.time.getAppUptime() + 1500;

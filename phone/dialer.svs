@@ -3,8 +3,20 @@ import "~at-cmd.svs"
 import "~hist-tools.svs"
 
 function init {
+  # AT init commands
+  
+  array initcmds = [
+                    "AT+CALS=0,0",     # disable ring tone
+                    "AT+CLTS=1",       # enable clock from network
+                    "AT+CMGF=1",       # set sms as text mode
+                    "AT+CSCLK=1",      # enable sleep by sleep pin
+                    "AT+CSCS=\"UCS2\"" # set encoding
+                   ];
+
+  # setup all that hacky stuff
   sys.os.setSingular();
   sys.os.noClose(1);
+  
   at_init();
 
   scr_d = sys.gui.addScreen();
@@ -30,7 +42,12 @@ function init {
   sys.gui.setTxtSize(b_star, 32);
   sys.gui.setTxtSize(b_hash, 32);
   
-  b_add = sys.gui.addButton(7, 6, 2, 1, "Add", scr_d);
+  t_pin = sys.gui.addText(0, 2, 6, 1, "Enter PIN code", scr_d);
+  b_ok = sys.gui.addButton(7, 6, 2, 1, "Ok", scr_d);
+  sys.gui.setGrayout(b_ok, 1);
+  sys.gui.setVisible(b_ok, 0);
+  sys.gui.setVisible(t_pin, 0);
+  
   b_del = sys.gui.addButton(7, 1, 2, 1, "<-", scr_d);
   b_call = sys.gui.addButton(7, 3, 2, 2, "Call", scr_d);
   
@@ -56,7 +73,8 @@ function init {
 
   at_quiet = 1;
 
-  t_cpin = 0;
+  t_cpin = 0; # check pin ticket
+  t_spin = 0; # set pin ticket
   t_dummy = 0;
   t_clcc = 0;
   
@@ -74,7 +92,12 @@ function init {
 function callback {
   sys.com.uartRdClb("", 0);
   sys.os.arise();
+  
+  if(sys.hw.getLcdState() == 0) {
+    sys.hw.wakeLcd();
+  }
 }
+
 
 function callRet {
   inCall = 0;
@@ -84,9 +107,46 @@ function callRet {
 function suspend {
   if (inCall == 0) {
     sys.com.uartRdClb(&callback, 2);
+    at_set_dtr(1); # sleep enabled
+   } else {
+   
+   }
+}
+
+function wakeup {
+  at_set_dtr(0); # sleep disabled
+  
+  if (typeof(arg0) == TYPE_STR) {
+    if (arg0 == "DISABLE") {
+      sys.com.uartRdClb(&callback, 0);
+      inCall = 1;
+      sys.os.suspend();
+    }
+    
+    if (arg0 == "ENABLE") {
+      sys.com.uartRdClb(&callback, 2);
+      inCall = 0;
+      sys.os.suspend();
+    }
   }
 }
 
+
+function run_inits {
+  print("phone: Running inits: ", "");
+  
+  local i = 0;
+  
+  for(i = 0; i < len(initcmds); i++;) {
+    sys.com.uartTrs(initcmds[i] + "\r\n");
+    at_wait(200);
+  }
+  
+  at_reset();
+  at_wait(200);
+  
+  print("Done!");
+}
 
 function init_clist {
   cl_scr = sys.gui.addScreen(); 
@@ -268,24 +328,44 @@ function update {
     sys.os.gui.setMainScr(cl_scr);
   }
   
+  
+  if (sys.gui.getEventC(b_ok) == EV_RELEASED) {
+    t_spin = at_command("AT+CPIN=" + number, 150);
+    number = "";
+    sys.gui.setGrayout(b_ok, 1);
+  }
+  
   local res;
   
   # AT result
   res = at_result(t_at);
-  if(res) {
-    print("phone: AT: " + res);
+  if(res == RES_OK) {
+    print("phone: AT: OK");
+    
+    run_inits();
     at_wait(100);
-    t_at2 = at_command("AT");
-  }
-  
-  # AT 2 result
-  res = at_result(t_at2);
-  if(res) {
-    print("phone: AT2: " + res);
-    at_wait(100);
-    at_reset();
     t_cpin = at_command("AT+CPIN?", 2);
   }
+  
+  if (res == RES_ERR) {
+    print("phone: AT: ERR");
+    
+    if (at_err > 10) {
+      sys.os.error("Modem not responding!");
+      return;
+    }
+    
+    t_at = at_command("AT");
+    at_err++;
+  }
+  
+  # simpin input handling
+  res = at_result(t_spin);
+  
+  if(res) {
+    t_cpin = at_command("AT+CPIN?", 2);
+  }
+  
   
   # CPIN handling
   res = at_result(t_cpin);
@@ -293,12 +373,16 @@ function update {
     if(instr(at_result, "+CPIN: READY")) {
       sys.gui.setGrayout(b_call, 0);
       print("pin OK");
-      #at_quiet = 0;
+      sys.gui.setVisible(b_ok, 0);
+      sys.gui.setVisible(t_pin, 0);
     } else {
-      sys.os.error("PIN not entered! " + at_result);
       sys.gui.setGrayout(b_call, 1);
+      sys.gui.setVisible(b_ok, 1);
+      sys.gui.setVisible(t_pin, 1);
+      sys.gui.setGrayout(b_ok, 0);
     }
   }
+  
   if(res == 2) {
     print("CPIN fail");
     at_wait(400);
