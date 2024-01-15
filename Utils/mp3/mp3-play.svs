@@ -162,6 +162,7 @@ function init {
   # Pin16 is used to enable power for the player
   sys.hw.iPinDef(8, PIN_ALT, 0);
   sys.hw.iPinDef(16, PIN_OUT, 0);
+  sys.hw.iPinDef(1, PIN_IN, PIN_PULLUP);
   sys.hw.iPinSet(16, 1);
 
   # load settings
@@ -210,6 +211,31 @@ function init {
   fs_pop = 1;
   
   sys.os.gui.setRoot(1, get_folder(sys.os.getAppPath()));
+}
+
+function jack_check {
+  if (sys.hw.iPinGet(1) != jackStatO) {
+    jackDebounce = sys.time.getAppUptime() + 10000;
+    print("dbg: debounce:" + sys.hw.iPinGet(1));
+    jackStatO = sys.hw.iPinGet(1);
+  }
+  
+  if (sys.time.getAppUptime() > jackDebounce and jackDebounce != 0) {
+    if (not sys.hw.iPinGet(1)) {
+      # jack insert
+      print("dbg: plugin");
+    } else {
+      # jack unplug
+      if(play == 1) {
+        sys.gui.setIcon(btn, "play.p16");
+        ds_pause();
+        play = 0;
+        sys.time.clearTimer();
+      }
+      print("dbg: unplug");
+    }
+  jackDebounce = 0;
+  }
 }
 
 function add_big_list {
@@ -288,6 +314,9 @@ function play_no {
 
 
 function play_next {
+  
+  jack_check();
+
   if ((sleep_timer + 60*60) < sys.time.get()) {
     sys.gui.setIcon(btn, "play.p16");
     ds_pause();
@@ -309,7 +338,7 @@ function play_next {
 
 
 function update {
-
+  jack_check();
   # wait few cycles before setting the initial volume to let the DFPlayer boot
   if (setInitVolFlag != 0) {
     setInitVolFlag--;
