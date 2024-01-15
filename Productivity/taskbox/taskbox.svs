@@ -28,8 +28,10 @@ function init {
   
   bDaily = sys.gui.addButton(0, 11, 4, 1, "Daily Todo", scr);
   sys.gui.setSelect(bDaily, 1);
-  bTasks = sys.gui.addButton(4, 11, 3, 1, "Tasks", scr);
-  bNewTask = sys.gui.addButton(7, 11, 1, 1, "+", scr);
+  
+  bTasks     = sys.gui.addButton(4, 11, 3, 1, "Tasks", scr);
+  bNewTask   = sys.gui.addButton(7, 11, 1, 1, "+", scr);
+  bCompleted = sys.gui.addCheckBox(0, 12, 8, 1, "Show completed", scr);
   
   sList = sys.gui.addScreen(0, 1, 8, 10, scr);
   
@@ -71,7 +73,7 @@ function init {
   
   bBackTE  = sys.gui.addButton(0, 11, 3, 1, "Back", sTaskE);
   bTrackTE = sys.gui.addButton(3, 11, 5, 1, "Start tracking",sTaskE);
-  
+  tTrackTE = sys.gui.addText(0, 10, 8, 1, "", sTaskE);
   barTE = sys.gui.addSliderV(8, 2, 1, 6, 14*32, 0, sTaskE);
   
   set_spacing(sTaskE);
@@ -118,6 +120,12 @@ function init {
   current_task = "";
   current_cat = 0;
   
+  tracking = 0;
+  
+  tracking_id = 0;
+  
+  tracking_time = 0;
+  
   sys.fs.chDir("appdata");
   
   if (not sys.fs.exists("tasks")) {
@@ -131,6 +139,8 @@ function init {
   array IDs[100];
   array cats[10];
   array catID[10];
+  
+  tTaskTime = 0;
   
   cat_len = 0;
    
@@ -371,7 +381,7 @@ function store_cats {
 function load_tasks {
   sys.gui.destroy(sList);
   sList = sys.gui.addScreen(0, 1, 8, 10, scr);
-  local i = 0; 
+  local i = 0;
   
   for(findfil = sys.fs.find("tsk", "."); findfil != ""; findfil = sys.fs.findNext();) {
     print("found: " + findfil);
@@ -409,14 +419,18 @@ function load_task { # arg0: task name
   sList = sys.gui.addScreen(0, 1, 8, 10, scr);
   local i = 0;
   local b = 0;
+  local time = 0;
   
   sys.fs.conf.open(arg0);
 
   while(sys.fs.conf.exists("t_" + i)) {
-    if(sys.fs.conf.read("tv_" + i) == "1") {
+    if(sys.fs.conf.read("tv_" + i) == "1"
+       and (sys.fs.conf.read("tc_" + i) == "0" or (sys.fs.conf.read("tc_" + i) == "1" and sys.gui.getValue(bCompleted) == 1))
+    ) {
       pButtons[b] = sys.gui.addCheckBox(0, b, 6, 1, sys.fs.conf.read("t_" + i), sList);
       pFiles[b] = sys.gui.addButton(6, b, 1, 1, "...", sList);
       IDs[b] = i;
+      time += num(sys.fs.conf.read("tt_" + i));
       if (sys.fs.conf.read("tc_" + i) == "1") {
         sys.gui.setValue(pButtons[b], 1);
       }
@@ -427,6 +441,8 @@ function load_task { # arg0: task name
   
   if (arg0 != "daily.tsk") {
     set_mode(2, sys.fs.conf.read("name"));
+    
+    tTaskTime = sys.gui.addText(0, b, 8, 1, "(" + fmt_drop(float(time)/3600.0) + "h tracked total)", sList);
   } else {
     set_mode(0);
   }
@@ -438,7 +454,7 @@ function load_task { # arg0: task name
   tasksLen = b;
   
   sys.gui.setValue(scrBar, 0);
-  sys.gui.setParam(scrBar, (b - 1)*34 + 6);
+  sys.gui.setParam(scrBar, (b)*34 + 6);
   
   current_task = arg0;
 }
@@ -453,11 +469,14 @@ function new_te {
   pButtons[i] = sys.gui.addCheckBox(0, i, 6, 1, arg0, sList);
   pFiles[i] = sys.gui.addButton(6, i, 1, 1, "...", sList);
   
+  sys.gui.setY1(tTaskTime, i + 1);
+  
   sys.fs.conf.open(current_task);
   sys.fs.conf.write("tv_" + i, "1");
   sys.fs.conf.write("t_" + i, arg0);
   sys.fs.conf.write("tc_" + i, "0");
   sys.fs.conf.write("td_" + i, "");
+  sys.fs.conf.write("tt_" + i, "0");
   sys.fs.conf.close();
   
   tasksLen++;
@@ -487,12 +506,36 @@ function new_task_g {
   return fname;
 }
 
+function fmt_time_lz {
+  if (arg0 < 10) {
+    return "0" + arg0;
+  }
+  return "" + arg0;
+}
+
+function fmt_drop {
+  return substr("" + arg0, 0, instr("" + arg0, ".") + 1);
+}
+
+function set_tracktime {
+  if("" + arg0 == "") {
+    sys.gui.setStr(tTrackTE, "");
+    return;
+  }
+  sys.gui.setStr(tTrackTE, fmt_time_lz(arg0/3600) + "h "
+                           + fmt_time_lz((arg0%3600)/60) + "m "
+                           + fmt_time_lz(arg0%60) + "s "
+                           + "(" + fmt_drop(float(arg0)/3600.0) + "h) tracked"
+                );
+}
+
 
 function load_te { # arg0 task_entry_id
   sys.fs.conf.open(current_task);
   sNameTE = sys.fs.conf.read("t_" + arg0);
   sys.gui.setValue(bCheckTE, num(sys.fs.conf.read("tc_" + arg0)));
   sDescrTE = sys.fs.conf.read("td_" + arg0);
+  set_tracktime(num(sys.fs.conf.read("tt_" + idTE)));
   sys.fs.conf.close();
   
   sys.gui.setValue(barTE, 0);
@@ -533,10 +576,49 @@ function upd_te {
   }
   
   if (sys.gui.getEventC(bTrackTE) == EV_RELEASED) {
-    com_new("not implemented", 0, 1);
+    #com_new("not implemented", 0, 1);
+    if (tracking == 0) {
+      sys.gui.setGrayout(bBackTE, 1);
+      sys.gui.setGrayout(bDelTE, 1);
+      tracking_timer = sys.time.get() + 60;
+      
+      sys.fs.conf.open(current_task);
+      tracking_time = num(sys.fs.conf.read("tt_" + idTE));
+      sys.fs.conf.close();
+      time_o = sys.time.get();
+      
+      tracking = 1;
+      sys.gui.setStr(bTrackTE, "Stop tracking");
+    } else {
+      sys.gui.setGrayout(bBackTE, 0);
+      sys.gui.setGrayout(bDelTE, 0);
+      
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("tt_" + idTE, "" + tracking_time);
+      sys.fs.conf.close();
+      tracking = 0;
+      sys.gui.setStr(bTrackTE, "Start tracking");
+    }
   }
   
   sys.gui.setYscroll(scDescrTE, sys.gui.getValue(barTE));
+  
+  if(tracking == 1) {
+    if(tracking_timer < sys.time.get()) {
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("tt_" + idTE, "" + tracking_time);
+      sys.fs.conf.close();
+      tracking_timer = sys.time.get() + 60;
+      print("autosaving");
+    }
+    
+    if (time_o != sys.time.get()) {
+      tracking_time +=  sys.time.get() - time_o;
+      set_tracktime(tracking_time);
+    }
+    
+    time_o = sys.time.get();
+  }
 }
 
 
@@ -571,6 +653,7 @@ function set_mode {
   if (arg0 == 0) {  # daily tasks
     sys.gui.setSelect(bDaily, 1);
     sys.gui.setSelect(bTasks, 0);
+    sys.gui.setVisible(bCompleted, 1);
     categ_vis(0);
     bottom_vis(0);
     mode = 0;
@@ -581,6 +664,7 @@ function set_mode {
   if (arg0 == 1) {  # tasks
     sys.gui.setSelect(bDaily, 0);
     sys.gui.setSelect(bTasks, 1);
+    sys.gui.setVisible(bCompleted, 0);
     categ_vis(1);
     bottom_vis(0);
     mode = 1;
@@ -591,6 +675,7 @@ function set_mode {
   if(arg0 == 2) { # task selected
     categ_vis(0);
     bottom_vis(1);
+    sys.gui.setVisible(bCompleted, 1);
     sys.os.gui.setMainScr(scr);
     sys.gui.setStr(tTitle, arg1);
     sys.gui.setVisible(tTitle, 1);
@@ -631,6 +716,11 @@ function update {
   if (sys.gui.getEventC(bDaily) == EV_RELEASED) {
     set_mode(0);
     load_task("daily.tsk");
+  }
+  
+  if (sys.gui.getEventC(bCompleted) == EV_RELEASED) {
+    if (mode == 0) load_task("daily.tsk");
+    if (mode == 2) load_task(current_task);
   }
   
   if (sys.gui.getEventC(bTasks) == EV_RELEASED) {
