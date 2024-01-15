@@ -7,7 +7,7 @@ function init {
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.1", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.1.1", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
   sys.gui.setSliderSize(scrollbar, 80);
@@ -90,16 +90,28 @@ function getUpCount {
 
 
 function updatePath {
-  arg4 = 0;
-  arg5 = 0;
-  for(arg2 = 0; arg2 < len(arg0); arg2++;) {
-    if (getcp(arg0, arg2) == "/") {
-      path[arg5] = substr(arg0, arg4, arg2 - 1);
-      arg5++;
-      arg4 = arg2 + 1;
+  local i; #arg2
+  local b = 0; #arg4
+  local c = 0;
+  
+  for(i = 0; i < len(arg0); i++;) {
+    if (getcp(arg0, i) == "/") {
+      path[c] = substr(arg0, b, i - 1);
+      print("updPath: "+path[c]);
+      c++;
+      b = i + 1;
     }
   }
-  return arg4;
+  
+  if (c == 0) {
+  
+    if (getcp(arg0, len(arg0)) == "/") {
+      arg0 = substr(arg0, 0, len(arg0) - 1);
+    }
+    path[0] = arg0;
+  }
+  
+  return c;
 }
 
 function dir_list {
@@ -464,6 +476,8 @@ function update {
     tabBapps = inApps;
     tabBsc   = sys.gui.getValue(scrollbar);
     
+    print("new:" + tabApath +  " old: " + tabBpath);
+    
     switchDir(tabApath, tabAapps);
     sys.gui.setValue(scrollbar, tabAsc);
     sys.gui.setGhost(bTabA, 0);
@@ -474,6 +488,8 @@ function update {
     tabApath = getPath();
     tabAapps = inApps;
     tabAsc   = sys.gui.getValue(scrollbar);
+    
+    print("new:" + tabBpath +  " old: " + tabApath);
     
     switchDir(tabBpath, tabBapps);
     sys.gui.setValue(scrollbar, tabBsc);
