@@ -14,7 +14,7 @@ function init {
   white = sys.ds.mixColor(255, 255, 255);
 
   # blocks Array
-  array blArr[40];
+  array blArr[50];
 
   game_reset();
 }
