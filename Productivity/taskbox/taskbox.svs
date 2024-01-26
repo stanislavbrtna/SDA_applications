@@ -126,6 +126,8 @@ function init {
   
   tracking_time = 0;
   
+  keybBack = 0;
+  
   sys.fs.chDir("appdata");
   
   if (not sys.fs.exists("tasks")) {
@@ -464,12 +466,20 @@ function new_te {
     print("new_te: no current task...");
     return;
   }
-  local i = tasksLen;
   
-  pButtons[i] = sys.gui.addCheckBox(0, i, 6, 1, arg0, sList);
-  pFiles[i] = sys.gui.addButton(6, i, 1, 1, "...", sList);
+  sys.fs.conf.open(current_task);
   
-  sys.gui.setY1(tTaskTime, i + 1);
+  local i = 0; 
+  
+  while(sys.fs.conf.exists("t_" + i)) {
+    i++;
+  }
+  
+  pButtons[tasksLen] = sys.gui.addCheckBox(0, tasksLen, 6, 1, arg0, sList);
+  pFiles[tasksLen] = sys.gui.addButton(6, tasksLen, 1, 1, "...", sList);
+  IDs[tasksLen] = i;
+  
+  sys.gui.setY1(tTaskTime, tasksLen + 1);
   
   sys.fs.conf.open(current_task);
   sys.fs.conf.write("tv_" + i, "1");
@@ -638,8 +648,14 @@ function upd_task {
   for(i = 0; i < tasksLen; i++;) {
     if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
       sys.fs.conf.open(current_task);
-      sys.fs.conf.write("tc_" + i, "" + sys.gui.getValue(pButtons[i]));
+      sys.fs.conf.write("tc_" + IDs[i], "" + sys.gui.getValue(pButtons[i]));
+      sys.fs.conf.write("watafak??", "" + sys.gui.getValue(pButtons[i]));
       sys.fs.conf.close();
+      print("click!" + sys.gui.getValue(pButtons[i]) + "id:" + IDs[i]);
+      
+      load_task(current_task);
+      
+      return;
     }
     
     if (sys.gui.getEventC(pFiles[i]) == EV_RELEASED) {
@@ -659,6 +675,7 @@ function set_mode {
     mode = 0;
     sys.os.gui.setMainScr(scr);
     sys.gui.setStr(tTitle, "Daily Todo");
+    keybBack = 0;
   }
   
   if (arg0 == 1) {  # tasks
@@ -670,6 +687,7 @@ function set_mode {
     mode = 1;
     
     load_tasks();
+    keybBack = 0;
   }
   
   if(arg0 == 2) { # task selected
@@ -680,12 +698,16 @@ function set_mode {
     sys.gui.setStr(tTitle, arg1);
     sys.gui.setVisible(tTitle, 1);
     mode = 2;
+    
+    keybBack = bBack;
   }
   
   if(arg0 == 3) { # task entry config
     load_te(arg1)
     sys.os.gui.setMainScr(sTaskE);
     mode = 3;
+    
+    keybBack = bBackTE;
   }
   
   if(arg0 == 4) { # task notes
@@ -695,6 +717,8 @@ function set_mode {
     sys.fs.conf.close();
     sys.gui.setStr(tTitleNo, "Note: " + sys.gui.getStr(tTitle));
     mode = 4;
+    
+    keybBack = bBackNo;
   }
 }
 
@@ -919,6 +943,8 @@ function update {
       ddm_exit();
     }
   }
+  
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), keybBack);
   
   sys.gui.setYscroll(sList, sys.gui.getValue(scrBar) - 6);
 }
