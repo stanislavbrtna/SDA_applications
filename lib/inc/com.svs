@@ -79,6 +79,8 @@ function com_handle {
     return com_ok_val;
   }
   
+  sys.os.gui.btnCtrl(com_screen, com_cancel);
+  
   return com_ok_val;
 }
 
