@@ -1,0 +1,341 @@
+function main {
+  print("test 1: " + compute("5+2*2"));  
+  print("test 2: " + compute("sqrt4 + sin0.5"));
+}
+
+function compute {
+  local t;
+  t = parser(arg0, 80);
+  print("Mathparse: " + t[0] + " tokens used. (info)");
+  return solver(t);
+}
+
+###############################################################################
+############################ Parser ###########################################
+
+function isNumber {
+  if (arg0 == "0") return 1;
+  if (arg0 == "1") return 1;
+  if (arg0 == "2") return 1;
+  if (arg0 == "3") return 1;
+  if (arg0 == "4") return 1;
+  if (arg0 == "5") return 1;
+  if (arg0 == "6") return 1;
+  if (arg0 == "7") return 1;
+  if (arg0 == "8") return 1;
+  if (arg0 == "9") return 1;
+  if (arg0 == ".") return 1;
+  if (arg0 == ",") return 1;
+  return 0;
+}
+
+
+function getspos { # string, index, searchstring
+  if(instr(substr(arg0, arg1, len(arg0)), arg2) == 1) {
+    return 1;  
+  } else {
+    return 0;
+  }
+}
+
+function set_ans {
+  parser_ans = arg0;
+}
+
+
+function parser { # string, token size
+  
+  local s = arg0;
+  
+  local used = 0;
+ 
+  # parse loop:
+  
+  local token = 1;
+  
+  local numstr = "";
+  
+  local fnstr = "";
+  
+  array t[arg1];
+  
+  for(i = 1; i < len(s) + 1; i++;) {
+    if (isNumber(getcp(s, i))) {
+      numstr += getcp(s, i);
+    } else {
+      # finish number
+      if (numstr != "") {
+        t[token] = float(numstr);
+        token++;
+        numstr = "";
+      }
+      
+      # ops
+      if (getcp(s, i) == "+") {
+        t[token] = "+";
+        token++;
+      }
+      
+      if (getcp(s, i) == "-") {
+        t[token] = "-";
+        token++;
+      }
+      
+      if (getcp(s, i) == "*") {
+        t[token] = "*";
+        token++;
+      }
+      
+      if (getcp(s, i) == "/") {
+        t[token] = "/";
+        token++;
+      }
+      
+      if (getcp(s, i) == "(") {
+        t[token] = "(";
+        token++;
+      }
+      
+      if (getcp(s, i) == ")") {
+        t[token] = ")";
+        token++;
+      }
+      
+      if (getcp(s, i) == "^") {
+        t[token] = "^";
+        token++;
+      }
+      
+      # functions
+      
+      if(getspos(s, i, "sqrt")) {
+        t[token] = "sqrt";
+        i += 3;
+        token++;
+      }
+      
+      if(getspos(s, i, "exp")) {
+        t[token] = "exp";
+        i += 3;
+        token++;
+      }
+      
+      if(getspos(s, i, "log")) {
+        t[token] = "log";
+        i += 3;
+        token++;
+      }
+      
+      if(getspos(s, i, "sin")) {
+        t[token] = "sin";
+        token++;
+      }
+      
+      if(getspos(s, i, "cos")) {
+        t[token] = "cos";
+        token++;
+      }
+      
+      if(getspos(s, i, "tan")) {
+        t[token] = "tan";
+        token++;
+      }
+      
+      if(getspos(s, i, "atg")) {
+        t[token] = "atg";
+        token++;
+      }
+      
+      if(getspos(s, i, "pi")) {
+        t[token] = pi();
+        token++;
+      }
+      
+      if(getspos(s, i, "ans")) {
+        t[token] = float(parser_ans);
+        token++;
+      }
+    }
+  }
+  
+  if (numstr != "") { 
+    t[token] = float(numstr);
+    token++;
+    numstr = "";
+  }
+  
+  t[0] = token;
+  
+  t[token] = ""; # to get rid of uninitialized warnings
+ 
+  return t;
+}
+
+
+###############################################################################
+############################ Solver ###########################################
+
+
+function solver4 { # * /
+  if (typeof(s_tokens[s_tid]) == TYPE_FLOAT) {
+    s_tid++;
+    return s_tokens[s_tid - 1];
+  }
+  
+  if(s_tokens[s_tid] == "pi") {
+    s_tid++;
+    return pi();
+  }
+  
+  if(s_tokens[s_tid] == "(") {
+    s_tid++;
+    local result = 0.0;
+    result = solver1();
+    #print("intermediate: " + result);
+    s_tid++;
+    return result;
+  }
+  
+  if(s_tokens[s_tid] == "sin") {
+    s_tid++;
+    local result = 0.0;
+    result = solver4();
+    return sin(result);
+  }
+  
+  if(s_tokens[s_tid] == "cos") {
+    s_tid++;
+    local result = 0.0;
+    result = solver4();
+    return cos(result);
+  }
+  
+  if(s_tokens[s_tid] == "tan") {
+    s_tid++;
+    local result = 0.0;
+    result = solver4();
+    return tan(result);
+  }
+  
+  if(s_tokens[s_tid] == "atg") {
+    s_tid++;
+    local result = 0.0;
+    result = solver4();
+    return atan(result);
+  }
+  
+  if(s_tokens[s_tid] == "exp") {
+    s_tid++;
+    local result = 0.0;
+    result = solver4();
+    return exp(result);
+  }
+  
+  if(s_tokens[s_tid] == "log") {
+    s_tid++;
+    local result = 0.0;
+    result = solver4();
+    return log(result);
+  }
+  
+  if(s_tokens[s_tid] == "sqrt") {
+    s_tid++;
+    local result = 0.0;
+    result = solver4();
+    return sqrt(result);
+  }
+  
+  return 0.0;
+}
+
+
+function solver3 { # pow
+  
+  local result1 = 0.0;
+  local result2 = 0.0;
+  
+  result1 = solver4();
+
+  for (i = 0; i<s_max; i++;) {
+    if (s_tokens[s_tid] + "" == "^") {
+      s_tid++;
+      result2 = solver2();
+      result1 = pow(result1, result2);
+    } else {
+      break;
+    }  
+  }
+  
+  return result1;
+}
+
+
+function solver2 { # / *
+  
+  local result1 = 0.0;
+  local result2 = 0.0;
+  
+  result1 = solver3();
+
+  for (i = 0; i<s_max; i++;) {
+    if (s_tokens[s_tid] + "" == "*") {
+      s_tid++;
+      result2 = solver2();
+      result1 *= result2;
+    } else if (s_tokens[s_tid] + "" == "/") {
+      s_tid++;
+      result2 = solver2();
+      result1 /= result2;
+    } else {
+      break;
+    }  
+  }
+  
+  return result1;
+}
+
+
+function solver1 { # + -
+  
+  local result1 = 0.0;
+  local result2 = 0.0;
+  
+  result1 = solver2();
+
+  for (i = 0; i<s_max; i++;) {
+    if (s_tokens[s_tid] + "" == "+") {
+      s_tid++;
+      result2 = solver2();
+      result1 += result2;
+    } else if (s_tokens[s_tid] + "" == "-") {
+      s_tid++;
+      result2 = solver2();
+      result1 -= result2;
+    } else {
+      break;
+    }  
+  }
+  
+  return result1;
+}
+
+function solver {
+  s_result = 0.0;
+  s_tid = 1;
+  s_max = len(arg0);
+  s_tokens = arg0;
+  
+  return solver1(s_tid);
+}
+
+###############################################################################
+############################ Utils ############################################
+
+function tprint {
+  local p = "";
+  local i;
+  for(i = 1; i<arg0[0]; i++;) {
+    p += arg0[i] + "";
+  }
+  print(p);
+}

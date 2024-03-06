@@ -1,0 +1,341 @@
+import "~mathparse.svs"
+
+function set_spacing {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setXscroll(arg0, -6); # to change xscroll and xscroll old, prevents scroll artefacts
+}
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  set_spacing(scr);
+  sys.gui.setYscroll(scr, -6);
+  
+  sInp = sys.gui.addScreen(0, 0, 9, 1, scr);
+  
+  tInput = sys.gui.addText(0, 0, 24, 1, "", sInp); 
+  sys.gui.setTexEd(tInput, 1);
+  sInput = "";
+  
+  bL = sys.gui.addButton(0, 1, 1, 1, "<", scr);
+  bR = sys.gui.addButton(1, 1, 1, 1, ">", scr);
+  
+  sys.gui.setTexAlign(sys.gui.addText(2, 1, 2, 1, "Ans:", scr), ALIGN_RIGHT);
+  
+  tAns = sys.gui.addText(4, 1, 4, 1, "", scr); 
+  sys.gui.setTexEd(tAns, 1);
+  sAns = "";
+  
+  bSolve = sys.gui.addButton(8, 1, 1, 1, "=", scr);
+  
+  bNum = sys.gui.addButton(0, 2, 2, 1, "Num", scr);
+  bFn = sys.gui.addButton(2, 2, 2, 1, "Fn", scr);
+  bClr = sys.gui.addButton(4, 2, 2, 1, "Clr", scr);
+  bHistory = sys.gui.addButton(6, 2, 3, 1, "History", scr);
+  
+  sNum = sys.gui.addScreen();
+  set_spacing(sNum);
+  sys.gui.setSpacing(sNum, 4, 4, 6, 0);
+  sys.gui.setXcell(sNum, 36);
+  sys.gui.setYcell(sNum, 36);
+  sys.gui.setYscroll(sNum, -4);
+  sys.gui.setXscroll(sNum, -7);
+  
+  bLbr = sys.gui.addButton(0, 0, 2, 1, "(", sNum);
+  bRbr = sys.gui.addButton(2, 0, 2, 1, ")", sNum);
+  
+  bDiv = sys.gui.addButton(6, 1, 2, 2, "/", sNum);
+  
+  bBsp = sys.gui.addButton(6, 0, 2, 1, "<<", sNum);
+  
+  bMul = sys.gui.addButton(6, 3, 2, 2, "*", sNum);
+  
+  bSub = sys.gui.addButton(6, 5, 2, 2, "-", sNum);
+  bAdd = sys.gui.addButton(6, 7, 2, 2, "+", sNum);
+  
+  
+  array bNumpad[10];
+  
+  for(a = 0; a < 3; a++;) {
+    bNumpad[7 + a] = sys.gui.addButton(2*a, 1, 2, 2, "" + 7 + a, sNum);
+    bNumpad[4 + a] = sys.gui.addButton(2*a, 3, 2, 2, "" + 4 + a, sNum);
+    bNumpad[1 + a] = sys.gui.addButton(2*a, 5, 2, 2, "" + 1 + a, sNum);
+  } 
+  
+  bNumpad[0] = sys.gui.addButton(0, 7, 2, 2, "0", sNum);
+  
+  bComma = sys.gui.addButton(2, 7, 2, 2, ",", sNum);
+  
+  bSolve2 = sys.gui.addButton(4, 7, 2, 2, "=", sNum);
+  
+  frame = sys.gui.addFrame(0, 3, 9, 10, sNum, scr);
+
+  sFn = sys.gui.addScreen();
+  set_spacing(sFn);
+  sys.gui.setSpacing(sFn, 4, 4, 6, 0);
+  sys.gui.setXcell(sFn, 36);
+  sys.gui.setYcell(sFn, 36);
+  sys.gui.setYscroll(sFn, -4);
+  sys.gui.setXscroll(sFn, -7);
+  
+  bPow  = sys.gui.addButton(0, 0, 2, 1, "^", sFn);
+  bSqrt = sys.gui.addButton(2, 0, 2, 1, "sqrt", sFn);
+  bExp = sys.gui.addButton(4, 0, 2, 1, "exp", sFn);
+  bLog = sys.gui.addButton(6, 0, 2, 1, "log", sFn);
+  
+  bSin = sys.gui.addButton(0, 1, 2, 1, "sin", sFn);
+  bCos = sys.gui.addButton(2, 1, 2, 1, "cos", sFn);
+  bTan = sys.gui.addButton(4, 1, 2, 1, "tan", sFn);
+  bAtg = sys.gui.addButton(6, 1, 2, 1, "atg", sFn);
+  
+  bPi  = sys.gui.addButton(0, 2, 2, 1, "pi", sFn);
+  bAns = sys.gui.addButton(2, 2, 2, 1, "ans", sFn);
+
+  sHistory = sys.gui.addScreen();
+  set_spacing(sHistory);
+  sys.gui.setSpacing(sHistory, 4, 4, 6, 0);
+  sys.gui.setXcell(sHistory, 36);
+  sys.gui.setYcell(sHistory, 36);
+  sys.gui.setYscroll(sHistory, -4);
+  sys.gui.setXscroll(sHistory, -7);
+
+  slHist = sys.gui.addSliderV(7, 0, 1, 9, 1024, 0, sHistory);
+
+  insert = 0;
+  
+  array history[10];
+  
+  array bHists[10];
+  array tHists[10];
+  
+  local i = 0;
+  
+  sHistIn = sys.gui.addScreen(0, 0, 7, 9, sHistory);
+  set_spacing(sHistIn);
+  sys.gui.setXscroll(sHistIn, -3);
+  sys.gui.setYscroll(sHistIn, -3);
+  
+  for(i = 0; i < 10; i++;) {
+    tHists[i] = sys.gui.addText(0, i*2, 7, 1, "test", sHistIn);
+    sys.gui.setTexEd(tHists[i], 1);
+    bHists[i] = sys.gui.addButton(5, i*2 + 1, 2, 1, "Load", sHistIn);
+  }
+  
+  setMode(0);
+  
+  loadHist();
+}
+
+function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
+  sys.gui.setYscroll(arg0, num((float(arg3 - arg2)/1024.0)*float(sys.gui.getValue(arg1))) + arg2);
+}
+
+function update {
+  sInput = sys.os.gui.handleText(tInput, sInput);
+  sAns = sys.os.gui.handleText(tAns, sAns);
+  
+  # overlay
+  if (sys.gui.getEventC(bSolve) == EV_RELEASED
+      or sys.gui.getEventC(bSolve2) == EV_RELEASED) {
+    sAns = "" + compute(sInput);
+    
+    set_ans(sAns);
+    
+    addHist(sInput);
+  } 
+  
+  if (sys.gui.getEventC(bClr) == EV_RELEASED) {
+    sInput = "";
+    sAns = "";
+    sys.gui.setXscroll(sInp, 0);
+    setMode(0);
+  }
+  
+  if (sys.gui.getEventC(bBsp) == EV_RELEASED) {
+    sInput = substr(sInput, 1, sys.os.gui.getCPos(tInput) - 1)
+           + substr(sInput, sys.os.gui.getCPos(tInput) + 1, len(sInput));
+    sInput = sys.os.gui.handleText(tInput, sInput);
+  }
+  
+  if (sys.gui.getEventC(bNum) == EV_RELEASED) {
+    setMode(0);
+  }
+  
+  if (sys.gui.getEventC(bFn) == EV_RELEASED) {
+    setMode(1);
+  }
+  
+  if (sys.gui.getEventC(bHistory) == EV_RELEASED) {
+    setMode(2);
+  }
+  
+  if (sys.gui.getEvent(bL) == EV_RELEASED) {
+    if (sys.gui.getXscroll(sInp) > 0) {
+      sys.gui.setXscroll(sInp, sys.gui.getXscroll(sInp) - 16);
+    } else {
+      sys.gui.setXscroll(sInp, 0);
+    }
+  }
+  
+  if (sys.gui.getEvent(bL) == EV_HOLD) {
+    if (sys.gui.getXscroll(sInp) > 0) {
+      sys.gui.setXscroll(sInp, sys.gui.getXscroll(sInp) - 4);
+    }
+  }
+  
+  sys.gui.setEvent(bL, EV_NONE);
+  
+  if (sys.gui.getEvent(bR) == EV_RELEASED) {
+    if (sys.gui.getXscroll(sInp) < (32*14))
+    sys.gui.setXscroll(sInp, sys.gui.getXscroll(sInp) + 16);
+  }
+  
+  if (sys.gui.getEvent(bR) == EV_HOLD) {
+    if (sys.gui.getXscroll(sInp) < (32*14))
+    sys.gui.setXscroll(sInp, sys.gui.getXscroll(sInp) + 4);
+  }
+  
+  sys.gui.setEvent(bR, EV_NONE);
+  
+  updNum();
+  updFn();
+  updHist();
+  
+  scrScroller(sHistIn, slHist, -3, 8 * 36 * 2 + 34);
+}
+
+function updNum {
+  for(i = 0; i < 10, i++;) {
+    handleKey(bNumpad[i]);
+  }
+  
+  handleKey(bLbr);
+  handleKey(bRbr);
+  
+  handleKey(bDiv);
+  handleKey(bMul);
+  handleKey(bAdd);
+  handleKey(bSub);
+  handleKey(bComma);
+}
+
+function updFn {
+  handleKey(bPow);
+  handleKey(bSqrt);
+  handleKey(bExp);
+  handleKey(bLog);
+  
+  handleKey(bSin);
+  handleKey(bCos);
+  handleKey(bTan);
+  handleKey(bAtg);
+  
+  handleKey(bPi);
+  handleKey(bAns);
+}
+
+function setMode {
+  if (arg0 == 0) {
+    sys.gui.setValue(frame, sNum);
+  }
+  
+  if (arg0 == 1) {
+    sys.gui.setValue(frame, sFn);
+  }
+  
+  if (arg0 == 2) {
+    sys.gui.setValue(frame, sHistory);
+  }
+  
+  sys.gui.setSelect(bNum, arg0 == 0);
+  sys.gui.setSelect(bFn, arg0 == 1);
+  sys.gui.setSelect(bHistory, arg0 == 2);
+}
+
+function handleKey {
+  if(sys.gui.getEventC(arg0) == EV_RELEASED) {
+    insert(sys.gui.getStr(arg0));
+  }
+}
+
+
+function insert {
+  sInput = substr(sInput, 1, sys.os.gui.getCPos(tInput))
+           + arg0
+           + substr(sInput, sys.os.gui.getCPos(tInput) + 1, len(sInput));
+  
+  sInput = sys.os.gui.handleText(tInput, sInput);
+  
+  sys.os.gui.setCPos(tInput, sys.os.gui.getCPos(tInput) + len(arg0));
+}
+
+function updHist {
+  local i = 0;
+
+  for (i = 0; i < 10; i++;) {
+    history[i] = sys.os.gui.handleText(tHists[i], history[i]);
+    if (sys.gui.getEventC(bHists[i]) == EV_RELEASED) {
+      sInput = history[i];
+      sAns = "";
+      sys.gui.setXscroll(sInp, 0);
+      sys.gui.setEvent(bSolve, EV_RELEASED);
+    }
+  }
+}
+
+
+function loadHist {
+  local i = 0;
+
+  for (i = 0; i < 10; i++;) {
+    history[i] = "";
+  }
+  local h;
+  i = 0;
+  sys.fs.conf.open("appdata/advcalc.dat");
+  while(sys.fs.conf.exists("" + i)) {
+    h = sys.fs.conf.read("" + i);
+    if (h != "" or h != "0") {
+      addHist(h);
+      if (i == 9) break;
+      i++;
+    }
+  }
+  sys.fs.conf.close();
+}
+
+
+function addHist {  
+  
+  # discard empty
+  if (arg0 == "" or arg0 == "0") return;
+  
+  # discard duplicates
+  local i;
+  for (i = 0; i < 10; i++;) {
+    if (arg0 == history[i]) {
+      return;
+    }
+  }
+  
+  for (i = 9; i > 0; i--;) {
+    history[i] = history[i - 1];
+  }
+  
+  history[0] = arg0;
+}
+
+
+function exit {
+  # store history
+  sys.fs.conf.open("appdata/advcalc.dat");
+  local i;
+  for (i = 0; i < 10; i++;) {
+    sys.fs.conf.write("" + i, history[i] + "");
+  }
+  sys.fs.conf.close();
+}
