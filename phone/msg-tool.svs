@@ -1,0 +1,165 @@
+#*
+function msg_update {
+  if (at_result(ct_ucs2)) {
+    ct_  
+  }
+
+}
+
+ # setup commands
+ function msg_setup {
+    local ticket = 0;
+    local res = 0;
+    
+    ticket = at_command("AT+CSCS=\"UCS2\"");
+    
+    at_wait(500);
+    at_update();
+    res = at_result(ticket);
+    if (res == 2) {
+      print("err");
+      return;
+    }
+    
+    ticket = at_command("AT+CMGF=1");
+    
+    at_wait(500);
+    at_update();
+    res = at_result(ticket);
+    if (res == 2) {
+      print("err");
+      return;
+    }
+    
+    
+ }
+ *#
+ 
+ # get current msg index 
+ 
+ # load messages
+ 
+ # delete from storage
+
+function str2u16 {
+  local out = "";
+  local pos = 1;
+  
+  local array hex = ["A", "B", "C", "D", "E", "F"];
+  
+  while(pos < len(arg0)) {
+    local n = getcp(arg0, pos);
+    print(n);
+    
+    # ASCII
+    if (charval(n) > 31 and charval(n) < 127) {
+      local lb = "";
+      local hb = "";
+      if (charval(n)/16 < 10) {
+        hb = "" + charval(n)/16;
+      } else {
+        hb = hex[charval(n)/16 - 10];
+      }
+      
+      if (charval(n)%16 < 10) {
+        lb = "" + charval(n)%16;
+      } else {
+        lb = hex[charval(n)%16 - 10];
+      }
+      
+      out += "00" + hb + lb;
+    }
+    
+    # codetable
+    if (n == "á") out += "00E1";
+    if (n == "é") out += "00E9";
+    if (n == "ě") out += "011B";
+    if (n == "í") out += "00ED";
+    if (n == "ý") out += "00FD";
+    if (n == "ó") out += "00F3";
+    if (n == "ů") out += "016F";
+    if (n == "ú") out += "00FA";
+
+    if (n == "Á") out += "00C1";
+    if (n == "É") out += "00C9";
+    if (n == "Ě") out += "011A";
+    if (n == "Í") out += "00CD";
+    if (n == "Ý") out += "00DD";
+    if (n == "Ó") out += "00D3";
+    if (n == "Ů") out += "016E";
+    if (n == "Ú") out += "00DA";
+
+    if (n == "š") out += "0161";
+    if (n == "č") out += "010D";
+    if (n == "ř") out += "0159";
+    if (n == "ž") out += "017E";
+    if (n == "ť") out += "0165";
+    if (n == "ď") out += "010F";
+    if (n == "ň") out += "0148";
+    #0160 010c 0158 017d 0164 010e 0147
+    if (n == "Š") out += "0160";
+    if (n == "Č") out += "010C";
+    if (n == "Ř") out += "0158";
+    if (n == "Ž") out += "017D";
+    if (n == "Ť") out += "0164";
+    if (n == "Ď") out += "010E";
+    if (n == "Ň") out += "0147";
+    pos++;
+  }
+  return out;
+}
+
+
+function u16toStr {
+  local out = "";
+  local pos = 0;
+  
+  while(pos*4 < len(arg0)) {
+    local n = substr(arg0, 1 + pos*4, pos*4+4);
+    if(substr(n, 1, 2) == "00" and ((31 < num("0x" + substr(n, 3, 4))) and num("0x" + substr(n, 3, 4)) < 127) ) {
+      out += charval(num("0x" + substr(n, 3, 4)));
+    } else {
+      known = 0;
+      #00e1 00e9 00ed 00f3 016f 00fa
+      if (n == "00E1") {out += "á"; known = 1;}
+      if (n == "00E9") {out += "é"; known = 1;}
+      if (n == "011B") {out += "ě"; known = 1;}
+      if (n == "00ED") {out += "í"; known = 1;}
+      if (n == "00FD") {out += "ý"; known = 1;}
+      if (n == "00F3") {out += "ó"; known = 1;}
+      if (n == "016F") {out += "ů"; known = 1;}
+      if (n == "00FA") {out += "ú"; known = 1;}
+      #00c1 00c9 00cd 00d3 016e 00da
+      if (n == "00C1") {out += "Á"; known = 1;}
+      if (n == "00C9") {out += "É"; known = 1;}
+      if (n == "011A") {out += "Ě"; known = 1;}
+      if (n == "00CD") {out += "Í"; known = 1;}
+      if (n == "00DD") {out += "Ý"; known = 1;}
+      if (n == "00D3") {out += "Ó"; known = 1;}
+      if (n == "016E") {out += "Ů"; known = 1;}
+      if (n == "00DA") {out += "Ú"; known = 1;}
+      #0161 010d 0159 017e 0165 010f 0148
+      if (n == "0161") {out += "š"; known = 1;}
+      if (n == "010D") {out += "č"; known = 1;}
+      if (n == "0159") {out += "ř"; known = 1;}
+      if (n == "017E") {out += "ž"; known = 1;}
+      if (n == "0165") {out += "ť"; known = 1;}
+      if (n == "010F") {out += "ď"; known = 1;}
+      if (n == "0148") {out += "ň"; known = 1;}
+      #0160 010c 0158 017d 0164 010e 0147
+      if (n == "0160") {out += "Š"; known = 1;}
+      if (n == "010C") {out += "Č"; known = 1;}
+      if (n == "0158") {out += "Ř"; known = 1;}
+      if (n == "017D") {out += "Ž"; known = 1;}
+      if (n == "0164") {out += "Ť"; known = 1;}
+      if (n == "010E") {out += "Ď"; known = 1;}
+      if (n == "0147") {out += "Ň"; known = 1;}
+      
+      if (known == 0 and len(n) == 4) {
+        out += "?" + n + "?";
+      }
+    }
+    pos++;
+  }
+  return out;
+}

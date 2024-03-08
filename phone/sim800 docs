@@ -5,3 +5,94 @@ receive hook:
 -> pokud recv = 1, tak probudit aplikaci, zrušit hook
 -> nutnost přidat resource locking
 -> nutnost přidat receive after wakeup
+
+
+AT+CSCS?
+
+
++CSCS: "GSM"
++CMT: "+420603717477","","23/12/08,23:52:33+04"
+Test again
+
++CMT: "+420603717477","","23/12/08,23:53:16+04"
+0050015900ED006C006501610020017E006C00750165006F0075010D006B00FD0020006B016F0148
+P    ř    í    l    e    š    " "
+
+AT+CFGRI - nastavení ring pinu
+
+
+CNMI:
+
+You are sending AT+CNMI=2,2,0,0,0 command, with the goal to have in SM either incoming SMS or the SMS delivery report, along with URCs notifications for them. I'll try to explain how to enable both of these features.
+
+According to the spec, syntax the syntax of that command is:
+
+    AT+CNMI=[mode[,mt[,bm[,ds[,bfr]]]]]
+    AT+CNMI=2,2,0,2,0 
+
+    mode: unsolicited result codes buffering option. mode=2 means that URCs are buffered in case of busy modem.
+    mt: result code indication reporting for SMS-DELIVER. mt=2 means that incoming messages are shown directly with a +CMT: ... URC. No storing!!!
+    bm: broadcast reporting option. Unrelevant for us.
+    ds: SMS-STATUS-REPORTs reporting option. ds=0 means that status report receiving is not reported and is not stored! That's not what you want!
+    bfr: buffered result codes handling method. Unrelevant for us.
+
+Instead, you probably want:
+
+    mt=2, meaning that incoming SMS is stored and a +CMTI: <mem>,<idx> URC is shown, stating that is has been stored in memory=mem at index=idx.
+    ds=2, meaning that if a status report is stored, then a +CDSI: <mem>,<idx> URC is shown, stating that is has been stored in memory=mem at index=idx.
+
+This might help you, but be aware that
+
+    You have to make sure that your modem model do supports these features (verify it in its AT user guide) and they are not dummy.
+    You have to make sure that your operator supports status delivery reports, and that they have been enabled for your SIM.
+    The SMS storage class affects the storing action performed by the modem, and this is true expecially for status delivery reports. In this case you can use ds=1 setting, which at least makes the modem show a report with the URC +CDS: ....
+
+Note: be also aware that +CNMI settings are volatile, so if you reboot you lose them unless you save them in the default profile (by issuing AT&W&P).
+
+Clock:
+
+AT+CLTS=1
+
+OK
+
+Check if value is set :
+
+AT+CLTS?
+
++CLTS: 1
+
+OK
+
+Save the setting to permanent memory so that module enables sync on restart also :
+
+AT&W
+
+OK
+
+Restart the module and check time :
+
+AT+CCLK?
+
+
+at+crsl ringtone level 0 - 100
+
+AT+CALS=tone,on/off - ringtone selection, všechyn ringtones stojí za prd...
+
+
+Boot command list
+
+AT+CALS=0,0  # disable ring tone
+AT+CLTS=1    # enable clock from network
+AT+CMGF=1    # set sms as text mode
+
+AT+CSCLK=1   # enable sleep by sleep pin
+
+SMS receive:
+AT+CMGDA="DEL READ"
+
+
+
+
+
+
+

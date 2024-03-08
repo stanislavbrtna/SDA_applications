@@ -11,10 +11,11 @@ function at_init {
   at_simcmd   = "";
   at_quiet    = 0;
   at_ring     = 0;
+  at_cooldown = 0;
   
   at_ustring  = "";
   
-  DEBUG = 0;
+  DEBUG = 1;
   
   simpin = 0;
   
@@ -86,6 +87,10 @@ function at_command {
     }
   }
   
+  if (at_cooldown + 500 > sys.time.getAppUptime()) {
+    at_wait(500);
+  }
+  
   at_init_io();
   at_success = 0;
   at_enabled = 1;
@@ -105,6 +110,8 @@ function at_command {
     at_simcmd = arg0;
   } else {
     at_simcmd = arg0;
+    # clean up stuff
+    gc(100);
     # send message
     sys.com.uartTrs(arg0 + "\r\n");
     at_wait(50);
@@ -160,6 +167,7 @@ function at_update {
   if (not sys.os.inSim()) {
     if (sys.com.uartGetRd()) {
       at_ustring += sys.com.uartGetStr();
+      #print("got ustring: " + at_ustring);
     }
   } else {
     if (at_ustring == "") {
@@ -179,7 +187,7 @@ function at_update {
       }
       
       if(at_simcmd == "AT+CMGR=1") {
-        at_ustring = "at+cmgr=1\n\r+CMGR: \"REC READ\",\"00310032003300340035003600370038\",\"\",\"23/12/09,16:50:53+04\"\n\r0050015900ED006C006901610020017E006C00750165006F0075010D006B00FD0020006B016F01480020006400760061\n\rOK";
+        at_ustring = "at+cmgr=1\n\r+CMGR: \"REC READ\",\"00310032003300340035003600370038\",\"\",\"23/12/09,16:50:53+040050015900ED006C006901610020017E006C00750165006F0075010D006B00FD0020006B016F01480020006400760061\n\rOK";
       }
       
       if(at_simcmd == "AT+CMGR=11") {
@@ -199,6 +207,7 @@ function at_update {
     if (instr(at_result, "OK")) {
       at_success = 1;
       at_enabled = 0;
+      at_cooldown = sys.time.getAppUptime();
     }
     
     #if (substr(at_result, len(at_result) - 3, len(at_result) - 2) == "OR") {
@@ -210,6 +219,7 @@ function at_update {
       }
       at_success = 2;
       at_enabled = 0;
+      at_cooldown = sys.time.getAppUptime();
     }
     
     if (sys.time.getAppUptime() > at_timeout and at_timeout != 0 and at_success == 0) {
@@ -225,6 +235,7 @@ function at_update {
       at_timeout = 0;
       at_success = 2;
       at_enabled = 0;
+      at_cooldown = sys.time.getAppUptime();
     }
   }
   

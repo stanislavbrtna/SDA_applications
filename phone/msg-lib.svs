@@ -1,0 +1,125 @@
+##########################################################
+## utils for the sms app
+
+function mk_safe_dir {
+  if (not(sys.fs.exists(arg0) and sys.fs.isDir(arg0))) {
+    sys.fs.mkDir(arg0);
+  }
+  sys.fs.chDir(arg0);
+}
+
+function mk_safe_name {
+  local accepted = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  local i;
+  local r = "";
+  for (i = 1; i <= len(arg0); i++;) {
+    if (instr(accepted, getcp(arg0, i))) {
+      r += getcp(arg0, i);
+    }
+  }
+  return r;
+}
+
+function set_spacing {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setXscroll(arg0, -6); # to change xscroll and xscroll old, prevents scroll artefacts
+}
+
+
+## SMS tools
+
+ # update messages/read them from sim800
+function sms_upd {
+  local res;
+  local msg;
+  
+  res = at_result(t_msg);
+  if(res == 1) {
+    # parse message
+    
+    if(not instr(at_result, "+CMGR")) {
+      print("ERR: Wrong result.");
+    } else {
+      msg = sms_parse(at_result);
+      
+      print("msg0: " + u16toStr(msg[0]));
+      print("msg1: " + msg[1]);
+      print("msg2: " + u16toStr(msg[2]));
+      
+      if (msg[0] != "") {
+        local id = 0;
+        
+        # todo: get name to new file
+        sys.fs.conf.open("n" + mk_safe_name(u16toStr(msg[0])) +  ".dat");
+        sys.fs.conf.write("contact_name",  u16toStr(msg[0]));
+        
+        while(sys.fs.conf.exists("msg_" + id)) {
+          id++;
+        }
+        
+        sys.fs.conf.write("ts_" + id,  msg[1]);
+        sys.fs.conf.write("msg_" + id, u16toStr(msg[2]));
+        sys.fs.conf.write("dir_" + id, "INCOMMING");
+        
+        sys.fs.conf.write("new_message", "1");
+        sys.fs.conf.close();
+      }
+    }
+    
+    cur_msg++;
+    if(cur_msg < 11) {
+      t_msg = at_command("AT+CMGR=" + cur_msg, 20);
+      at_update();
+    } else {
+      #delete messages
+      t_del = at_command("AT+CMGDA=\"DEL READ\"");
+      at_update();
+      load_convs();
+      sys.gui.setVisible(tLoading, 0);
+    }
+  }
+  
+  if(res == 2) {
+    print("Msg fail: " + at_result + " (end)");
+    print("retry: " + cur_msg);
+    t_msg = at_command("AT+CMGR=" + cur_msg, 20);
+  }
+  
+  res = at_result(t_del);
+  if(res == 1) {
+    print("Messages loaded, deleted from sim800");
+  }
+  
+  if(res == 2) {
+    print("Message delete error.");
+  }
+  
+  at_update();
+}
+
+# message parser
+function sms_parse {
+  local str = "";
+  local array nfo[3];
+  
+  str = substr(arg0, instr(arg0, "\"") + 1, len(arg0));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  
+  nfo[0] = substr(str, 0, instr(str, "\"") - 1);  # number
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  
+  nfo[1] = substr(str, 0, instr(str, "\"") - 1);  # timestamp
+  str = substr(str, instr(str, "\n") + 1, len(str));
+  
+  nfo[2] = substr(str, 1, instr(str, "\n") - 1);  # string
+  
+  return nfo;
+}
+

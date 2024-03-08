@@ -1,0 +1,300 @@
+import "~at-cmd.svs"
+import "~msg-tool.svs"
+import "~msg-lib.svs"
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  set_spacing(scr);
+  sys.gui.setYscroll(scr, -16);
+  
+  bNew    = sys.gui.addButton(5, 0, 3, 1, "New", scr);
+  pSld    = sys.gui.addSliderV(8, 1, 1, 10, 100, 50, scr);
+  sConvs  = sys.gui.addScreen(0, 1, 8, 10, scr);
+  
+  tLoading = sys.gui.addText(0, 0, 5, 1, "Loading sms...", scr);
+  
+  bSearch = sys.gui.addButton(0, 11, 3, 1, "Search", scr);
+  
+  tSearch = sys.gui.addText(0, 7, 8, 1, "", scr);
+  sys.gui.setTxtEd(tSearch, 1);
+  sys.gui.setVisible(tSearch, 0);
+  sSearch = "";
+
+  array pButtons[32];
+  array pFiles[32];
+  
+  sys.fs.chDir("appdata");
+  mk_safe_dir("phone");
+  sys.fs.chDir("phone");
+  mk_safe_dir("sms");
+  sys.fs.chDir("sms");
+
+  pCount = 0;
+
+  load_convs();
+  
+  array ctitle[25];
+  array ctext[25];
+  array ctime[25];
+  
+  # conversation screen
+  cscr  = sys.gui.addScreen();
+  set_spacing(cscr);
+  sys.gui.setYscroll(cscr, -16);
+  
+  cScroll = sys.gui.addSliderV(8, 1, 1, 7, 1024, 1024, cscr);
+  
+  bCall  = sys.gui.addButton(6, 0, 2, 1, "Call", cscr);
+  tTitle = sys.gui.addText(0, 0, 6, 1, "Placeholder name", cscr); 
+  
+  sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
+  sys.gui.setXscroll(sMsgList, -6);
+  bSend = sys.gui.addButton(4, 11, 4, 1, "Send new", cscr);
+  bBack = sys.gui.addButton(0, 11, 3, 1, "Back", cscr);
+
+  # compose screen
+  newScr  = sys.gui.addScreen();
+  set_spacing(newScr);
+  sys.gui.setYscroll(newScr, -8);
+  
+  bNBack = sys.gui.addButton(0, 0, 3, 1, "Back", newScr);
+  bNSend = sys.gui.addButton(5, 0, 3, 1, "Send", newScr);
+  
+  sys.gui.addText(2, 1, 2, 1, "To:", newScr);
+  bNCont = sys.gui.addButton(4, 1, 4, 1, "Contact", newScr);
+  
+  newTxScr = sys.gui.addScreen(0, 2, 8, 6, newScr);
+  tNewMsg = sys.gui.addText(0, 0, 9, 12, "", newTxScr);
+  sys.gui.setTexEd(tNewMsg, 1);
+  
+  newSlider = sys.gui.addSliderV(8, 2, 1, 6, 1024, 0, newScr);
+  
+
+  t_msg = 0;
+  t_del = 0;
+  cur_msg = 1;
+  at_init();
+  retrive_sms();
+  page = 0;
+  scrollMax = 0;
+  
+  currentConv = "";
+}
+
+function retrive_sms {
+  cur_msg  = 1;
+  at_quiet = 1;
+  
+  t_msg = at_command("AT+CMGR=" + cur_msg);
+}
+
+
+function search_en {
+  if (arg0) {
+    sys.gui.setVisible(tSearch, 1);
+    sys.gui.setTxtAct(tSearch);
+    sys.os.showKbd();
+    sys.gui.setY2(pSld, 7);
+    sys.gui.setY2(sConvs, 6);
+  } else {
+    sys.gui.setVisible(tSearch, 0);
+    sys.gui.setY2(pSld, 10);
+    sys.gui.setY2(sConvs, 10);
+  }
+}
+
+
+# load conversations
+function load_convs {
+  sys.gui.destroy(sConvs);
+  sConvs = sys.gui.addScreen(0, 1, 8, 10, scr);
+  local i = 0; 
+  local findfil;
+  
+  for(findfil = sys.fs.find("dat", "."); findfil != ""; findfil = sys.fs.findNext();) {
+    print("found: " + findfil);
+    sys.fs.conf.open(findfil);
+    if (sys.fs.conf.exists("contact_name")) {
+      local new = "";
+      if (sys.fs.conf.read("new_message") == "1") {
+        new = "*";
+      }
+    
+      pButtons[i] = sys.gui.addButton(0, i, 7, 1, new + sys.fs.conf.read("contact_name"), sConvs);
+      pFiles[i] = findfil;
+      i++;
+    }
+    sys.fs.conf.close();
+  }
+  
+  #set_spacing(sProjects);
+  sys.gui.setYscroll(sConvs, -6);
+  sys.gui.setXscroll(sConvs, -16);
+  sys.gui.setXscroll(sConvs, -16);
+  
+  pSelect = -1;
+  pCount = i;
+  
+  sys.gui.setValue(pSld, 0);
+  sys.gui.setParam(pSld, (pCount - 1)*34 + 6);
+}
+
+# update conversations screen
+function upd_convs {
+  local i;
+  for(i = 0; i < pCount; i++;) {
+    if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
+      load_conv(pFiles[i]);
+      page = 0;
+      sys.gui.setValue(cScroll, 1024);
+    } 
+  }
+}
+
+# load message screen
+function load_conv {
+  print("Loading conv:" + arg0);
+  currentConv = arg0;
+  sys.os.gui.setMainScr(cscr);
+  
+  sys.gui.destroy(sMsgList);
+  
+  sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
+  sys.gui.setXscroll(sMsgList, -6);
+  
+  sys.fs.conf.open(arg0);
+  
+  sys.fs.conf.write("new_message", "0");
+  local name = sys.fs.conf.read("contact_name");
+  sys.gui.setStr(tTitle, name);
+  
+  # count messages
+  max = 0;
+  local min = 0;
+  while(sys.fs.conf.exists("msg_" + max)) {
+    max++;
+  }
+
+  # load last 25 messages
+  local i;
+  
+  local yAdd = 1;
+  
+  local incomming;
+  
+  local cmax = max;
+  
+  cmax -= page*24;
+  
+  if (cmax > 24) {
+    min = cmax - 24;
+  }
+  
+  bCUp = sys.gui.addButton(0, 0, 1, 1, "/\\", sMsgList);
+  
+  if (cmax < 24) {
+    sys.gui.setVisible(bCUp, 0);
+  }
+  
+  local b = 0;
+  print("min:" + min + " max: " + cmax);
+  for (i = min; i < cmax; i++;) {
+    incomming = sys.fs.conf.read("dir_" + i) == "INCOMMING";
+    if (incomming) {
+      ctitle[b] = sys.gui.addText(0, b*5 + yAdd, 8, 1, name + ":", sMsgList);
+    } else {
+      ctitle[b] = sys.gui.addText(0, b*5 + yAdd, 8, 1, "You:", sMsgList);
+      sys.gui.setTexAlign(ctitle[b], ALIGN_RIGHT);
+    }
+    local text = sys.fs.conf.read("msg_"+i);
+    
+    ctext[b] = sys.gui.addText(0, b*5 + 1 + yAdd, 8, 2 + getHeight(text, 8*32), text, sMsgList);
+    yAdd += getHeight(text, 8*32);
+    sys.gui.setSelect(ctext[b], 1);
+    sys.gui.setTexFit(ctext[b], 1);
+    
+    ctime[b] = sys.gui.addText(0, b*5 + 3 + yAdd, 8, 1, sys.fs.conf.read("ts_"+i), sMsgList);
+    sys.gui.setTxtSize(ctime[b], 12);
+    
+    if (not incomming) {
+      sys.gui.setTexAlign(ctime[b], ALIGN_RIGHT);
+    }
+    
+    b++;
+  }
+  
+  scrollMax = (b*5 + yAdd - 9)*32;
+  
+  
+  bCDn = sys.gui.addButton(0, b*5 + 4 + yAdd - 5, 1, 1, "\\/", sMsgList);
+  if (page == 0) {
+    sys.gui.setVisible(bCDn, 0);
+  }
+  sys.fs.conf.close();
+}
+
+function getHeight { # arg0: str, arg1: element_width_px
+  local r = num(float(len(arg0)*7)/float(arg1));
+  #if (r < 1) r = 1;
+  return r;
+}
+
+# update message screen
+function upd_conv {
+  if (currentConv == "") {
+    return;
+  }
+
+  if (sys.gui.getEventC(bBack) == EV_RELEASED) {
+    load_convs();
+    sys.os.gui.setMainScr(scr);
+    currentConv = "";
+  }
+  
+  if (sys.gui.getEventC(bCUp) == EV_RELEASED) {
+    page++;
+    load_conv(currentConv);
+    
+    sys.gui.setValue(cScroll, 1024);
+  }
+  
+  if (sys.gui.getEventC(bCDn) == EV_RELEASED) {
+    if (page > 0) page--;
+    load_conv(currentConv);
+    
+    sys.gui.setValue(cScroll, 0);
+  } 
+  
+  scrScroller(sMsgList, cScroll, 0, scrollMax);
+}
+
+
+function update {
+  upd_convs();
+  upd_conv();
+  
+  sSearch = sys.os.gui.handleText(tSearch, sSearch);
+  
+  if (sys.gui.getTxtAct(tSearch) == 0 and sys.gui.getVisible(tSearch)) {
+    search_en(0);
+  }
+  actOld = sys.gui.getTxtAct(tSearch);
+  
+  if (sys.gui.getEventC(bSearch) == EV_RELEASED) {
+    search_en(1);
+  }
+  
+  sys.gui.setYscroll(sConvs, sys.gui.getValue(pSld) - 6);
+  
+  if (sys.gui.getEventC(bNew) == EV_RELEASED) {
+    sys.os.gui.setMainScr(newScr);
+  }
+  
+  sms_upd();
+}
+
+function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
+  sys.gui.setYscroll(arg0, num((float(arg3 - arg2)/1024.0)*float(sys.gui.getValue(arg1))) + arg2);
+}
