@@ -1,15 +1,17 @@
+import "~cont-tools.svs";
 import "~at-cmd.svs"
 import "~msg-tool.svs"
 import "~msg-lib.svs"
 
 function init {
+  sys.os.setSingular();
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr);
   set_spacing(scr);
   sys.gui.setYscroll(scr, -16);
   
-  bNew    = sys.gui.addButton(5, 0, 3, 1, "New", scr);
+  bNew    = sys.gui.addButton(5, 11, 3, 1, "New", scr);
   pSld    = sys.gui.addSliderV(8, 1, 1, 10, 100, 50, scr);
   sConvs  = sys.gui.addScreen(0, 1, 8, 10, scr);
   
@@ -51,7 +53,7 @@ function init {
   
   sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
   sys.gui.setXscroll(sMsgList, -6);
-  bSend = sys.gui.addButton(4, 11, 4, 1, "Send new", cscr);
+  bCNew = sys.gui.addButton(5, 11, 3, 1, "New", cscr);
   bBack = sys.gui.addButton(0, 11, 3, 1, "Back", cscr);
 
   # compose screen
@@ -59,19 +61,19 @@ function init {
   set_spacing(newScr);
   sys.gui.setYscroll(newScr, -8);
   
-  bNBack = sys.gui.addButton(0, 0, 3, 1, "Back", newScr);
-  bNSend = sys.gui.addButton(5, 0, 3, 1, "Send", newScr);
+  bNBack = sys.gui.addButton(0, 7, 3, 1, "Back", newScr);
+  bNSend = sys.gui.addButton(5, 7, 3, 1, "Send", newScr);
   
-  sys.gui.addText(2, 1, 2, 1, "To:", newScr);
-  bNCont = sys.gui.addButton(4, 1, 4, 1, "Contact", newScr);
+  sys.gui.addText(0, 0, 2, 1, "To:", newScr);
+  bNCont = sys.gui.addButton(2, 0, 6, 1, "Contact", newScr);
   
-  newTxScr = sys.gui.addScreen(0, 2, 8, 6, newScr);
+  newTxScr = sys.gui.addScreen(0, 1, 8, 6, newScr);
   tNewMsg = sys.gui.addText(0, 0, 9, 12, "", newTxScr);
   sys.gui.setTexEd(tNewMsg, 1);
+  sNewMsg = "";
   
-  newSlider = sys.gui.addSliderV(8, 2, 1, 6, 1024, 0, newScr);
+  newSlider = sys.gui.addSliderV(8, 1, 1, 6, 1024, 0, newScr);
   
-
   t_msg = 0;
   t_del = 0;
   cur_msg = 1;
@@ -81,6 +83,9 @@ function init {
   scrollMax = 0;
   
   currentConv = "";
+  newMsgLoaded = 0;
+  NewMsgConcept = 0;
+  currentNumber = "";
 }
 
 function retrive_sms {
@@ -167,7 +172,9 @@ function load_conv {
   sys.fs.conf.open(arg0);
   
   sys.fs.conf.write("new_message", "0");
-  local name = sys.fs.conf.read("contact_name");
+  local name  = sys.fs.conf.read("contact_name");
+  currentName   = sys.fs.conf.read("contact_name");
+  currentNumber = sys.fs.conf.read("contact_number");
   sys.gui.setStr(tTitle, name);
   
   # count messages
@@ -215,7 +222,7 @@ function load_conv {
     sys.gui.setSelect(ctext[b], 1);
     sys.gui.setTexFit(ctext[b], 1);
     
-    ctime[b] = sys.gui.addText(0, b*5 + 3 + yAdd, 8, 1, sys.fs.conf.read("ts_"+i), sMsgList);
+    ctime[b] = sys.gui.addText(0, b*5 + 3 + yAdd, 8, 1, parse_ts(num(sys.fs.conf.read("ts_"+i))), sMsgList);
     sys.gui.setTxtSize(ctime[b], 12);
     
     if (not incomming) {
@@ -237,7 +244,6 @@ function load_conv {
 
 function getHeight { # arg0: str, arg1: element_width_px
   local r = num(float(len(arg0)*7)/float(arg1));
-  #if (r < 1) r = 1;
   return r;
 }
 
@@ -265,15 +271,114 @@ function upd_conv {
     load_conv(currentConv);
     
     sys.gui.setValue(cScroll, 0);
-  } 
+  }
+  
+  if(sys.gui.getEventC(bCall) == EV_RELEASED) {
+    print("msg: calling: " + currentNumber);
+    sys.os.subProcess("phone/dialer.svs", "", "FILL", currentNumber, 0);
+  }
+  
+  if(sys.gui.getEventC(bCNew) == EV_RELEASED) {
+    ld_new_msg(currentNumber, cscr);
+  }
   
   scrScroller(sMsgList, cScroll, 0, scrollMax);
+}
+
+function ld_new_msg { # number, prev_Screen
+  sys.os.gui.setMainScr(newScr);
+  sys.gui.setTexAct(tNewMsg);
+  sys.os.showKbd();
+  
+  newPrevScr = arg1;
+  newMsgLoaded = 1;
+  
+  if (arg0 == "") {
+    sNewMsg = "";
+    NewMsgConcept = 0;
+    sys.gui.setStr(bNCont, "Select");
+    sys.gui.setGrayout(bNCont, 0);
+    sys.gui.setGrayout(bNSend, 1);
+  } else {
+    # load concept message
+    NewMsgConcept = 1;
+    sys.fs.conf.open(currentConv);
+    
+    sys.gui.setStr(bNCont, currentName);
+    sys.gui.setGrayout(bNCont, 1);
+    
+    if (sys.fs.conf.exists("message_concept")) {
+      sNewMsg = sys.fs.conf.read("message_concept");
+    } else {
+      sNewMsg = "";
+    }
+    sys.fs.conf.close();
+  }
+}
+
+function upd_new_msg {
+  sNewMsg = sys.os.gui.handleText(tNewMsg, sNewMsg);
+    
+  if((sys.gui.getEventC(bNBack) == EV_RELEASED or sys.gui.getTexAct(tNewMsg) == 0) and newMsgLoaded) {
+    sys.os.gui.setMainScr(newPrevScr);
+    sys.os.hideKbd();
+    newMsgLoaded = 0;
+    
+    if (NewMsgConcept == 1) {
+      sys.fs.conf.open(currentConv);
+      sys.fs.conf.write("message_concept", sNewMsg);
+      sys.fs.conf.close();
+    }
+  }
+  
+  if(sys.gui.getEventC(bNSend) == EV_RELEASED) {
+    local convo = "";
+    convo = sms_send(currentNumber, sNewMsg);
+    sNewMsg = "";
+    #sys.gui.setEvent(bNBack, EV_RELEASED);
+    page = 0;
+    load_convs();
+    load_conv(convo);
+    sys.os.hideKbd();
+    newMsgLoaded = 0;
+  }
+  
+  if(sys.gui.getEventC(bNCont) == EV_RELEASED) {
+    sys.os.hideKbd();
+    sys.os.subProcess("phone/contacts.svs", &contRet, "PICK", 0, 0);
+  }
+}
+
+function contRet {
+  if (typeof(arg0) != TYPE_STR or typeof(arg1) != TYPE_STR) {
+    sys.gui.setTexAct(tNewMsg);
+    currentName   = "";
+    currentNumber = "";
+    sys.gui.setStr(bNCont, "Select");
+    sys.gui.setGrayout(bNSend, 1);
+    sys.os.showKbd();
+    return;
+  }
+
+  print("contRet: "+ arg0 + " " + arg1);
+  currentName   = arg0;
+  currentNumber = arg1;
+  
+  sys.gui.setStr(bNCont, currentName);
+  
+  if (currentNumber != "") {
+    sys.gui.setGrayout(bNSend, 0);
+  }
+  
+  sys.gui.setTexAct(tNewMsg);
+  sys.os.showKbd();
 }
 
 
 function update {
   upd_convs();
   upd_conv();
+  upd_new_msg();
   
   sSearch = sys.os.gui.handleText(tSearch, sSearch);
   
@@ -289,7 +394,7 @@ function update {
   sys.gui.setYscroll(sConvs, sys.gui.getValue(pSld) - 6);
   
   if (sys.gui.getEventC(bNew) == EV_RELEASED) {
-    sys.os.gui.setMainScr(newScr);
+    ld_new_msg("", scr);
   }
   
   sms_upd();

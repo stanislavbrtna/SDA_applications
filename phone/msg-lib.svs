@@ -8,6 +8,7 @@ function mk_safe_dir {
   sys.fs.chDir(arg0);
 }
 
+
 function mk_safe_name {
   local accepted = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   local i;
@@ -20,6 +21,7 @@ function mk_safe_name {
   return r;
 }
 
+
 function set_spacing {
   sys.gui.setSpacing(arg0, 1, 1, 1, 1);
   sys.gui.setXcell(arg0, 34);
@@ -28,8 +30,64 @@ function set_spacing {
   sys.gui.setXscroll(arg0, -6); # to change xscroll and xscroll old, prevents scroll artefacts
 }
 
+function parse_ts {
+  if (not isnum(arg0)) {
+    return arg0;
+  }
+
+  local hr =  sys.time.getTsHr(arg0);
+  
+  local min = sys.time.getTsMin(arg0);
+  
+  if (min<10) min = "0" + min;
+  
+  #local sec = sys.time.getTsSec(arg0);
+  #if (sec<0) sec = "0" + sec;
+  
+  return hr + ":" + min + " " + sys.time.getTsDay(arg0) + "." + sys.time.getTsMonth(arg0) + "." + sys.time.getTsYear(arg0); 
+}
+
 
 ## SMS tools
+
+## sms history file handling
+function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:text, arg3:timestamp
+  local id = 0;
+  sys.fs.conf.open("n" + mk_safe_name(arg0) +  ".dat");
+  
+  if(not sys.fs.conf.exists("contact_number")) {
+    sys.fs.conf.write("contact_number", "" + arg0);
+  }
+  
+  if(not sys.fs.conf.exists("contact_name")) {
+    local info;
+    info = cont_get_info(arg0);
+    sys.fs.chDir("phone");
+    sys.fs.chDir("sms");
+    sys.fs.conf.open("n" + mk_safe_name(arg0) +  ".dat");
+    sys.fs.conf.write("contact_name", "" + info[0] + " " + info[1]);
+  }
+  
+  while(sys.fs.conf.exists("msg_" + id)) {
+    id++;
+  }
+  
+  sys.fs.conf.write("ts_" + id,  arg3);
+  sys.fs.conf.write("msg_" + id, arg2);
+  sys.fs.conf.write("dir_" + id, arg1);
+  if(arg1 == "INCOMMING") sys.fs.conf.write("new_message", "1");
+  sys.fs.conf.close();
+  
+  return "n" + mk_safe_name(arg0) +  ".dat";
+}
+
+
+function sms_send { # number, text -> returns 
+  # send sms
+  # TODO: dummy for this time, create send sms fn for sim800
+  return sms_h_add(arg0, "OUTGOING", arg1, sys.time.get() + "");
+  
+}
 
  # update messages/read them from sim800
 function sms_upd {
@@ -50,22 +108,7 @@ function sms_upd {
       print("msg2: " + u16toStr(msg[2]));
       
       if (msg[0] != "") {
-        local id = 0;
-        
-        # todo: get name to new file
-        sys.fs.conf.open("n" + mk_safe_name(u16toStr(msg[0])) +  ".dat");
-        sys.fs.conf.write("contact_name",  u16toStr(msg[0]));
-        
-        while(sys.fs.conf.exists("msg_" + id)) {
-          id++;
-        }
-        
-        sys.fs.conf.write("ts_" + id,  msg[1]);
-        sys.fs.conf.write("msg_" + id, u16toStr(msg[2]));
-        sys.fs.conf.write("dir_" + id, "INCOMMING");
-        
-        sys.fs.conf.write("new_message", "1");
-        sys.fs.conf.close();
+        sms_h_add(u16toStr(msg[0]), "INCOMMING", u16toStr(msg[2]), msg[1]);
       }
     }
     

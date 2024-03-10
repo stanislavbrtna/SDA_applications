@@ -113,6 +113,7 @@ function init {
   i_tcomp    = sys.gui.addText(2, 9, 6, 1, "", cont_scr);
   
   op_cont_exit = 0;
+  op_cont_pick = 0;
   
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "ONLYBACK") {
@@ -125,8 +126,11 @@ function init {
       local id = cont_get_id(arg1);
       if (id != -1) open_cont(id);
     }
+    
+    if (arg0 == "PICK") {
+      op_cont_pick = 1;
+    }
   }
-  
 }
 
 
@@ -276,7 +280,18 @@ function upd_list {
   for(local i = 0; i < 10; i++;) {
     if (b_list[i] != 0) {     
       if(sys.gui.getEventC(b_list[i]) == EV_RELEASED) {
-        open_cont(i_list[i]);
+        if(op_cont_pick == 1) {
+          # name, number
+          local id   = i_list[i];
+          local name;
+          local number;
+          sys.fs.conf.open("phone/contacts.cfg");
+          name = sys.fs.conf.read("name_" + id) + " " + sys.fs.conf.read("surname_" + id);
+          number = sys.fs.conf.read("phone_" + id + "_0");
+          sys.os.exit(name, number, 0);
+        } else {
+          open_cont(i_list[i]);
+        }
       }
     }
   }
