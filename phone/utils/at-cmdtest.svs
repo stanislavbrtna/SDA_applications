@@ -1,0 +1,137 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.addText(0, 0, 4, 1, "DBG:", scr);
+  
+  txt = sys.gui.addText(0, 1, 8, 13, "Nothing", scr);
+  
+  btn = sys.gui.addButton(5, 0, 3, 1, "Start", scr);
+  
+  array commands
+    = ["AT",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1"
+      ];
+  
+  #dut code
+  
+  
+  DEBUG = 1;
+  
+  ticket = 0;
+  i = 0;
+  
+  at_ustring = "";
+  
+  at_init_io();
+}
+
+
+function at_init_io {
+  # RX, TX
+  sys.hw.iPinDef(7, PIN_ALT, PIN_NOPULL);
+  sys.hw.iPinDef(8, PIN_ALT, PIN_NOPULL);
+  
+  # Reset
+  sys.hw.iPinDef(11, PIN_OUT, PIN_NOPULL);
+  sys.hw.iPinSet(11, 1);
+  
+  # DTR
+  sys.hw.iPinDef(10, PIN_OUT, PIN_NOPULL);
+  sys.hw.iPinSet(10, 0);
+  
+  # RNG
+  sys.hw.iPinDef(9, PIN_IN, PIN_NOPULL);
+  
+  # Disable the external uart
+  sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+  
+  # start receive
+  sys.com.uartRcvIT();
+  
+  # clear all buffers
+  if (not sys.os.inSim()) {
+    sys.com.uartGetRd();
+    sys.com.uartGetStr();
+  }
+}
+
+
+function spr {
+  sys.gui.setStr(txt, sys.gui.getStr(txt) + arg0 + "\n");
+  print("queue:"+ arg0);
+}
+
+
+function again {
+  if (i > 9) {
+    return;
+  }
+  
+  #sys.com.uartTrs("AT+CPIN?\r\n ");
+  spr("AT cmd2:");
+  sys.com.uartGetStr();
+  print("This was clearing uart");
+  sys.com.uartTrs("AT+CPIN?\r\n ");
+  at_wait(300);
+  at_ustring = "";
+  i++; 
+}
+
+
+function update {
+  if (sys.gui.getEventC(btn) == EV_RELEASED) {
+    
+    at_wait(1000);
+  
+    sys.com.uartRcvIT();
+    sys.com.uartGetStr();
+    print("This was clearing uart");
+    sys.com.uartTrs("AT+CPIN?\r\n ");
+    sys.gui.setStr(txt,"");
+    spr("AT cmd:");
+    i = 0;
+    at_ustring = "";
+    rd_timer = sys.time.getAppUptime();
+    at_wait(300);
+  }
+  
+  # at update
+  if (not sys.os.inSim()) {
+    if (sys.com.uartGetRd()) {
+      at_ustring += sys.com.uartGetStr();
+      print("got ustring: " + at_ustring);
+      #rd_timer = sys.time.getAppUptime(); and (rd_timer + 300) < sys.time.getAppUptime()
+    }
+    #print( "getRd " + sys.com.uartGetRd());
+  }
+  
+  if (instr(at_ustring, "OK")) {
+    spr("AT cmd ok");
+    again();
+  }
+  
+  
+}
+
+function at_wait {
+  if(not sys.os.inSim()) {
+    local time = sys.time.getAppUptime() + arg0;
+    
+    while(1) {
+      if (sys.time.getAppUptime() > time) {
+        break;
+      }
+    }
+  }
+}

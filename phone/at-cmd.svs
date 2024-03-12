@@ -11,7 +11,6 @@ function at_init {
   at_simcmd   = "";
   at_quiet    = 0;
   at_ring     = 0;
-  at_cooldown = 0;
   
   at_ustring  = "";
   
@@ -87,10 +86,6 @@ function at_command {
     }
   }
   
-  if (at_cooldown + 500 > sys.time.getAppUptime()) {
-    at_wait(500);
-  }
-  
   at_init_io();
   at_success = 0;
   at_enabled = 1;
@@ -114,7 +109,7 @@ function at_command {
     gc(100);
     # send message
     sys.com.uartTrs(arg0 + "\r\n");
-    at_wait(50);
+    at_wait(10);
   }
   
   if (arg1 == 0) {
@@ -160,16 +155,15 @@ function at_reset {
 
 
 function at_update {
-
-  local x = "";
-  local cnt = 0;
   
   if (not sys.os.inSim()) {
     if (sys.com.uartGetRd()) {
       at_ustring += sys.com.uartGetStr();
-      #print("got ustring: " + at_ustring);
+      if (DEBUG) print("at_update: got ustring: " + at_ustring);
     }
   } else {
+    # =========================================================================
+    # start of sim800 simulation
     if (at_ustring == "") {
       if (DEBUG) print("Simulated result for ticket: " + at_ticket + " timeout: " + at_timeout);
       at_ustring = at_simcmd + "\nSIMULATED\nOK\r\n";
@@ -198,20 +192,18 @@ function at_update {
         at_ustring = "AT+CLCC: 0 result: AT+CLCC\r\n+CLCC: 1,1,4,0,0,\"+420123456789\",145,\"\"\r\nOK\r\n";
       }
     }
+    # =========================================================================
   }
     
   if (at_enabled) {
     at_result = at_ustring;
       
-    #if (substr(at_result, len(at_result) - 3, len(at_result) - 2) == "OK") {
-    if (instr(at_result, "OK")) {
+    if (instr(substr(at_result, len(at_result) - 5, len(at_result)), "OK")) {
       at_success = 1;
       at_enabled = 0;
-      at_cooldown = sys.time.getAppUptime();
     }
     
-    #if (substr(at_result, len(at_result) - 3, len(at_result) - 2) == "OR") {
-    if (instr(at_result, "ERROR")) {
+    if (instr(substr(at_result, len(at_result) - 5, len(at_result)), "ERROR")) {
       if (not at_quiet) {
         sys.os.error("AT CMD ERROR\nCMD: " + at_simcmd +"\nError: " + at_result);
       } else {
@@ -219,7 +211,6 @@ function at_update {
       }
       at_success = 2;
       at_enabled = 0;
-      at_cooldown = sys.time.getAppUptime();
     }
     
     if (sys.time.getAppUptime() > at_timeout and at_timeout != 0 and at_success == 0) {
@@ -235,7 +226,6 @@ function at_update {
       at_timeout = 0;
       at_success = 2;
       at_enabled = 0;
-      at_cooldown = sys.time.getAppUptime();
     }
   }
   

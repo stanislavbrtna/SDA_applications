@@ -88,8 +88,19 @@ AT+CMGF=1    # set sms as text mode
 AT+CSCLK=1   # enable sleep by sleep pin
 
 SMS receive:
-AT+CMGDA="DEL READ"
+1: get count of messages:
+AT+CMGL
 
+output as:
+
+2: read messages
+AT+CMGR=xx
+
+parse output, store in db..
+
+3: remove messages
+AT+CMGDA="DEL READ"
+wait for ok...
 
 SMS send:
 
@@ -98,5 +109,25 @@ AT+CMGS="ucs16encoded number" (\r)
 (ctrl-z code 26)
 
 Možná bez uvozovek, asi pricipielně jako příjmání sms...
+
+
+Modem status:
+AT+CSQ
++CSQ: xx,0\r\n
+OK\r\n
+
+xx - 0 - 31 signal intensity
+
+SIM operator name:
+AT+CSPN
++CSPN: "O2.CZ",0
+OK
+
+AT+CREG?
++CREG: 0,1
+OK
+
+0 - change?
+1 - registered
 
 

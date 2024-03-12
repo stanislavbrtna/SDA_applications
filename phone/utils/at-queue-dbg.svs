@@ -1,0 +1,71 @@
+import "~at-cmd.svs"
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.addText(0, 0, 4, 1, "DBG:", scr);
+  
+  txt = sys.gui.addText(0, 1, 8, 13, "Nothing", scr);
+  
+  btn = sys.gui.addButton(5, 0, 3, 1, "Start", scr);
+  
+  array commands
+    = ["AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1",
+       "AT+CMGR=1"
+      ];
+  
+  #dut code
+  at_init();
+  
+  DEBUG = 1;
+  
+  ticket = 0;
+  i = 0;
+}
+
+function spr {
+  sys.gui.setStr(txt, sys.gui.getStr(txt) + arg0 + "\n");
+  print("queue:"+ arg0);
+}
+
+function again {
+  if (i >= len(commands)) {
+    spr("Fin");
+    return;
+  }
+  
+  ticket = at_command(commands[i]);
+  spr("try: " + i + 1 + "(" + commands[i] +")");
+  i++;
+}
+
+function update {
+  if (sys.gui.getEventC(btn) == EV_RELEASED) {
+    ticket = at_command("AT");
+    sys.gui.setStr(txt,"");
+    spr("AT cmd");
+    i = 0;
+  }
+  
+  res = at_result(ticket);
+  if(res == 1) {
+    spr("result ok");
+    again();
+  }
+  
+  if(res == 2) {
+    spr("result timed out");
+    again();
+  }
+  
+  at_update();
+}

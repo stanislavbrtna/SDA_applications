@@ -30,10 +30,8 @@ function set_spacing {
   sys.gui.setXscroll(arg0, -6); # to change xscroll and xscroll old, prevents scroll artefacts
 }
 
+
 function parse_ts {
-  if (not isnum(arg0)) {
-    return arg0;
-  }
 
   local hr =  sys.time.getTsHr(arg0);
   
@@ -158,8 +156,8 @@ function sms_parse {
   str = substr(str, instr(str, "\"") + 1, len(str));
   str = substr(str, instr(str, "\"") + 1, len(str));
   
-  nfo[1] = substr(str, 0, instr(str, "\"") - 1);  # timestamp
-  str = substr(str, instr(str, "\n") + 1, len(str));
+  nfo[1] = substr(str, 0, instr(str, "\r") - 1);  # timestamp
+  str = substr(str, instr(str, "\r") + 2, len(str));
   
   nfo[2] = substr(str, 1, instr(str, "\n") - 1);  # string
   
