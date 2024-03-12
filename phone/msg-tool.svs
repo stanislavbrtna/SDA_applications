@@ -1,55 +1,216 @@
-#*
-function msg_update {
-  if (at_result(ct_ucs2)) {
-    ct_  
-  }
-
+function sms_init {
+  t_msg = 0;
+  t_sms = 0;
+  t_del = 0;
 }
 
- # setup commands
- function msg_setup {
-    local ticket = 0;
-    local res = 0;
-    
-    ticket = at_command("AT+CSCS=\"UCS2\"");
-    
-    at_wait(500);
-    at_update();
-    res = at_result(ticket);
-    if (res == 2) {
-      print("err");
-      return;
-    }
-    
-    ticket = at_command("AT+CMGF=1");
-    
-    at_wait(500);
-    at_update();
-    res = at_result(ticket);
-    if (res == 2) {
-      print("err");
-      return;
-    }
-    
-    
- }
- *#
- 
- # get current msg index 
- 
- # load messages
- 
- # delete from storage
 
+function sms_send { # number, text -> returns 
+  # send sms
+  if (DEBUG) print("sending: num: " + arg0 + " text: " + arg1);
+  if (DEBUG) print("AT_COMMAND: " + "AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\n" + str2u16(arg1) + "\n(ASCII 26)     \n\n");
+  sms_h_add(arg0, "OUTGOING", arg1, sys.time.get() + "");
+  t_sms = at_command("AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\r" + str2u16(arg1), 2500);
+  sys.com.qClr();
+  sys.com.qAdd(26);
+  sys.com.uartTrsQ();
+}
+
+
+function sms_retrive {
+  cur_msg  = 1;
+  at_quiet = 1;
+  new_sms_flg = 0;
+  
+  t_msg = at_command("AT+CMGR=" + cur_msg, 6000);
+}
+
+
+function nospace {
+  if (not instr(arg0, " ")) {
+    return arg0;
+  }
+  local i;
+  local s = "";
+  for(i = 1; i <= len(arg0); i++;) {
+    if (getcp(arg0, i) != " ") {
+      s += getcp(arg0, i);
+    }
+  }
+  return s;
+}
+
+
+## sms history file handling
+function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:text, arg3:timestamp
+  local id = 0;
+  sys.fs.chDir();
+  sys.fs.chDir("appdata");
+  mk_safe_dir("phone");
+  sys.fs.chDir("phone");
+  mk_safe_dir("sms");
+  sys.fs.chDir("sms");
+  
+  sys.fs.conf.open("n" + mk_safe_name(arg0) +  ".dat");
+  
+  # with emty file, the exists function sometimes borks on the device...
+  sys.fs.conf.write("contact_number", "" + arg0);
+  #* use this after the bug gets fixed...
+  if(not sys.fs.conf.exists("contact_number")) {
+    sys.fs.conf.write("contact_number", "" + arg0);
+  }
+  *#
+  
+  if(not sys.fs.conf.exists("contact_name")) {
+    local info;
+    info = cont_get_info(arg0);
+    sys.fs.chDir("phone");
+    sys.fs.chDir("sms");
+    sys.fs.conf.open("n" + mk_safe_name(arg0) +  ".dat");
+    if(info[0] != "Unknown") {
+      sys.fs.conf.write("contact_name", "" + info[0] + " " + info[1]);
+    } else {
+      sys.fs.conf.write("contact_name", "" + arg0);
+    }
+  }
+  
+  while(sys.fs.conf.exists("msg_" + id)) {
+    id++;
+  }
+  
+  sys.fs.conf.write("ts_" + id,  arg3);
+  sys.fs.conf.write("msg_" + id, arg2);
+  sys.fs.conf.write("omsg_" + id, arg4 + "");
+  sys.fs.conf.write("dir_" + id, arg1);
+  if(arg1 == "INCOMMING") {
+    sys.fs.conf.write("new_message", "1");
+    new_sms_flg += 1;
+  }
+  sys.fs.conf.close();
+  
+  #print("added msg " + arg2 + " to id: " + id);
+  
+  return "n" + mk_safe_name(arg0) +  ".dat";
+}
+
+
+## update messages/read them from sim800
+function sms_upd {
+  local res;
+  local msg;
+  
+  res = at_result(t_msg);
+  if(res == 1) {
+    # parse message
+    
+    if(not instr(at_result, "+CMGR")) {
+      print("ERR: Wrong result.");
+    } else {
+      msg = sms_parse(at_result);
+      if (msg[0] != "") {
+        print(" msg0: " + u16toStr(msg[0]) + " ");
+        print(" msg1: " + msg[1] + " ");
+        print(" msg2: " + u16toStr(msg[2]) + " ");
+        sms_h_add(u16toStr(msg[0]), "INCOMMING", u16toStr(msg[2]), msg[1], msg[2]);
+      }
+    }
+    
+    cur_msg++;
+    if(cur_msg < 11) {
+      t_msg = at_command("AT+CMGR=" + cur_msg, 60);
+    } else {
+      #delete messages
+      t_del = at_command("AT+CMGDA=\"DEL READ\"");
+      
+      #call finish
+      sms_fin_cb();
+    }
+  }
+  
+  if(res == 2) {
+    print("Msg fail: " + at_result + " (end)");
+    print("retry: " + cur_msg);
+    t_msg = at_command("AT+CMGR=" + cur_msg, 400);
+  }
+  
+  res = at_result(t_del);
+  if(res == 1) {
+    print("Messages loaded, deleted from sim800");
+  }
+  
+  if(res == 2) {
+    print("Message delete error.");
+  }
+  
+  res = at_result(t_sms);
+  if(res == 1) {
+    print("Sms send ok!");
+    if (DEBUG) print("AT_RESULT: " + at_result);
+    sms_send_cb(1);
+  }
+  
+  if(res == 2) {
+    if (DEBUG) print("AT_RESULT: " + at_result);
+    print("Sms send FAILED!");
+    sms_send_cb(0);
+  }
+}
+
+
+function mk_safe_dir {
+  if (not(sys.fs.exists(arg0) and sys.fs.isDir(arg0))) {
+    sys.fs.mkDir(arg0);
+  }
+  sys.fs.chDir(arg0);
+}
+
+
+function mk_safe_name {
+  local accepted = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  local i;
+  local r = "";
+  for (i = 1; i <= len(arg0); i++;) {
+    if (instr(accepted, getcp(arg0, i))) {
+      r += getcp(arg0, i);
+    }
+  }
+  return r;
+}
+
+# message parser
+function sms_parse {
+  local str = "";
+  local array nfo[3];
+    
+  str = substr(arg0, instr(arg0, "\"") + 1, len(arg0));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  
+  nfo[0] = substr(str, 0, instr(str, "\"") - 1);  # number
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  str = substr(str, instr(str, "\"") + 1, len(str));
+  
+  nfo[1] = substr(str, 0, instr(str, "\r") - 2);  # timestamp
+  str = substr(str, instr(str, "\r") + 2, len(str));
+  
+  nfo[2] = substr(str, 1, instr(str, "\n") - 1);  # string
+  
+  return nfo;
+}
+
+
+## U16 Tools 
 function str2u16 {
   local out = "";
   local pos = 1;
   
   local array hex = ["A", "B", "C", "D", "E", "F"];
   
-  while(pos < len(arg0)) {
+  while(pos <= len(arg0)) {
     local n = getcp(arg0, pos);
-    print(n);
+    #print(n);
     
     # ASCII
     if (charval(n) > 31 and charval(n) < 127) {
@@ -114,7 +275,7 @@ function u16toStr {
   local out = "";
   local pos = 0;
   
-  while(pos*4 < len(arg0)) {
+  while(pos*4 <= len(arg0)) {
     local n = substr(arg0, 1 + pos*4, pos*4+4);
     if(substr(n, 1, 2) == "00" and ((31 < num("0x" + substr(n, 3, 4))) and num("0x" + substr(n, 3, 4)) < 127) ) {
       out += charval(num("0x" + substr(n, 3, 4)));

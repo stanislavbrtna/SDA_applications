@@ -11,12 +11,13 @@ function at_init {
   at_simcmd   = "";
   at_quiet    = 0;
   at_ring     = 0;
+  at_new_sms  = 0;
   
   at_ustring  = "";
   
-  DEBUG = 1;
+  DEBUG = 0;
   
-  simpin = 0;
+  simpin = 1;
   
   RES_OK = 1;
   RES_ERR = 2;
@@ -159,7 +160,7 @@ function at_update {
   if (not sys.os.inSim()) {
     if (sys.com.uartGetRd()) {
       at_ustring += sys.com.uartGetStr();
-      if (DEBUG) print("at_update: got ustring: " + at_ustring);
+      #if (DEBUG) print("at_update: got ustring: " + at_ustring);
     }
   } else {
     # =========================================================================
@@ -207,7 +208,7 @@ function at_update {
       if (not at_quiet) {
         sys.os.error("AT CMD ERROR\nCMD: " + at_simcmd +"\nError: " + at_result);
       } else {
-        print("AT CMD ERROR\nCMD: " + at_simcmd +"\nError: " + at_result + " substr: " + substr(at_result, len(at_result) - 3, len(at_result) - 2));
+        print("AT CMD ERROR\nCMD: " + at_simcmd +"\nError: " + at_result + "\n(end)\n");
       }
       at_success = 2;
       at_enabled = 0;
@@ -233,6 +234,11 @@ function at_update {
   
   if(instr(at_ustring, "RING")) {
     at_ring = 1;
+    at_ustring = "";
+  }
+  
+  if(instr(at_ustring, "CMTI")) {
+    at_new_sms = 1;
     at_ustring = "";
   }
 }

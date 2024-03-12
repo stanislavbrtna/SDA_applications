@@ -1,0 +1,323 @@
+import "~cont-tools.svs"
+import "~hist-tools.svs"
+import "~msg-tool.svs"
+import "~at-cmd.svs"
+
+function init {
+  # AT init commands
+  array initcmds = [
+                    "AT+CALS=0,0",     # disable ring tone
+                    "AT+CLTS=1",       # enable clock from network
+                    "AT+CMGF=1",       # set sms as text mode
+                    "AT+CSCLK=1",      # enable sleep by sleep pin
+                    "AT+CSCS=\"UCS2\"" # set encoding
+                   ];
+
+  # setup all that hacky stuff
+  sys.os.setSingular();
+  sys.os.noClose(1);
+  
+  at_init();
+
+  scr = sys.gui.addScreen();
+  
+  sys.os.gui.setMainScr(scr);
+  sys.gui.setRelInit(1);
+  
+  tStat = sys.gui.addText(0, 0, 10, 1, "status", scr);
+  tSMS  = sys.gui.addText(0, 1, 10, 1, "", scr);
+  
+  bDebug = sys.gui.addCheckBox(0, 3, 5, 1, "Debug mode", scr);
+  
+  #*
+  todo:
+         - settings: ringtone
+         - airplane mode
+  
+         - pin screen
+  *#
+  
+  at_quiet = 1;
+  t_cpin = 0; # check pin ticket
+  t_spin = 0; # set pin ticket
+  t_dummy = 0;
+  t_clcc = 0;
+  
+  sms_init();
+  
+  print("SDA Phone manager init!");
+  
+  t_at = at_command("AT", 1);
+  
+  sys.fs.chDir("appdata");
+  if(not sys.fs.exists("phone")) {
+    sys.fs.mkDir("phone");
+  }
+  
+  pinOk = 0;
+  inCall = 0;
+  RSMS = 0;
+  exit_flag = 0;
+  
+  STATUS_FLG = 0;
+  PIN_FLG = 0;
+  pin_num = arg1;
+  
+  CALL_FLG = 0;
+  number = "";
+  
+  mngr_status = "INIT";
+  
+  # arg0 - type of request
+  process_args(arg0, arg1, arg2);
+}
+
+
+function callback {
+  sys.com.uartRdClb("", 0);
+  sys.os.arise();
+  
+  if(sys.hw.getLcdState() == 0) {
+    sys.hw.wakeLcd();
+  }
+}
+
+function callRet {
+  inCall = 0;
+}
+
+function suspend {
+  if (inCall == 0) {
+    sys.com.uartRdClb(&callback, 2);
+    at_set_dtr(1); # sleep enabled
+  } else {
+    sys.com.uartRdClb(&callback, 0);
+    at_set_dtr(0); # sleep enabled
+  }
+}
+
+function wakeup {
+  at_set_dtr(0); # sleep disabled
+  sys.gui.setStr(tSMS, "...");
+  print("mngr: Wkup!");
+  process_args(arg0, arg1, arg2);
+}
+
+
+function process_args {
+  if (typeof(arg0) == TYPE_STR) {
+    if (arg0 == "DISABLE") {
+      sys.com.uartRdClb(&callback, 0);
+      inCall = 1;
+      sys.os.suspend();
+    }
+    
+    if (arg0 == "ENABLE") {
+      sys.com.uartRdClb(&callback, 2);
+      inCall = 0;
+      sys.os.suspend();
+    }
+    
+    if (arg0 == "RSMS") {
+      RSMS = 1;
+      sms_retrive();
+    }
+    
+    if (arg0 == "SMS" and pinOk == 1) {
+      print("Phone manager: send sms");
+      sys.gui.setStr(tSMS, "Sending sms...");
+      sms_send(arg1, arg2);
+    }
+    
+    if (arg0 == "CALL" and pinOk == 1) {
+      print("Phone manager: CALL");
+      CALL_FLG = 1;
+      number = arg1;
+    }
+    
+    if (arg0 == "STATUS") {
+      print("Phone manager: STATUS");
+      STATUS_FLG = 1;
+      exit_flag = 1;
+    }
+    
+    if (arg0 == "PIN") {
+      print("Phone manager: PIN");
+      PIN_FLG = 1;
+      pin_num = arg1;
+    }
+  }
+}
+
+function run_inits {
+  print("phone mngr: Running inits: ", "");
+  
+  local i = 0;
+  
+  for(i = 0; i < len(initcmds); i++;) {
+    sys.com.uartTrs(initcmds[i] + "\r\n");
+    at_wait(200);
+  }
+  
+  at_reset();
+  at_wait(200);
+  
+  print("Done!");
+}
+
+function set_status {
+  print("phone manager: setting status from: " + mngr_status + " to: " + arg0);
+  mngr_status = arg0;
+  
+  sys.gui.setStr(tStat, "status: " + arg0);
+}
+
+function update {
+  
+  if(sys.gui.getEventC(bDebug) == EV_RELEASED) {
+    DEBUG = sys.gui.getValue(bDebug);
+    print("DEBUG: " + DEBUG);
+  }
+
+  
+  if (STATUS_FLG) { # SATUS: INIT, READY, ERR, SIMPIN
+    STATUS_FLG = 0;
+    sys.os.exit(mngr_status, 0, 0);
+  }
+  
+  if (PIN_FLG) {
+    PIN_FLG = 0;
+    t_spin = at_command("AT+CPIN=" + pin_num, 150);
+  }
+  
+  if (CALL_FLG) {
+    CALL_FLG = 0;
+    print("Mngr: calling " + number);
+    sys.os.subProcess("phone/caller.svs", &call_ret, "CALL", number, 0);
+  }
+  
+  local res;
+  
+  # AT result
+  res = at_result(t_at);
+  if(res == RES_OK) {
+    print("phone mngr: AT: OK");
+    
+    run_inits();
+    at_wait(100);
+    t_cpin = at_command("AT+CPIN?", 2);
+  }
+  
+  if (res == RES_ERR) {
+    print("phone: AT: ERR");
+    
+    if (at_err > 10) {
+      set_status("ERR");
+      sys.os.error("Modem not responding!");
+      return;
+    }
+    
+    t_at = at_command("AT");
+    at_err++;
+  }
+  
+  # simpin
+  res = at_result(t_spin);
+  if(res == RES_OK) {
+    t_cpin = at_command("AT+CPIN?", 2);
+  }
+  
+  # CPIN handling
+  res = at_result(t_cpin);
+  if(res == RES_OK) {
+    if(instr(at_result, "+CPIN: READY")) {
+      print("pin OK");
+      set_status("READY");
+      pinOk = 1;
+      sys.gui.setStr(tSMS, "Recieving SMS messages...");
+      sms_retrive();
+    } else {
+      set_status("SIMPIN");
+      sys.os.exit("ERR", 0, 0);
+    }
+  }
+  
+  if(res == 2) {
+    print("CPIN fail");
+    at_wait(400);
+    t_cpin = at_command("AT+CPIN?", 2);
+  }
+  
+  # handling dummy
+  at_result(t_dummy);
+  
+  resolve_ring();
+  sms_upd();
+  
+  at_update();
+  
+  if (exit_flag == 1 and at_enabled == 0) {
+    exit_flag = 0;
+    sys.os.suspend();
+  }
+}
+
+
+ # todo: move this in phone manager
+function resolve_ring {
+  
+  if(sys.os.inSim()) {
+    return;
+  }
+  
+  if(at_ring) {
+    at_ring = 0;
+    inCall = 1;
+    number = "";
+    sys.os.subProcess("phone/caller.svs", &callRet, "INCOMMING", "", 0);
+    return;
+  }
+  
+  if(at_new_sms) {
+    at_new_sms = 0;
+    sms_retrive();
+    return;
+  }
+}
+
+function bp2 {
+  sys.snd.beepC(440, 250, &bp3);
+}
+
+function bp3 {
+  sys.snd.beepC(880, 250, "");
+  sys.os.exit("OK", 0, 0);
+}
+
+function sms_fin_cb {
+  sys.gui.setStr(tSMS, "Got " + new_sms_flg + " new SMS messages.");
+  if(new_sms_flg) {
+    new_sms_flg = 0;
+    sys.snd.beepC(880, 250, &bp2);
+  } else {
+    sys.os.exit("OK", 0, 0);
+  }
+
+  if (RSMS) {
+    RSMS = 0;
+    sys.os.exit();
+  }
+}
+
+function sms_send_cb {
+  if (arg0) {
+    sys.gui.setStr(tSMS, "SMS successfully sent!");
+    exit_flag = 1;
+  } else {
+    sys.gui.setStr(tSMS, "Error occured while sending SMS.");
+  }
+}
+
+function call_ret {
+  exit_flag = 1;
+}

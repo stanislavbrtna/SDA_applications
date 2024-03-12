@@ -1,23 +1,12 @@
 import "~cont-tools.svs"
-import "~at-cmd.svs"
 import "~hist-tools.svs"
 
 function init {
   # AT init commands
   
-  array initcmds = [
-                    "AT+CALS=0,0",     # disable ring tone
-                    "AT+CLTS=1",       # enable clock from network
-                    "AT+CMGF=1",       # set sms as text mode
-                    "AT+CSCLK=1",      # enable sleep by sleep pin
-                    "AT+CSCS=\"UCS2\"" # set encoding
-                   ];
-
+  
   # setup all that hacky stuff
   sys.os.setSingular();
-  sys.os.noClose(1);
-  
-  at_init();
 
   scr_d = sys.gui.addScreen();
   
@@ -60,27 +49,10 @@ function init {
   
   sys.gui.setTexEd(t_number, 1);
   sys.gui.setTexAlign(t_number, ALIGN_CENTER);
-  
-  # arg0 - type of request
-  if (typeof(arg0) == TYPE_STR) {
-    if (arg0 == "FILL") {
-      fillNumber = arg1;
-    }
-  }
-  
   sys.gui.setGrayout(b_call, 1);
   
   init_clist();
 
-  at_quiet = 1;
-
-  t_cpin = 0; # check pin ticket
-  t_spin = 0; # set pin ticket
-  t_dummy = 0;
-  t_clcc = 0;
-  
-  t_at = at_command("AT", 1);
-  
   sys.fs.chDir("appdata");
   if(not sys.fs.exists("phone")) {
     sys.fs.mkDir("phone");
@@ -88,36 +60,24 @@ function init {
   
   pinOk = 0;
   inCall = 0;
-}
-
-
-function callback {
-  sys.com.uartRdClb("", 0);
-  sys.os.arise();
+  RSMS = 0;
+  exit_flag = 0;
   
-  if(sys.hw.getLcdState() == 0) {
-    sys.hw.wakeLcd();
-  }
+  mngr_stat = "";
+  
+  # arg0 - type of request
+  process_args(arg0, arg1, arg2);
 }
 
-
-function callRet {
-  inCall = 0;
-}
-
-
-function suspend {
-  if (inCall == 0) {
-    sys.com.uartRdClb(&callback, 2);
-    at_set_dtr(1); # sleep enabled
-   } else {
-   
-   }
-}
 
 function wakeup {
-  at_set_dtr(0); # sleep disabled
-  
+  print("dialer wakeup!");
+  sys.os.gui.setMainScr(scr_d);
+  process_args(arg0, arg1, arg2);
+}
+
+
+function process_args {
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "DISABLE") {
       sys.com.uartRdClb(&callback, 0);
@@ -138,25 +98,20 @@ function wakeup {
         fillNumber = arg1;
       }
     }
+    
+    if (arg0 == "RSMS") {
+      RSMS = 1;
+      sms_retrive();
+    }
+    
+    if (arg0 == "SMS") {
+      print("Daler wkup");
+      sms_send(arg1, arg2);
+      exit_flag = 1;
+    }
   }
 }
 
-
-function run_inits {
-  print("phone: Running inits: ", "");
-  
-  local i = 0;
-  
-  for(i = 0; i < len(initcmds); i++;) {
-    sys.com.uartTrs(initcmds[i] + "\r\n");
-    at_wait(200);
-  }
-  
-  at_reset();
-  at_wait(200);
-  
-  print("Done!");
-}
 
 function init_clist {
   cl_scr = sys.gui.addScreen(); 
@@ -264,7 +219,6 @@ function lz {
 
 
 function upd_list {
-
   if (sys.gui.getEventC(b_dn) == EV_RELEASED) {
     if (sys.gui.getValue(s_bar) < sys.gui.getParam(s_bar)) {
       sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) + 1);
@@ -301,6 +255,10 @@ function upd_list {
 function update {
   number = sys.os.gui.handleText(t_number, number);
   
+  if (mngr_stat == "") {
+    sys.os.subProcess("phone/mngr.svs", &mngr_stat, "STATUS", 0, 0);
+  }
+  
   for(local i = 0; i < 10; i++;) {
     if (sys.gui.getEventC(b_dial[i]) == EV_RELEASED) {
       number += sys.gui.getStr(b_dial[i]);
@@ -326,7 +284,7 @@ function update {
   
   if (sys.gui.getEventC(b_call) == EV_RELEASED and number != "") {
     #perform_call(number);
-    sys.os.subProcess("phone/caller.svs", "", "CALL", number, 0);
+    sys.os.subProcess("phone/mngr.svs", "", "CALL", number, 0);
   }
   
   if (sys.gui.getEventC(b_contacts) == EV_RELEASED) {
@@ -340,98 +298,46 @@ function update {
   
   
   if (sys.gui.getEventC(b_ok) == EV_RELEASED) {
-    t_spin = at_command("AT+CPIN=" + number, 150);
+    #t_spin = at_command("AT+CPIN=" + number, 150);
+    sys.os.subProcess("phone/mngr.svs", &mngr_pin, "PIN", number, 0);
     number = "";
     sys.gui.setGrayout(b_ok, 1);
   }
   
-  local res;
-  
-  # AT result
-  res = at_result(t_at);
-  if(res == RES_OK) {
-    print("phone: AT: OK");
-    
-    run_inits();
-    at_wait(100);
-    t_cpin = at_command("AT+CPIN?", 2);
-  }
-  
-  if (res == RES_ERR) {
-    print("phone: AT: ERR");
-    
-    if (at_err > 10) {
-      sys.os.error("Modem not responding!");
-      return;
-    }
-    
-    t_at = at_command("AT");
-    at_err++;
-  }
-  
-  # simpin input handling
-  res = at_result(t_spin);
-  
-  if(res) {
-    t_cpin = at_command("AT+CPIN?", 2);
-  }
-  
-  
-  # CPIN handling
-  res = at_result(t_cpin);
-  if(res == 1) {
-    if(instr(at_result, "+CPIN: READY")) {
-      sys.gui.setGrayout(b_call, 0);
-      print("pin OK");
-      sys.gui.setVisible(b_ok, 0);
-      sys.gui.setVisible(t_pin, 0);
-      pinOk = 1;
-      if (fillNumber != "") {
-        number = fillNumber;
-      }
-    } else {
-      sys.gui.setGrayout(b_call, 1);
-      sys.gui.setVisible(b_ok, 1);
-      sys.gui.setVisible(t_pin, 1);
-      sys.gui.setGrayout(b_ok, 0);
-    }
-  }
-  
-  if(res == 2) {
-    print("CPIN fail");
-    at_wait(400);
-    t_cpin = at_command("AT+CPIN?", 2);
-  }
-  
-  # handling dummy
-  at_result(t_dummy);
   
   upd_list();
-  resolve_ring();
-  
-  at_update();
   
   if (sys.os.gui.getMainScr() == scr_d) {
     sys.os.gui.btnCtrl(scr_d, 0);
   } else {
     sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), b_back);
   }
-  
 }
 
-
- # todo: move this in phone manager
-function resolve_ring {
+function mngr_stat {
+  mngr_stat = arg0;
   
-  if(sys.os.inSim()) {
-    return;
+  if (mngr_stat == "SIMPIN") {
+    sys.gui.setGrayout(b_ok, 0);
+    sys.gui.setVisible(b_ok, 1);
+    sys.gui.setVisible(t_pin, 1);
+    sys.gui.setGrayout(b_call, 1);
   }
   
-  if(at_ring) {
-    at_ring = 0;
-    inCall = 1;
-    number = "";
-    sys.os.subProcess("phone/caller.svs", &callRet, "INCOMMING", "", 0);
-    return;
+  if (mngr_stat == "READY") {
+    sys.gui.setGrayout(b_ok, 1);
+    sys.gui.setVisible(b_ok, 0);
+    sys.gui.setVisible(t_pin, 0);
+    sys.gui.setGrayout(b_call, 0);
+  }
+}
+
+function mngr_pin {
+  if (arg0 == "OK") {
+    sys.gui.setVisible(b_ok, 0);
+    sys.gui.setVisible(t_pin, 0);
+    sys.gui.setGrayout(b_call, 0);
+  } else {
+    sys.gui.setGrayout(b_ok, 0);
   }
 }
