@@ -6,11 +6,12 @@ import "~at-cmd.svs"
 function init {
   # AT init commands
   array initcmds = [
-                    "AT+CALS=0,0",     # disable ring tone
-                    "AT+CLTS=1",       # enable clock from network
-                    "AT+CMGF=1",       # set sms as text mode
-                    "AT+CSCLK=1",      # enable sleep by sleep pin
-                    "AT+CSCS=\"UCS2\"" # set encoding
+                    "AT+CALS=0,0",        # disable ring tone
+                    "AT+CLTS=1",          # enable clock from network
+                    "AT+CMGF=1",          # set sms as text mode
+                    "AT+CSCLK=1",         # enable sleep by sleep pin
+                    "AT+CSCS=\"UCS2\"",   # set encoding to UCS2
+                    "AT+CSMP=17,167,0,8"  # enable UCS2/UTF16 messaging
                    ];
 
   # setup all that hacky stuff
@@ -263,7 +264,6 @@ function update {
 }
 
 
- # todo: move this in phone manager
 function resolve_ring {
   
   if(sys.os.inSim()) {
@@ -301,11 +301,6 @@ function sms_fin_cb {
     sys.snd.beepC(880, 250, &bp2);
   } else {
     sys.os.exit("OK", 0, 0);
-  }
-
-  if (RSMS) {
-    RSMS = 0;
-    sys.os.exit();
   }
 }
 

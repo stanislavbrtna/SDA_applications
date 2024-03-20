@@ -104,8 +104,8 @@ function init {
   i_bcall  = sys.gui.addButton(1, 10, 4, 1, "Call", cont_scr);
   i_bmsg   = sys.gui.addButton(5, 10, 4, 1, "Message", cont_scr);
   
-  i_bedit = sys.gui.addButton(1, 12, 3, 1, "Edit", cont_scr);
-  i_bback = sys.gui.addButton(6, 12, 3, 1, "Back", cont_scr);
+  i_bedit = sys.gui.addButton(6, 12, 3, 1, "Edit", cont_scr);
+  i_bback = sys.gui.addButton(1, 12, 3, 1, "Back", cont_scr);
   
   i_tname    = sys.gui.addText(2, 6, 6, 1, "", cont_scr);
   i_tsurname = sys.gui.addText(2, 7, 6, 1, "", cont_scr);
@@ -334,7 +334,12 @@ function upd_cont {
   
   if (sys.gui.getEventC(i_bcall) == EV_RELEASED) {
     #TODO: Add multiple number support
-    sys.os.subProcess("phone/caller.svs", &callRet, "CALL", sys.gui.getStr(i_tphone), 0);
+    sys.os.subProcess("phone/mngr.svs", &callRet, "CALL", sys.gui.getStr(i_tphone), 0);
+    return;
+  }
+  
+  if (sys.gui.getEventC(i_bmsg) == EV_RELEASED) {
+    sys.os.subProcess("phone/messages.svs", "", "OPEN", sys.gui.getStr(i_tphone), 0);
     return;
   }
   

@@ -10,6 +10,8 @@ function init {
   set_spacing(scr);
   sys.gui.setYscroll(scr, -16);
   
+  sys.gui.addText(0, 0, 8, 1, "SMS Messages", scr);
+  
   bNew    = sys.gui.addButton(5, 11, 3, 1, "New", scr);
   pSld    = sys.gui.addSliderV(8, 1, 1, 10, 100, 50, scr);
   sConvs  = sys.gui.addScreen(0, 1, 8, 10, scr);
@@ -83,6 +85,16 @@ function init {
   newMsgLoaded = 0;
   NewMsgConcept = 0;
   currentNumber = "";
+  
+  process_args(arg0, arg1, arg2);
+}
+
+function process_args {
+  if (typeof(arg0) == TYPE_STR) {
+    if (arg0 == "OPEN") {
+      ld_new_msg(arg1, scr);
+    }
+  }
 }
 
 
@@ -289,20 +301,27 @@ function ld_new_msg { # number, prev_Screen
     sys.gui.setGrayout(bNCont, 0);
     sys.gui.setGrayout(bNSend, 1);
   } else {
+    currentNumber = arg0;
     # load concept message
-    NewMsgConcept = 1;
-    sys.fs.conf.open(currentConv);
-    
-    sys.gui.setStr(bNCont, currentName);
-    sys.gui.setGrayout(bNCont, 1);
-    sys.gui.setGrayout(bNSend, 0);
-    
-    if (sys.fs.conf.exists("message_concept")) {
-      sNewMsg = sys.fs.conf.read("message_concept");
+    currentConv = "n" + mk_safe_name(arg0) +  ".dat";
+    if(sys.fs.exists(currentConv)) {
+      NewMsgConcept = 1;
+      sys.fs.conf.open(currentConv);
+      currentName = sys.fs.conf.read("contact_name");
+      sys.gui.setStr(bNCont, currentName);
+      sys.gui.setGrayout(bNCont, 1);
+      sys.gui.setGrayout(bNSend, 0);
+      
+      if (sys.fs.conf.exists("message_concept")) {
+        sNewMsg = sys.fs.conf.read("message_concept");
+      } else {
+        sNewMsg = "";
+      }
+      sys.fs.conf.close();
     } else {
+      sys.gui.setStr(bNCont, arg0);
       sNewMsg = "";
     }
-    sys.fs.conf.close();
   }
 }
 
@@ -323,7 +342,7 @@ function upd_new_msg {
   
   if(sys.gui.getEventC(bNSend) == EV_RELEASED) {
     sms_send(currentNumber, sNewMsg);
-    if (NewMsgConcept == 1) {
+    if (NewMsgConcept == 1 and sys.fs.exists(currentConv)) {
       sys.fs.conf.open(currentConv);
       sys.fs.conf.write("message_concept", "");
       sys.fs.conf.close();
@@ -396,4 +415,6 @@ function wakeup {
   if(currentConv != "") {
     load_conv(currentConv);
   }
+  
+  process_args(arg0, arg1, arg2);
 }

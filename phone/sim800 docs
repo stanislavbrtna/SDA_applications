@@ -87,6 +87,8 @@ AT+CMGF=1    # set sms as text mode
 
 AT+CSCLK=1   # enable sleep by sleep pin
 
+AT+CSMP=17,167,0,8 # enable utf8 messaging
+
 SMS receive:
 1: get count of messages:
 AT+CMGL
@@ -130,4 +132,16 @@ OK
 0 - change?
 1 - registered
 
+Rozchození českých zanků
+AT+CSMP? - 
 
+AT+CSMP=[<fo>[,<vp>,<pid>,<dcs>]]
+
+
+vp  - validity period
+pid - protocol identifier
+dcs - GSM 03.38 SMS Data Coding Scheme - nastavit na 8 pro UCS2
+
+default 17, 167,0,0
+
+set: 17,167,0,8
