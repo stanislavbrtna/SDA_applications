@@ -207,15 +207,23 @@ function load_conv {
   }
   
   local b = 0;
-  print("min:" + min + " max: " + cmax);
+  #print("min:" + min + " max: " + cmax);
+  local in = 2;
   for (i = min; i < cmax; i++;) {
     incomming = sys.fs.conf.read("dir_" + i) == "INCOMMING";
-    if (incomming) {
-      ctitle[b] = sys.gui.addText(0, b*5 + yAdd, 8, 1, name + ":", sMsgList);
+    if (incomming != in) {
+      if (incomming) {
+        ctitle[b] = sys.gui.addText(0, b*5 + yAdd, 8, 1, name + ":", sMsgList);
+      } else {
+        ctitle[b] = sys.gui.addText(0, b*5 + yAdd, 8, 1, "You:", sMsgList);
+        sys.gui.setTexAlign(ctitle[b], ALIGN_RIGHT);
+      }
+      in = incomming;
     } else {
-      ctitle[b] = sys.gui.addText(0, b*5 + yAdd, 8, 1, "You:", sMsgList);
-      sys.gui.setTexAlign(ctitle[b], ALIGN_RIGHT);
+      yAdd -= 2;
     }
+    
+    
     local text = sys.fs.conf.read("msg_"+i);
     
     ctext[b] = sys.gui.addText(0, b*5 + 1 + yAdd, 8, 2 + getHeight(text, 8*32), text, sMsgList);
@@ -409,6 +417,7 @@ function update {
 function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
   sys.gui.setYscroll(arg0, num((float(arg3 - arg2)/1024.0)*float(sys.gui.getValue(arg1))) + arg2);
 }
+
 
 function wakeup {
   load_convs();

@@ -46,9 +46,13 @@ function sms_send { # number, text -> returns
 }
 
 function sms_ret {
-  page = 0;
-  load_convs();
-  load_conv(sms_c_conv);
-  sys.os.hideKbd();
-  newMsgLoaded = 0;
+  if(arg0 + "" == "OK") {
+    page = 0;
+    load_convs();
+    load_conv(sms_c_conv);
+    sys.os.hideKbd();
+    newMsgLoaded = 0;
+  } else {
+    sys.os.error("Error occured while sending sms!");
+  } 
 }
