@@ -74,6 +74,8 @@ function wakeup {
   print("dialer wakeup!");
   sys.os.gui.setMainScr(scr_d);
   process_args(arg0, arg1, arg2);
+  
+  mngr_stat = "";
 }
 
 
