@@ -17,7 +17,8 @@ function at_init {
   
   DEBUG = 0;
   
-  simpin = 1;
+  # simulator debug options:
+  simpin = 0;
   
   RES_OK = 1;
   RES_ERR = 2;
@@ -192,6 +193,14 @@ function at_update {
       if(at_simcmd == "AT+CLCC") {
         at_ustring = "AT+CLCC: 0 result: AT+CLCC\r\n+CLCC: 1,1,4,0,0,\"+420123456789\",145,\"\"\r\nOK\r\n";
       }
+      
+      if(at_simcmd == "AT+CSQ") {
+        at_ustring = "AT+CSQ\r\n+CSQ: 17,0\r\nOK\r\n";
+      }
+      
+      if(at_simcmd == "AT+CSPN?") {
+        at_ustring = "AT+CSPN\r\n+CSPN: \"02.CZ\",0\r\nOK\r\n";
+      }
     }
     # =========================================================================
   }
@@ -253,6 +262,10 @@ function at_wait {
       }
     }
   }
+}
+
+function at_free {
+  return not at_enabled;
 }
 
 

@@ -28,7 +28,10 @@ function init {
   tStat = sys.gui.addText(0, 0, 10, 1, "status", scr);
   tSMS  = sys.gui.addText(0, 1, 10, 1, "", scr);
   
-  bDebug = sys.gui.addCheckBox(0, 3, 5, 1, "Debug mode", scr);
+  sys.gui.addText(0, 3, 3, 1, "Signal:", scr);
+  bSignal = sys.gui.addBar(3, 3, 4, 1, 32, 0, scr);
+  
+  bDebug = sys.gui.addCheckBox(0, 5, 5, 1, "Debug mode", scr);
   
   #*
   todo:
@@ -43,6 +46,8 @@ function init {
   t_spin = 0; # set pin ticket
   t_dummy = 0;
   t_clcc = 0;
+  
+  t_csq = 0;
   
   sms_init();
   
@@ -68,6 +73,11 @@ function init {
   number = "";
   
   mngr_status = "INIT";
+  
+  sms_read = 0;
+  
+  gsm_signal = 0;
+  gsm_signal_l = 0;
   
   # arg0 - type of request
   process_args(arg0, arg1, arg2);
@@ -124,13 +134,17 @@ function process_args {
       sms_retrive();
     }
     
-    if (arg0 == "SMS" and pinOk == 1) {
-      print("Phone manager: send sms");
-      sys.gui.setStr(tSMS, "Sending sms...");
-      sms_send(arg1, arg2);
+    if (arg0 == "SMS") {
+      if (pinOk == 1 and gsm_signal != 0) {
+        print("Phone manager: send sms");
+        sys.gui.setStr(tSMS, "Sending sms...");
+        sms_send(arg1, arg2);
+      } else {
+        exit_flag = 2;
+      }
     }
     
-    if (arg0 == "CALL" and pinOk == 1) {
+    if (arg0 == "CALL") {
       print("Phone manager: CALL");
       CALL_FLG = 1;
       number = arg1;
@@ -173,6 +187,16 @@ function set_status {
   sys.gui.setStr(tStat, "status: " + arg0);
 }
 
+
+function get_signal {
+  t_csq = at_command("AT+CSQ");
+}
+
+function gsm_ready {
+  return (gsm_signal > 0 and pinOk and at_free()); 
+}
+
+
 function update {
   
   if(sys.gui.getEventC(bDebug) == EV_RELEASED) {
@@ -180,18 +204,25 @@ function update {
     print("DEBUG: " + DEBUG);
   }
 
+  if (sms_read + 300 < sys.time.get() and gsm_ready()) {
+    sys.gui.setStr(tSMS, "Recieving SMS messages...");
+    sms_retrive();
+    sms_read = sys.time.get();
+  }
+
   
   if (STATUS_FLG) { # SATUS: INIT, READY, ERR, SIMPIN
     STATUS_FLG = 0;
     sys.os.exit(mngr_status, 0, 0);
+    return;
   }
   
-  if (PIN_FLG) {
+  if (PIN_FLG and at_free()) {
     PIN_FLG = 0;
     t_spin = at_command("AT+CPIN=" + pin_num, 150);
   }
   
-  if (CALL_FLG) {
+  if (CALL_FLG and gsm_ready()) {
     CALL_FLG = 0;
     print("Mngr: calling " + number);
     sys.os.subProcess("phone/caller.svs", &call_ret, "CALL", number, 0);
@@ -235,11 +266,10 @@ function update {
       print("pin OK");
       set_status("READY");
       pinOk = 1;
-      sys.gui.setStr(tSMS, "Recieving SMS messages...");
-      sms_retrive();
+      get_signal();
     } else {
       set_status("SIMPIN");
-      sys.os.exit("ERR", 0, 0);
+      #sys.os.exit("ERR", 0, 0);
     }
   }
   
@@ -247,6 +277,34 @@ function update {
     print("CPIN fail");
     at_wait(400);
     t_cpin = at_command("AT+CPIN?", 2);
+  }
+  
+  # CSQ result
+  res = at_result(t_csq);
+  if(res == RES_OK) {
+    print("phone mngr: CSQ: OK");
+    gsm_signal = parse_csq(at_result);
+    gsm_signal_l = sys.time.get();
+    print("CSQ: " + gsm_signal);
+    sys.gui.setValue(bSignal, gsm_signal);
+    if (gsm_signal == 0) {
+      set_status("NO_SIGNAL");
+    } else {
+      set_status("READY");
+    }
+  }
+  
+  if (res == RES_ERR) {
+    print("phone: CSQ: ERR");
+    t_csq = at_command("AT+CSQ");
+  }
+  
+  if(gsm_signal_l + 30 < sys.time.get() and at_free() and pinOk) {
+    get_signal();
+  }
+  
+  if(gsm_signal_l + 30 < sys.time.get() and at_free() and pinOk) {
+    get_signal();
   }
   
   # handling dummy
@@ -258,8 +316,14 @@ function update {
   at_update();
   
   if (exit_flag == 1 and at_enabled == 0) {
+    if (exit_flag == 1){
+      sys.os.exit("OK", 0, 0);
+    } else { 
+      sys.os.exit("ERR", 0, 0);
+    }
     exit_flag = 0;
-    sys.os.suspend();
+    return;
+    #sys.os.suspend();
   }
 }
 
@@ -285,14 +349,17 @@ function resolve_ring {
   }
 }
 
+
 function bp2 {
   sys.snd.beepC(440, 250, &bp3);
 }
 
+
 function bp3 {
   sys.snd.beepC(880, 250, "");
-  sys.os.exit("OK", 0, 0);
+  #sys.os.exit("OK", 0, 0);
 }
+
 
 function sms_fin_cb {
   sys.gui.setStr(tSMS, "Got " + new_sms_flg + " new SMS messages.");
@@ -300,9 +367,10 @@ function sms_fin_cb {
     new_sms_flg = 0;
     sys.snd.beepC(880, 250, &bp2);
   } else {
-    sys.os.exit("OK", 0, 0);
+    #sys.os.exit("OK", 0, 0);
   }
 }
+
 
 function sms_send_cb {
   if (arg0) {
@@ -310,9 +378,21 @@ function sms_send_cb {
     exit_flag = 1;
   } else {
     sys.gui.setStr(tSMS, "Error occured while sending SMS.");
+    exit_flag = 2;
   }
 }
 
+
 function call_ret {
   exit_flag = 1;
+}
+
+
+function parse_csq {
+  if(instr(arg0, "+CSQ:")) {
+    #print("sub: " + substr(arg0, instr(arg0, "+CSQ:") + 5, instr(arg0, ",") - 1));
+    return num(substr(arg0, instr(arg0, "+CSQ:") + 5, instr(arg0, ",") - 1));
+  } else {
+    return 0;
+  }
 }
