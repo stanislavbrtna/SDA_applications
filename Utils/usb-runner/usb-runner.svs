@@ -29,14 +29,16 @@ function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   
-  rcv = sys.gui.addButton(1, 1, 5, 1, "Recieve", scr);
+  rcv = sys.gui.addButton(1, 1, 5, 1, "Receive", scr);
   run = sys.gui.addButton(1, 2, 5, 1, "Run", scr);
   
   bar = sys.gui.addBar(1, 5, 8, 1, 0, 0, scr);
   
   txt = sys.gui.addText(1, 3, 8, 2, "", scr);
   
-  pick = sys.gui.addButton(1, 6, 5, 1, "Replace...", scr);
+  pick = sys.gui.addButton(1, 6, 5, 1, "Pick Folder", scr);
+  
+  tpath = sys.gui.addText(1, 7, 8, 1, "Received/", scr);
   
   sys.os.gui.setMainScr(scr);
 
@@ -51,6 +53,7 @@ function init {
   rfname = "tmp.svs";
   
   rpl_fname = "";
+  dest_folder = 1;
   r = 0;
 }
 
@@ -61,10 +64,21 @@ function status {
 
 function callRet {
   rpl_fname = arg0;
-  if (arg0 != "")
-    sys.gui.setStr(pick, arg0);
-  else
-    sys.gui.setStr(pick, "Replace...");
+  if (arg0 != "") {
+    print("folder selected: " + arg0);
+    rpl_fname = arg0;
+    dest_folder = arg1;
+    if (dest_folder) {
+      sys.gui.setStr(tpath,"APPS/" +  arg0);
+    } else {
+      sys.gui.setStr(tpath,"DATA/" +  arg0);
+    }
+    
+  } else {
+    rpl_fname = "";
+    dest_folder = 1;
+    sys.gui.setStr(tpath, "APPS/Received" + arg0);
+  }
 }
 
 function get_param {
@@ -115,7 +129,7 @@ function update {
   }
   
   if(sys.gui.getEventC(pick) == EV_RELEASED) {
-    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess("lib/fsl2.svs", &callRet, rpl_fname, dest_folder, " -folder ");
     return;
   }
 
@@ -127,11 +141,11 @@ function update {
     if (rpl_fname == "") {
       sys.os.subProcess("Received/" + rfname, "", 0, 0, 0);
     } else {
-      sys.os.subProcess(rpl_fname, "", 0, 0, 0);
+      sys.os.subProcess(rpl_fname + "/" + rfname, "", 0, 0, 0);
     }
   }
   
-  if (get == 1) {
+  if (get == 1 and sys.os.inSim() == 0) {
     if (sys.com.usbGetRd() == 2) {
       x = sys.com.usbGetStr();
       if (x != "") {
@@ -148,14 +162,14 @@ function update {
     
     if (maxlen != 0) {
       sys.gui.setGrayout(run, 1);
-      sys.fs.chDir(1);
+      sys.fs.chDir(dest_folder);
       local path;
       if (rpl_fname == "") {
-        path = "Received/" + rfname;
-        status("Receiving:\n" + rfname);
+        path = "Recieved/" + rfname;
+        status("Recieving:\n" + rfname);
       } else {
-        path = rpl_fname;
-        status("Receiving:\n" + rpl_fname);
+        path = rpl_fname + rfname;
+        status("Recieving:\n" + path);
       }
       
       if (not sys.fs.exists("Received/")) {
