@@ -276,7 +276,7 @@ function rldFiles {
   }
   
   if (pickFolder) {
-    numOfFiles = lastdir - 1;
+    numOfFiles = lastdir;
   }
 
   sortstring = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
