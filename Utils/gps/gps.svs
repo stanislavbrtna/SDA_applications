@@ -402,8 +402,27 @@ function trk_add_point { #lat, lon
     }
   }
   
-  # TODO: redukovat lineárně závislé body...
-
+  if(trk_len > 1) {
+    local ab_len = get_distance(arg0, arg1, trk_lat[trk_len - 1], trk_lon[trk_len - 1])
+                   + get_distance(trk_lat[trk_len - 1], trk_lon[trk_len - 1], trk_lat[trk_len - 2], trk_lon[trk_len - 2]);
+    
+    local c_len = get_distance(arg0, arg1, trk_lat[trk_len - 2], trk_lon[trk_len - 2]);
+    
+    local d = 0.0;
+    
+    if (ab_len > c_len) {
+      d = ab_len - c_len;
+    } else {
+      d = c_len - ab_len;
+    }
+    
+    if (d < ab_len*0.001) {
+      trk_lat[trk_len - 1] = arg0;
+      trk_lon[trk_len - 1] = arg1;
+      return;
+    }
+  }
+  
   trk_lat[trk_len] = arg0;
   trk_lon[trk_len] = arg1;
   
