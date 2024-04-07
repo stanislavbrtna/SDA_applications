@@ -17,6 +17,9 @@ function init {
   # setup all that hacky stuff
   sys.os.setSingular();
   sys.os.noClose(1);
+  sys.hw.claim(INT_EXP_PORT);
+  sys.hw.claim(EXT_EXP_PORT);
+  sys.hw.claim(SERIAL_PORT);
   
   at_init();
 
@@ -81,6 +84,47 @@ function init {
   
   # arg0 - type of request
   process_args(arg0, arg1, arg2);
+  set_icon(0);
+}
+
+
+function set_icon { # 0 - 32 signal
+  local s = 0;
+  
+  if (arg0 == 0) {
+    s = 0;
+  }
+  
+  if (arg0 > 0 and arg0 <= 8) {
+    s = 1;
+  }
+  
+  if (arg0 > 8 and arg0 <= 16) {
+    s = 2;
+  }
+  
+  if (arg0 > 16 and arg0 <= 24) {
+    s = 3;
+  }
+  
+  if (arg0 > 24) {
+    s = 4;
+  }
+  
+  sys.fs.chDir(1);
+
+  if(icon_id != 0) {
+   sys.os.gui.freeNotif(icon_id);
+  }
+
+  icon_id = sys.os.gui.setNotif("phone/sic/signal" + s + ".sic", &icoCallback);
+  sys.fs.chDir(0);
+}
+
+
+function icoCallback {
+  exit_flag = 0;
+  sys.os.arise();
 }
 
 
@@ -287,6 +331,9 @@ function update {
     gsm_signal_l = sys.time.get();
     print("CSQ: " + gsm_signal);
     sys.gui.setValue(bSignal, gsm_signal);
+    
+    set_icon(gsm_signal);
+    
     if (gsm_signal == 0) {
       set_status("NO_SIGNAL");
     } else {
