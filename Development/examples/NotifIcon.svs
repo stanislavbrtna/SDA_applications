@@ -1,0 +1,25 @@
+function init {
+  scr = sys.gui.addScreen();
+  btn = sys.gui.addButton(3, 1, 7, 2, "Set", scr);
+  
+  btn_r = sys.gui.addButton(3, 2, 7, 3, "Reset", scr);
+
+  sys.os.gui.setMainScr(scr);
+}
+
+function update {
+  if(sys.gui.getEventC(btn) == EV_RELEASED) {
+    sys.fs.chDir(1);
+    notif_id = sys.os.gui.setNotif("Development/examples/NotifIcon.sic",&clicked);
+  }
+  
+  if(sys.gui.getEventC(btn_r) == EV_RELEASED) {
+    sys.os.gui.freeNotif(notif_id);
+  } 
+}
+
+function clicked {
+  print("clicked");
+  sys.os.arise();
+}
+
