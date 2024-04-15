@@ -61,6 +61,9 @@ function com_handle {
   
   if(com_str_val == 1) {
     com_str = sys.os.gui.handleText(com_text, com_str);
+    if(getcp(com_str, len(com_str)) == "\n") {
+      sys.gui.setEvent(com_ok, EV_RELEASED);
+    }
   }
   
   if (sys.gui.getEventC(com_ok) == EV_RELEASED) {
