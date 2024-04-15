@@ -88,7 +88,8 @@ function init {
   bData = sys.gui.addButton(4, 1, 2, 1, "Data", scr);
   bApps = sys.gui.addButton(6, 1, 2, 1, "Apps", scr);
    
-  sys.gui.setSelect(bData, 1);
+  sys.gui.setGhost(bData, 0);
+  sys.gui.setGhost(bApps, 1);
 
   selfOvr = sys.o.setScr(scr);
   
@@ -105,14 +106,14 @@ function init {
   if (typeof (arg1) == TYPE_NUM) {
     if (arg1 == 1) {
       sys.fs.chDir(1);
-      sys.gui.setSelect(bData, 0);
-      sys.gui.setSelect(bApps, 1);
+      sys.gui.setGhost(bData, 1);
+      sys.gui.setGhost(bApps, 0);
       inApps = 1;
     }
   } else {
     sys.fs.chDir(0);
-    sys.gui.setSelect(bData, 1);
-    sys.gui.setSelect(bApps, 0);
+    sys.gui.setGhost(bData, 0);
+    sys.gui.setGhost(bApps, 1);
     inApps = 0;
   }
   
@@ -345,6 +346,7 @@ function rldFiles {
   }
 
   selected = -1;
+  sys.os.gui.btnClear(scr);
 }
 
 
@@ -381,11 +383,13 @@ function updFiles {
   local x;
   for (x = 0; x < numOfFiles; x++;) {
     if (sys.gui.getEventC(fScrBtns[x]) == EV_RELEASED) {
-        if (selected == -1) {
-          sys.gui.setSelect(fScrBtns[x], 1);
-          selected = x;
-          selectTrg(sys.gui.getStr(fScrBtns[selected]));
-        } else {
+      if (selected == -1) {
+        sys.gui.setSelect(fScrBtns[x], 1);
+        sys.os.gui.btnSelect(fScrBtns[x]);
+        sys.os.gui.btnSelect(file_scr);
+        selected = x;
+        selectTrg(sys.gui.getStr(fScrBtns[selected]));
+      } else {
         if (selected == x) {
           if (sys.fs.isDir(sys.gui.getStr(fScrBtns[x]))) {
             path[upCount] = sys.gui.getStr(fScrBtns[x]);
@@ -401,9 +405,25 @@ function updFiles {
         } else {
           sys.gui.setSelect(fScrBtns[selected], 0);
           sys.gui.setSelect(fScrBtns[x], 1);
+          sys.os.gui.btnSelect(fScrBtns[x]);
+          
           selected = x;
           selectTrg(sys.gui.getStr(fScrBtns[selected]));
         }
+      }
+    }
+    
+    if (sys.gui.getSelect(fScrBtns[x]) and sys.gui.getEventC(scrollbar) == EV_NONE) {
+      if (sys.gui.getValue(scrollbar)/32 + 8  < x) {
+        sys.gui.setValue(scrollbar, sys.gui.getValue(scrollbar) + 32);
+      }
+      
+      if (sys.gui.getValue(scrollbar)/32 + 1  > x) {
+        if (sys.gui.getValue(scrollbar) >= 32) {
+          sys.gui.setValue(scrollbar, sys.gui.getValue(scrollbar) - 32);
+        } else {
+          sys.gui.setValue(scrollbar, 0);
+        }  
       }
     }
   }
@@ -459,8 +479,8 @@ function update {
   if (sys.gui.getEventC(bData) == EV_RELEASED) {
     sys.fs.chDir();
     inApps = 0;
-    sys.gui.setSelect(bData, 1);
-    sys.gui.setSelect(bApps, 0);
+    sys.gui.setGhost(bData, 0);
+    sys.gui.setGhost(bApps, 1);
     sys.gui.setGrayout(bUp, 1);
     upCount = 0;
     rldFiles();
@@ -469,8 +489,8 @@ function update {
   if (sys.gui.getEventC(bApps) == EV_RELEASED) {
     sys.fs.chDir(1);
     inApps = 1;
-    sys.gui.setSelect(bData, 0);
-    sys.gui.setSelect(bApps, 1);
+    sys.gui.setGhost(bData, 1);
+    sys.gui.setGhost(bApps, 0);
     sys.gui.setGrayout(bUp, 1);
     upCount = 0;
     rldFiles();
@@ -491,6 +511,8 @@ function update {
     setReturn();
     sys.os.exit();
   }
+  
+  sys.os.gui.btnCtrl(scr, btnCancel);
 }
 
 
