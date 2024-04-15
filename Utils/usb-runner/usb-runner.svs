@@ -55,6 +55,11 @@ function init {
   rpl_fname = "";
   dest_folder = 1;
   r = 0;
+  
+  if (sys.hw.claim(SERIAL_PORT) == 1) {
+    sys.os.error("Failed to claim USB port!");
+    sys.os.exit();
+  }
 }
 
 function status {
@@ -224,4 +229,5 @@ function update {
       }
     }
   }
+  sys.os.gui.btnCtrl(scr, 0);
 }
