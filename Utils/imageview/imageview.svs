@@ -35,6 +35,8 @@ function init {
   inApps = 0;
   if (typeof(arg0) == TYPE_STR) {
     set_img_clb(arg0, arg1);
+  } else {
+    set_img_clb("Utils/imageview/imgViewBg.p16", 1);
   }
   
   ov_id = 0;
@@ -204,6 +206,7 @@ function update {
   }
   
   handle_overlay();
+  sys.os.gui.btnCtrl(scr, 0);
 }
 
 function cmp_siz {
