@@ -138,16 +138,28 @@ function callback {
 }
 
 function callRet {
+  sys.hw.claim(INT_EXP_PORT);
+  sys.hw.claim(EXT_EXP_PORT);
+  sys.hw.claim(SERIAL_PORT);
+  sys.com.uartRdClb(&callback, 2);
   inCall = 0;
+  exit_flag = 1;
 }
 
 function suspend {
+  print("mngr suspend called incall: " + inCall);
   if (inCall == 0) {
+    sys.hw.claim(INT_EXP_PORT);
+    sys.hw.claim(EXT_EXP_PORT);
+    sys.hw.claim(SERIAL_PORT);
     sys.com.uartRdClb(&callback, 2);
     at_set_dtr(1); # sleep enabled
   } else {
     sys.com.uartRdClb(&callback, 0);
-    at_set_dtr(0); # sleep enabled
+    at_set_dtr(0); # sleep disabled
+    sys.hw.free(INT_EXP_PORT);
+    sys.hw.free(EXT_EXP_PORT);
+    sys.hw.free(SERIAL_PORT);
   }
 }
 
@@ -163,11 +175,17 @@ function process_args {
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "DISABLE") {
       sys.com.uartRdClb(&callback, 0);
+      sys.hw.free(INT_EXP_PORT);
+      sys.hw.free(EXT_EXP_PORT);
+      sys.hw.free(SERIAL_PORT);
       inCall = 1;
       sys.os.suspend();
     }
     
     if (arg0 == "ENABLE") {
+      sys.hw.claim(INT_EXP_PORT);
+      sys.hw.claim(EXT_EXP_PORT);
+      sys.hw.claim(SERIAL_PORT);
       sys.com.uartRdClb(&callback, 2);
       inCall = 0;
       sys.os.suspend();
@@ -269,7 +287,8 @@ function update {
   if (CALL_FLG and gsm_ready()) {
     CALL_FLG = 0;
     print("Mngr: calling " + number);
-    sys.os.subProcess("phone/caller.svs", &call_ret, "CALL", number, 0);
+    inCall = 1;
+    sys.os.subProcess("phone/caller.svs", &callRet, "CALL", number, 0);
   }
   
   local res;
@@ -427,11 +446,6 @@ function sms_send_cb {
     sys.gui.setStr(tSMS, "Error occured while sending SMS.");
     exit_flag = 2;
   }
-}
-
-
-function call_ret {
-  exit_flag = 1;
 }
 
 
