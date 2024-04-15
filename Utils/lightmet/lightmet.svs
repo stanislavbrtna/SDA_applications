@@ -112,6 +112,10 @@ function init {
   measuredN = 0;
   
   ov_id = 0;
+  
+  if(sys.hw.claim(EXT_EXP_PORT) == 1) {
+    sys.os.error("Expansion connector is used by another app.");
+  }
 }
 
 
