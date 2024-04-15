@@ -206,6 +206,8 @@ function update {
   updHist();
   
   scrScroller(sHistIn, slHist, -3, 8 * 36 * 2 + 34);
+  
+  sys.os.gui.btnCtrl(scr, 0);
 }
 
 function updNum {
