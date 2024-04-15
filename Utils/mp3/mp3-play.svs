@@ -545,7 +545,7 @@ function upd_list_scr {
   } else {
     list_filter = sys.os.gui.handleText(bl_search, list_filter);
     if (list_filter != list_filter_pr) {
-      list_filter_t = sys.time.getAppUptime() + 700;
+      list_filter_t = sys.time.getAppUptime() + 250;
     }
     
     if (sys.time.getAppUptime() >= list_filter_t and list_filter_t != 0) {
@@ -623,12 +623,15 @@ function reload_list {
       #if (sys.fs.conf.exists(n + "") == 0) {
       #  break;
       #}
-      text = sys.fs.conf.read(n + "");
-      if (text == "") {
+      local r = sys.fs.conf.valMatch(n + "", list_filter, 0);
+      
+      if (r == -1) {
         break;
       }
       
-      if (instr(lower(text), lower(list_filter))) {
+      if (r == 1) {
+        text = sys.fs.conf.read(n + "");
+
         btnList[b] = sys.gui.addButton(0, b, 7 + 6*landscape, 1, text, big_list_in);
         btnListSng[b] = n + 1;
         if (n + 1 == currentSong) {
