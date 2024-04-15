@@ -1,6 +1,6 @@
  # this is still more-less proof of concept
 
-import "lib/inc/1/external-kbd.svs"
+ # os now has native keyboard support
 import "lib/inc/ddm.svs"
 
 
@@ -35,7 +35,6 @@ function init {
   sys.gui.setTxtSize(txt, 12);
   sys.gui.setTxtSize(liner, 12);
 
-  kbdDriver = 0;
   cPosOld = 0;
   gc_clean = 0;
 
@@ -43,10 +42,6 @@ function init {
   filename = "";
   fileRoot = 0; # root in /DATA
   
-  kbd_init();
-  
-  print("DBG: arg0: "+arg0+" arg1: "+arg1+" arg2: "+arg2);
-
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 != "") {
       filename = arg0;
@@ -122,7 +117,6 @@ function ui_transform {
 function cfg_load {
   sys.fs.chDir(0);
   sys.fs.conf.open("settings/proged.cfg");
-  kbdDriver = sys.fs.conf.readInt("kbdDriver", 0);
   sys.gui.setVisible(liner, sys.fs.conf.readInt("liner", 0));
   sys.gui.setX1(txt, sys.fs.conf.readInt("liner", 0));
   sys.fs.conf.close();
@@ -132,7 +126,6 @@ function cfg_load {
 function cfg_store {
   sys.fs.chDir(0);
   sys.fs.conf.open("settings/proged.cfg");
-  sys.fs.conf.write("kbdDriver", "" + kbdDriver);
   sys.fs.conf.write("liner", "" + sys.gui.getVisible(liner));
   sys.fs.conf.close();
   sys.fs.chDir(fileRoot);
@@ -169,10 +162,6 @@ function update {
     sys.profiler(0);
     print("collecting");
     gc_clean--;
-  }
-  
-  if (kbdDriver) {
-    kbd_update(txt);
   }
 
   newOvrUpdate();
@@ -264,6 +253,8 @@ function update {
   
   landscapeOld = sys.os.gui.getLandscape();
   kbdStateOld = sys.os.kbdGetState();
+  
+  sys.os.gui.btnCtrl(scr, 0);
 }
 
 function upd_liner {
@@ -339,8 +330,7 @@ function menuOvInit {
   btn_lines = sys.gui.addCheckBox(1, 2, 10, 1, "Show lines", menuScr);
   sys.gui.setValue(btn_lines, sys.gui.getVisible(liner));
   
-  btn_kbd = sys.gui.addCheckBox(1, 3, 10, 1, "Keyboard Driver", menuScr);
-  sys.gui.setValue(btn_kbd, kbdDriver);
+
   
   btn_close = sys.gui.addButton(5, 5, 2, 1, "Close", menuScr);
   
@@ -357,11 +347,6 @@ function menuOvInit {
 function menuOvUpdate {
   if (sys.o.getId() != menuOvr or sys.o.getId() == 0) {
     return;
-  }
-   
-  if (sys.gui.getEventC(btn_kbd) == EV_RELEASED) {
-    kbdDriver = sys.gui.getValue(btn_kbd);
-    cfg_store();
   }
   
   if (sys.gui.getEventC(btn_lines) == EV_RELEASED) {
