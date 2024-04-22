@@ -47,6 +47,7 @@ function init {
   
   bLbr = sys.gui.addButton(0, 0, 2, 1, "(", sNum);
   bRbr = sys.gui.addButton(2, 0, 2, 1, ")", sNum);
+  bDbr = sys.gui.addButton(4, 0, 2, 1, "()", sNum);
   
   bDiv = sys.gui.addButton(6, 1, 2, 2, "/", sNum);
   
@@ -217,6 +218,12 @@ function updNum {
   
   handleKey(bLbr);
   handleKey(bRbr);
+  
+  if (sys.gui.getEventC(bDbr) == EV_RELEASED) {
+    sInput = "(" + sInput + ")";
+    sys.gui.setStr(tInput, sInput);
+    sys.os.gui.setCPos(tInput, len(sInput));
+  }
   
   handleKey(bDiv);
   handleKey(bMul);
