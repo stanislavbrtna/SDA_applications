@@ -394,10 +394,16 @@ function update {
     sys.gui.setEvent(btn_p, EV_RELEASED);
   }
   
+  if (sys.hw.btn.getEvent(BTN_A) == EV_PRESSED and sys.hw.getLcdState() == 1) {
+    sys.os.suspend();
+    sys.hw.btn.clrEvent(BTN_A);
+  }
+  
   if (sys.hw.btn.getEvent(BTN_B) == EV_PRESSED) {
     upd_sleep();
     sys.os.wake();
     sys.gui.setEvent(btn, EV_RELEASED);
+    sys.hw.btn.clrEvent(BTN_B);
   }
   
   if (sys.gui.getEventC(btn_r) == EV_RELEASED) {
