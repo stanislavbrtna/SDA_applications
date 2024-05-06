@@ -317,6 +317,7 @@ function update {
 }
 
 function mngr_stat {
+  print("dialer: Mngr stat loaded");
   mngr_stat = arg0;
   
   if (mngr_stat == "SIMPIN") {

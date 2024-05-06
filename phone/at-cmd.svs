@@ -18,7 +18,7 @@ function at_init {
   DEBUG = 0;
   
   # simulator debug options:
-  simpin = 0;
+  simpin = 1;
   
   RES_OK = 1;
   RES_ERR = 2;
@@ -209,11 +209,13 @@ function at_update {
     at_result = at_ustring;
       
     if (instr(substr(at_result, len(at_result) - 5, len(at_result)), "OK")) {
+      if (DEBUG) print("at-cmd: Command success (" + at_simcmd + ")");
       at_success = 1;
       at_enabled = 0;
     }
     
     if (instr(substr(at_result, len(at_result) - 5, len(at_result)), "ERROR")) {
+      if (DEBUG) print("at-cmd: Command ERROR (" + at_simcmd + ")");
       if (not at_quiet) {
         sys.os.error("AT CMD ERROR\nCMD: " + at_simcmd +"\nError: " + at_result);
       } else {
@@ -242,11 +244,13 @@ function at_update {
   # get the unsolicited messages
   
   if(instr(at_ustring, "RING")) {
+    if (DEBUG) print("at-cmd: RING detected!");
     at_ring = 1;
     at_ustring = "";
   }
   
   if(instr(at_ustring, "CMTI")) {
+    if (DEBUG) print("at-cmd: CMTI detected!");
     at_new_sms = 1;
     at_ustring = "";
   }
