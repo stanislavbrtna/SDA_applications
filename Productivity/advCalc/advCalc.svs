@@ -12,6 +12,7 @@ function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr);
+  sys.os.setSingular();
   set_spacing(scr);
   sys.gui.setYscroll(scr, -6);
   
