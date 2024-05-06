@@ -1,22 +1,4 @@
-
-
-## ascii only -> to lib
-function ascii_only { # arg0: string arg1: ignore_spaces
-  local i;
-  local out = "";
-  local c = "";
-  
-  for(i = 0; i < len(arg0); i++;) {
-    c = getcp(arg0, i);
-    if(rlen(c) == 1) {
-      if(not (arg1 == 1 and c == " ")) 
-        out += c;
-    }
-  }
-  return out;
-}
-
-
+import "~task_lib.svs"
 
 ## Main int
 function init {
@@ -163,19 +145,6 @@ function init {
   sys.fs.conf.close();
   
   set_cat(current_cat);
-}
-
-function set_spacing {
-  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
-  sys.gui.setXcell(arg0, 34);
-  sys.gui.setYcell(arg0, 34);
-  sys.gui.setXscroll(arg0, -8);
-  sys.gui.setXscroll(arg0, -8); # to change xscroll and xscroll old, prevents scroll artefacts
-  
-  sys.gui.setYscroll(arg0, -8);
-  
-  # for sropdowns
-  ddm_spacing = 2;
 }
 
 function categ_vis {
