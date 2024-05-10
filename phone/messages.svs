@@ -26,11 +26,7 @@ function init {
   array pButtons[32];
   array pFiles[32];
   
-  sys.fs.chDir("appdata");
-  mk_safe_dir("phone");
-  sys.fs.chDir("phone");
-  mk_safe_dir("sms");
-  sys.fs.chDir("sms");
+  set_dir();
 
   pCount = 0;
 
@@ -89,12 +85,53 @@ function init {
   process_args(arg0, arg1, arg2);
 }
 
+function set_dir {
+  sys.fs.chDir("appdata");
+  mk_safe_dir("phone");
+  sys.fs.chDir("phone");
+  mk_safe_dir("sms");
+  sys.fs.chDir("sms");
+}
+
+
 function process_args {
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "OPEN") {
       ld_new_msg(arg1, scr);
     }
+    
+    if (arg0 == "RCV_NEW") {
+      set_icon();
+      sys.os.suspend();
+    }
   }
+}
+
+function set_icon {
+  sys.fs.chDir(1);
+
+  if(icon_id != 0) {
+   sys.os.gui.freeNotif(icon_id);
+  }
+
+  icon_id = sys.os.gui.setNotif("phone/sic/msg.sic", &icoCallback);
+  sys.fs.chDir(0);
+  
+  set_dir();
+
+  pCount = 0;
+
+  load_convs();
+}
+
+function clr_icon { 
+  if(icon_id != 0) {
+   sys.os.gui.freeNotif(icon_id);
+  }
+}
+
+function icoCallback {
+  sys.os.arise();
 }
 
 
@@ -421,6 +458,7 @@ function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
 
 function wakeup {
   load_convs();
+  clr_icon();
   if(currentConv != "") {
     load_conv(currentConv);
   }

@@ -438,6 +438,7 @@ function bp2 {
 function bp3 {
   sys.snd.beepC(880, 250, "");
   #sys.os.exit("OK", 0, 0);
+  sys.os.subProcess("phone/messages.svs", "", "RCV_NEW", "", 0);
 }
 
 

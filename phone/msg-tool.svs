@@ -78,10 +78,12 @@ function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:
     id++;
   }
   
-  sys.fs.conf.write("ts_" + id,  arg3);
+  sys.fs.conf.write("ots_" + id, arg3);
+  sys.fs.conf.write("ts_" + id, "" + sms_get_ts(arg3));
   sys.fs.conf.write("msg_" + id, arg2);
   sys.fs.conf.write("omsg_" + id, arg4 + "");
   sys.fs.conf.write("dir_" + id, arg1);
+  
   if(arg1 == "INCOMMING") {
     sys.fs.conf.write("new_message", "1");
     new_sms_flg += 1;
@@ -192,7 +194,7 @@ function sms_parse {
   str = substr(str, instr(str, "\"") + 1, len(str));
   str = substr(str, instr(str, "\"") + 1, len(str));
   
-  nfo[1] = substr(str, 0, instr(str, "\r") - 2);  # timestamp
+  nfo[1] = substr(str, 0, instr(str, "\r") - 1);  # timestamp
   str = substr(str, instr(str, "\r") + 2, len(str));
   
   nfo[2] = substr(str, 1, instr(str, "\n") - 1);  # string
@@ -323,4 +325,17 @@ function u16toStr {
     pos++;
   }
   return out;
+}
+
+function sms_get_ts {
+ # example: 23/12/09,16:50:53+04
+ # timezone is ignored for now...
+ return sys.time.setTs(
+          2000+num(substr(arg0, 1, 2)),
+          num(substr(arg0, 4, 5)),
+          num(substr(arg0, 7, 8)),
+          num(substr(arg0, 10, 11)),
+          num(substr(arg0, 13, 14)),
+          num(substr(arg0, 16, 17))
+        );
 }
