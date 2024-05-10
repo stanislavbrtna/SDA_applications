@@ -17,6 +17,7 @@ function init {
 
 function update {
   if (tested == 0) {
+    if(test_dummy()) return;
     if(test_files()) return;
     if(test_conf())  return;
     if(test_csv())   return;
@@ -75,6 +76,15 @@ function result {
 }
 
 ## test functions
+
+function test_dummy {
+  if (test_dummy) {
+    return 0;
+  }
+  sys.os.subProcess("Tests/dummy_api.svs", &result, 1, 0, 0);
+  test_dummy = 1;
+  return 1;
+}
 
 function test_files {
   if (test_files) {

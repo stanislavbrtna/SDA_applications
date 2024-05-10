@@ -1,0 +1,259 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  test_name = "Dummy API caller";
+  sys.gui.addText(1, 1, 8, 1, test_name, scr);
+  
+  txt = sys.gui.addText(1, 2, 8, 1, "Testing....", scr);
+  tested = 0;
+  result = "Passed";
+  
+  sys.os.gui.setMainScr(scr);
+  
+  if (arg0 == 1) {
+    autoreturn = 1;
+  }
+  
+}
+
+function update {
+  if(not tested) {
+    test();
+    tested = 1;
+    sys.gui.setStr(txt, "Result: " + result);
+  }
+  
+  if (autoreturn) {
+    if (result == "Passed") {
+      GLOB_FAIL = 0;
+    } else {
+      GLOB_FAIL = 1;
+    }
+    sys.os.subRetval(GLOB_FAIL, test_name, 0);
+    sys.os.exit();
+  }
+}
+
+function ret_test {
+  if (typeof(arg0) != arg1) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+function test {
+  sys.os.setRedraw();
+  if (sys.os.getRedraw() == 0) {
+    result = "sys.os.getRedraw failed!";
+    return;
+  }
+  
+  sys.os.wake();
+  
+  sys.os.arise();
+  
+  sys.os.noClose(1);
+  sys.os.noClose(0);
+  
+  if (ret_test(sys.os.inSim(), TYPE_NUM)) {
+    result = "sys.os.inSim() wrong return type!";
+    return;
+  }
+  
+  #sys.os.error("test");
+  
+  if (ret_test(sys.os.getAppPath(), TYPE_STR)) {
+    result = "sys.os.getAppPath() wrong return type!";
+    return;
+  }
+  
+  sys.os.showKbd();
+  if (sys.os.kbdGetState() != 1) {
+    result = "sys.os.kbdGetState() wrong result!";
+    return;
+  }
+  
+  sys.os.hideKbd();
+  if (sys.os.kbdGetState() != 0) {
+    result = "sys.os.kbdGetState() wrong result!";
+    return;
+  }
+  
+  if (ret_test(sys.os.rnd(), TYPE_NUM)) {
+    result = "sys.os.rnd() wrong return type!";
+    return;
+  }
+  
+  sys.os.checkVer(1000);
+  
+  if (ret_test(sys.os.getVer(), TYPE_NUM)) {
+    result = "sys.os.getVer() wrong return type!";
+    return;
+  }
+  
+  if (ret_test(sys.os.getLang(), TYPE_NUM)) {
+    result = "sys.os.getLang() wrong return type!";
+    return;
+  }
+  
+  sys.os.setSingular();
+  
+  sys.os.setClipboard("123");
+  
+  if (sys.os.getClipboard() != "123") {
+    result = "sys.os.getClipboard() wrong return value!";
+    return;
+  }
+  
+  sys.os.settings.homeRld();
+  
+  if (sys.os.gui.getMainScr() != scr) {
+    result = "sys.os.gui.getMainScr(); wrong return value!";
+    return;
+  }
+  
+  sys.os.gui.setRoot(1, "Tests");
+  
+  sys.os.gui.btnCtrl(scr, 0);
+  
+  sys.os.gui.btnSelect(scr);
+  
+  sys.os.gui.btnClear(scr);
+  
+  sys.os.gui.handleText(txt, "text");
+  
+  sys.os.gui.setKbdStr("test");
+  
+  sys.os.gui.pasteClipboard();
+ 
+  sys.os.gui.setCPos(txt, 2); 
+  
+  if (sys.os.gui.getCPos(txt) != 2) {
+    result = "sys.os.gui.getCPos(txt); wrong return value!";
+    return;
+  }
+  
+  sys.os.gui.setLandscape(1);
+  
+  if (sys.os.gui.getLandscape() != 1) {
+    result = "sys.os.gui.getLandscape(); wrong return value!";
+    return;
+  }
+  
+  sys.os.gui.setLandscape(0);
+  
+  sys.fs.chDir(1);
+  notif = sys.os.gui.setNotif("Development/examples/NotifIcon.sic", "");
+
+  if(sys.os.gui.freeNotif(notif) != 1) {
+    result = "sys.os.gui.freeNotif wrong return value!";
+    return;
+  }
+  
+  sys.snd.beep();
+  sys.snd.beepTime(200);
+  sys.snd.beepFreq(27);
+  sys.snd.beepDef();
+  
+  sys.snd.beepC(400, 100, "");
+  
+  
+  if (ret_test(sys.snd.getMute(), TYPE_NUM)) {
+    result = "sys.snd.getMute(); wrong return type!";
+    return;
+  }
+  
+  sys.cnt.set(100);
+  if (ret_test(sys.cnt.get(), TYPE_NUM)) {
+    result = "sys.cnt.get(); wrong return type!";
+    return;
+  }
+  
+  sys.hw.lockSleep(1);
+  sys.hw.wakeLcd();
+  
+  if (ret_test(sys.hw.getLcdState(), TYPE_NUM)) {
+    result = "sys.hw.getLcdState(); wrong return type!";
+    return;
+  }
+  
+  sys.hw.setLed(LED_ON);
+  
+  if (ret_test(sys.hw.getUsbState(), TYPE_NUM)) {
+    result = "sys.hw.getUsbState(); wrong return type!";
+    return;
+  }
+  
+  if (ret_test(sys.hw.claim(USB_PORT), TYPE_NUM)) {
+    result = "sys.hw.claim(); wrong return type!";
+    return;
+  }
+
+  if (sys.hw.getLock(USB_PORT) != 1) {
+    result = "sys.hw.getLock(); wrong result!";
+    return;
+  }
+  
+  if (ret_test(sys.hw.free(USB_PORT), TYPE_NUM)) {
+    result = "sys.hw.free(); wrong return type!";
+    return;
+  }
+
+  sys.hw.iPinDef(1, PIN_IN, PIN_NOPULL);
+  sys.hw.iPinSet(1, 0);
+  
+  if (ret_test(sys.hw.iPinGet(1), TYPE_NUM)) {
+    result = "sys.hw.iPinGet(); wrong return type!";
+    return;
+  }
+  
+  sys.hw.ePinDef(1, PIN_IN, PIN_NOPULL);
+  sys.hw.ePinSet(1, 0);
+  
+  if (ret_test(sys.hw.ePinGet(1), TYPE_NUM)) {
+    result = "sys.hw.ePinGet(); wrong return type!";
+    return;
+  }
+  
+  if (ret_test(sys.hw.eADCRead(), TYPE_FLOAT)) {
+    result = "sys.hw.eADCRead(); wrong return type!";
+    return;
+  }
+  
+  if (ret_test(sys.hw.btn.getEvent(BTN_A), TYPE_NUM)) {
+    result = "sys.hw.btn.getEvent(); wrong return type!";
+    return;
+  }
+  
+  sys.hw.btn.clrEvent(BTN_A);
+  sys.hw.btn.stdbyEn(1);
+  
+  # ended at 
+  
+}
+
+function test_rest {
+  sys.os.settings.rqAuth();
+  
+  if (ret_test(sys.os.settings.getAuth(), TYPE_NUM)) {
+    result = "sys.os.settings.getAuth() wrong return type!";
+    return;
+  }
+  
+
+  sys.os.settings.setTime(2024, 01, 28, 16, 34);
+
+  sys.time.setTimer(500, &test2);
+  sys.os.suspend();
+  sys.os.exit();
+  sys.os.subProcNC();
+  #sys.os.subRetval([undef] arg0, [undef] arg1, [undef] arg2);
+  sys.os.subProcCWD(val); # 0 apps, 1, cwd
+  #sys.os.subProcess([str]fileName, [str/ref] callback, [undef] arg0, [undef] arg1, [undef] arg2);
+  # sys.os.exit(, [undef] arg1, [undef] arg2); # optional return
+  
+  # Date selector widget...
+  
+  # Crypto stuff
+}
