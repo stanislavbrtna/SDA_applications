@@ -129,6 +129,23 @@ function scr_adjust {
   reload_list();
 }
 
+
+function set_icon { # 0 - 32 signal
+  if(icon_id != 0) {
+    sys.os.gui.freeNotif(icon_id);
+  }
+  icon_id = sys.os.gui.setNotif("Utils/mp3/note.sic", &icoCallback);
+  sys.fs.chDir(0);
+}
+
+
+function free_icon {
+  if(icon_id != 0) {
+    sys.os.gui.freeNotif(icon_id);
+  }
+}
+
+
 function get_folder {
   for(i = len(arg0); i > 0; i--;) {
     if (getcp(arg0, i) == "/") {
@@ -139,6 +156,12 @@ function get_folder {
   
   return arg0;
 }
+
+
+function icoCallback {
+  sys.os.arise();
+}
+
 
 function init {
   sys.os.checkVer(1310);
@@ -165,6 +188,10 @@ function init {
   sys.hw.iPinDef(1, PIN_IN, PIN_PULLUP);
   sys.hw.iPinSet(16, 1);
 
+  sys.fs.chDir(1);
+  set_icon();
+  sys.fs.chDir();
+  
   # load settings
   sys.fs.conf.open("settings/mp3-play.cfg");
   
