@@ -23,6 +23,10 @@ function init {
   
   FAIL = 0;
   test_name = "Timer test";
+  
+  finished = 0;
+  
+  sys.hw.lockSleep(1);
 }
 
 function update {
@@ -67,7 +71,7 @@ function auto10 {
 
 function auto3m {
   sys.gui.setStr(text, "final time: " + sys.time.getUptime() - uptimePr + "s (" +sys.time.getAppUptime() - uptimeMs + "ms)");
-  
+  finished = 1;
   if((sys.time.getUptime() - uptimePr + 1)*1000 < (sys.time.getAppUptime() - uptimeMs)
       and (sys.time.getUptime() - uptimePr - 1)*1000 > (sys.time.getAppUptime() - uptimeMs)
   ) {
@@ -75,5 +79,11 @@ function auto3m {
     sys.os.subRetval(FAIL, test_name, 0);
   } else {
     sys.os.exit(FAIL, test_name, 0);
+  }
+}
+
+function exit {
+  if (autotest == 1 and finished == 0) {
+    sys.os.subRetval(FAIL, test_name + " (skipped)", 0);
   }
 }
