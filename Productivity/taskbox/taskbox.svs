@@ -19,7 +19,7 @@ function init {
   
   scrBar = sys.gui.addSliderV(8, 1, 1, 10, 100, 50, scr);
   
-  tTitle = sys.gui.addText(1, 0, 5, 1, "Daily Todo", scr);
+  tTitle = sys.gui.addText(0, 0, 5, 1, "Daily Todo", scr);
   
   #bCPrev = sys.gui.addButton(0, 0, 1, 1, "<", scr);
   #bCNext = sys.gui.addButton(6, 0, 1, 1, ">", scr);
@@ -30,7 +30,7 @@ function init {
   
   bBack = sys.gui.addButton(0, 11, 3, 1, "Back", scr);
   bNotes = sys.gui.addButton(4, 11, 3, 1, "Notes", scr);
-  bTMenu = sys.gui.addButton(0, 0, 1, 1, "...", scr);
+  bTMenu = sys.gui.addButton(7, 0, 1, 1, "...", scr);
   
   bTMenuH = 0;
   
@@ -43,16 +43,14 @@ function init {
   sTaskE = sys.gui.addScreen();
   
   bCheckTE = sys.gui.addCheckBox(0, 0, 1, 1, "", sTaskE);
-  tNameTE = sys.gui.addText(1, 0, 6, 1, "", sTaskE);
-  bDelTE = sys.gui.addButton(7, 0, 1, 1, "X", sTaskE);
+  tNameTE = sys.gui.addText(1, 0, 7, 1, "", sTaskE);
+  bDelTE = sys.gui.addButton(5, 1, 3, 1, "Delete", sTaskE);
   sys.gui.setTexEd(tNameTE, 1);
-  sys.gui.addText(0, 1, 7, 1, "Description:", sTaskE);
+  sys.gui.addText(0, 1, 4, 1, "Description:", sTaskE);
   scDescrTE = sys.gui.addScreen(0, 2, 8, 6, sTaskE);
   tDescrTE = sys.gui.addText(0, 0, 9, 21, "", scDescrTE);
   sys.gui.setTexEd(tDescrTE, 1);
-  
-  bSaveTE  = sys.gui.addButton(6, 9, 2, 1, "Save", sTaskE);
-  
+   
   bBackTE  = sys.gui.addButton(0, 11, 3, 1, "Back", sTaskE);
   bTrackTE = sys.gui.addButton(3, 11, 5, 1, "Start tracking",sTaskE);
   tTrackTE = sys.gui.addText(0, 10, 8, 1, "", sTaskE);
@@ -250,8 +248,7 @@ function get_cat_name { # arg0: id
     }
   }
     
-    sys.gui.setStr(bCategory, "" + cats[i]);
-  
+  sys.gui.setStr(bCategory, "" + cats[i]);
 }
 
 function set_cat {
@@ -544,18 +541,12 @@ function upd_te {
     sys.fs.conf.open(current_task);
     sys.fs.conf.write("t_" + idTE, sNameTE);
     sys.fs.conf.write("tc_" + idTE, "" + sys.gui.getValue(bCheckTE));
+    sys.fs.conf.write("td_" + idTE, sDescrTE);
     sys.fs.conf.close();
     load_task(current_task);
   }
   
-  if (sys.gui.getEventC(bSaveTE) == EV_RELEASED) {
-    sys.fs.conf.open(current_task);
-    sys.fs.conf.write("td_" + idTE, sDescrTE);
-    sys.fs.conf.close();
-  }
-  
   if (sys.gui.getEventC(bTrackTE) == EV_RELEASED) {
-    #com_new("not implemented", 0, 1);
     if (tracking == 0) {
       sys.gui.setGrayout(bBackTE, 1);
       sys.gui.setGrayout(bDelTE, 1);
