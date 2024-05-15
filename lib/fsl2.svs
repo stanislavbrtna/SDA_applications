@@ -21,6 +21,8 @@ function init {
   sys.os.gui.setMainScr(0);
   sys.gui.setRelInit(1);
   
+  sys.os.checkVer(10410);
+  
   # just to be sure
   if(sys.o.getId()) {
     sys.o.destroy();
@@ -413,7 +415,7 @@ function updFiles {
       }
     }
     
-    if (sys.gui.getSelect(fScrBtns[x]) and sys.gui.getEventC(scrollbar) == EV_NONE) {
+    if (sys.gui.getSelect(fScrBtns[x]) and sys.os.gui.btnGetSel(scr) != 0) {
       if (sys.gui.getValue(scrollbar)/32 + 8  < x) {
         sys.gui.setValue(scrollbar, sys.gui.getValue(scrollbar) + 32);
       }
