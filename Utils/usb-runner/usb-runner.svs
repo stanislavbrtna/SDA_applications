@@ -38,7 +38,7 @@ function init {
   
   pick = sys.gui.addButton(1, 6, 5, 1, "Pick Folder", scr);
   
-  tpath = sys.gui.addText(1, 7, 8, 1, "Received/", scr);
+  tpath = sys.gui.addText(1, 7, 8, 1, "APPS/Received/", scr);
   
   sys.os.gui.setMainScr(scr);
 
@@ -56,10 +56,12 @@ function init {
   dest_folder = 1;
   r = 0;
   
-  if (sys.hw.claim(SERIAL_PORT) == 1) {
+  if (sys.hw.claim(USB_PORT) == 1) {
     sys.os.error("Failed to claim USB port!");
     sys.os.exit();
   }
+  
+  status("Ready");
 }
 
 function status {
@@ -120,17 +122,28 @@ function rcv_start {
   sys.com.usbRcvIT(); # start the rcv
   gc(0);
   sys.cnt.set(100000);
-  status("Waiting...");
+  if (arg0 == 1) {
+    status("Waiting...");
+  }
   r = 0;
   len = 0;
   maxlen = 0;
   sys.gui.setVisible(bar, 0);
 }
 
+
+function relock {
+  if (sys.hw.claim(USB_PORT) == 1) {
+    sys.os.error("Failed to claim USB port!");
+    sys.os.exit();
+  }
+}
+
+
 function update {
 
   if (get == 0 and sys.hw.getUsbState() == 1) {
-    rcv_start();
+    rcv_start(0);
   }
   
   if(sys.gui.getEventC(pick) == EV_RELEASED) {
@@ -139,14 +152,17 @@ function update {
   }
 
   if (sys.gui.getEventC(rcv) == EV_RELEASED) {
-    rcv_start();
+    rcv_start(1);
   }
   
   if (sys.gui.getEventC(run) == EV_RELEASED) {
+    sys.hw.free(USB_PORT);
     if (rpl_fname == "") {
-      sys.os.subProcess("Received/" + rfname, "", 0, 0, 0);
+      sys.os.subProcNC();
+      sys.os.subProcess("Received/" + rfname, "relock", 0, 0, 0);
     } else {
-      sys.os.subProcess(rpl_fname + "/" + rfname, "", 0, 0, 0);
+      sys.os.subProcNC();
+      sys.os.subProcess(rpl_fname + "/" + rfname, "relock", 0, 0, 0);
     }
   }
   
@@ -170,11 +186,11 @@ function update {
       sys.fs.chDir(dest_folder);
       local path;
       if (rpl_fname == "") {
-        path = "Recieved/" + rfname;
-        status("Recieving:\n" + rfname);
+        path = "Received/" + rfname;
+        status("Receiving:\n" + rfname);
       } else {
         path = rpl_fname + rfname;
-        status("Recieving:\n" + path);
+        status("Receiving:\n" + path);
       }
       
       if (not sys.fs.exists("Received/")) {
