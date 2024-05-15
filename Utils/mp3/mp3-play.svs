@@ -130,12 +130,11 @@ function scr_adjust {
 }
 
 
-function set_icon { # 0 - 32 signal
+function set_icon {
   if(icon_id != 0) {
     sys.os.gui.freeNotif(icon_id);
   }
   icon_id = sys.os.gui.setNotif("Utils/mp3/note.sic", &icoCallback);
-  sys.fs.chDir(0);
 }
 
 
@@ -159,7 +158,19 @@ function get_folder {
 
 
 function icoCallback {
+  free_icon();
   sys.os.arise();
+}
+
+function wakeup {
+  free_icon();
+}
+
+function suspend {
+  print("suspending");
+  sys.fs.chDir(1);
+  set_icon();
+  sys.fs.chDir();
 }
 
 
@@ -187,10 +198,6 @@ function init {
   sys.hw.iPinDef(16, PIN_OUT, 0);
   sys.hw.iPinDef(1, PIN_IN, PIN_PULLUP);
   sys.hw.iPinSet(16, 1);
-
-  sys.fs.chDir(1);
-  set_icon();
-  sys.fs.chDir();
   
   # load settings
   sys.fs.conf.open("settings/mp3-play.cfg");
@@ -231,6 +238,8 @@ function init {
   play = 0;
   landscape = 0;
   
+  jackStatO = 1;
+  
   add_big_list();
   upd_sleep();
   scr_adjust();
@@ -241,6 +250,12 @@ function init {
 }
 
 function jack_check {
+#*
+  if (sys.hw.iPinGet(1) != pinold) {
+    print("Pin: " + sys.hw.iPinGet(1));
+    pinold = sys.hw.iPinGet(1);
+  }
+*#
   if (sys.hw.iPinGet(1) != jackStatO) {
     jackDebounce = sys.time.getAppUptime() + 10000;
     print("dbg: debounce:" + sys.hw.iPinGet(1));
@@ -261,7 +276,7 @@ function jack_check {
       }
       print("dbg: unplug");
     }
-  jackDebounce = 0;
+    jackDebounce = 0;
   }
 }
 
