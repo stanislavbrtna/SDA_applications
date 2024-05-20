@@ -1,3 +1,16 @@
+#*  ADC_example.svs
+* 
+* This is an example of reading an analog voltage from the 
+* pin 2 of the external expansion port.
+* Voltage value is then printed on the serial port 
+* and displayed on the measure button.
+* (Only this pin of the external port has this capability)
+*
+* Pin 4 is initialized as an digital output.
+* Second button of this example toggles this output pin.
+*
+*#
+
 function init {
   scr = sys.gui.addScreen();
   btn = sys.gui.addButton(3, 1, 7, 2, "Measure", scr);
