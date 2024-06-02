@@ -1,0 +1,36 @@
+#*  Overlay App
+*
+*   This example shows how to create an app that displays only overlay.
+*
+*#
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(0); # this blocks the redraw of the background screen
+  
+  selfOvr = sys.o.setScr(scr);
+  local border = 16;
+  
+  sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*4);
+  sys.gui.setYscroll(scr, -16);
+  sys.gui.setRelInit(1);
+  
+  sys.gui.addText(1, 0, 6, 1, "Hello, world!", scr);
+
+  ok = sys.gui.addButton(6, 2, 2, 1, "Ok", scr);
+  sys.gui.setTexAlign(ok, ALIGN_CENTER);
+}
+
+
+function update {
+  # First thing is to check validity of the overlay
+  if (sys.o.getId() != selfOvr) {
+    # exit and return if not valid
+    sys.os.exit();
+    return;
+  }
+
+  if (sys.gui.getEventC(ok) == EV_RELEASED) {
+    sys.os.exit();
+  }
+}
