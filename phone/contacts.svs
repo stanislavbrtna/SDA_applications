@@ -3,6 +3,7 @@ import "~cont-tools.svs"
 function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
+  sys.os.setSingular();
   sys.os.gui.setMainScr(scr);
   
   sys.gui.setXscroll(scr, 16);
@@ -124,7 +125,11 @@ function init {
     if (arg0 == "OPEN") {
       op_cont_exit = 1;
       local id = cont_get_id(arg1);
-      if (id != -1) open_cont(id);
+      if (id != -1){
+        open_cont(id);
+      } else {
+        open_unknown(arg1);
+      }
     }
     
     if (arg0 == "PICK") {
@@ -322,6 +327,27 @@ function open_cont {
 }
 
 
+function open_unknown {
+  sys.os.gui.setMainScr(cont_scr);
+  sys.os.hideKbd();
+ 
+  sys.gui.setStr(i_tname, "Unknown");
+  sys.gui.setStr(i_tsurname, "");
+  sys.gui.setStr(i_tcompany, "");
+  sys.gui.setStr(i_tphone, arg0);
+  
+  if (sys.gui.getStr(i_tphone) == "") {
+    sys.gui.setGrayout(i_bcall, 1);
+    sys.gui.setGrayout(i_bmsg, 1);
+  } else {
+    sys.gui.setGrayout(i_bcall, 0);
+    sys.gui.setGrayout(i_bmsg, 0);
+  }
+  
+  currentContId = 0;
+}
+
+
 function upd_cont {
   if (sys.gui.getEventC(i_bback) == EV_RELEASED) {
     if(op_cont_exit == 1) {
@@ -345,24 +371,35 @@ function upd_cont {
   
   if (sys.gui.getEventC(i_bedit) == EV_RELEASED) {
     
-    local id = currentContId;
-    
-    new_reset();
-    
-    sys.fs.conf.open("phone/contacts.cfg");
-        
-    nname = sys.fs.conf.read("name_" + id);
-    nsurname = sys.fs.conf.read("surname_" + id);
-    ncompany = sys.fs.conf.read("company_" + id);
-    nphone[0] = sys.fs.conf.read("phone_" + id + "_0");
-    
-    nnote = sys.fs.conf.read("note_" + id);
-    npic = sys.fs.conf.read("pic_" + id);
-    
-    sys.fs.conf.close();
-    sys.os.gui.setMainScr(new_scr);
-    
-    currentContId = id;
+    if(currentContId != 0) {
+      local id = currentContId;
+      
+      new_reset();
+      
+      sys.fs.conf.open("phone/contacts.cfg");
+          
+      nname = sys.fs.conf.read("name_" + id);
+      nsurname = sys.fs.conf.read("surname_" + id);
+      ncompany = sys.fs.conf.read("company_" + id);
+      nphone[0] = sys.fs.conf.read("phone_" + id + "_0");
+      
+      nnote = sys.fs.conf.read("note_" + id);
+      npic = sys.fs.conf.read("pic_" + id);
+      
+      sys.fs.conf.close();
+      sys.os.gui.setMainScr(new_scr);
+      
+      currentContId = id;
+    } else {
+      sys.os.gui.setMainScr(new_scr);
+      new_reset();
+      currentContId = 0;
+      
+      
+      t_nphone[0] = sys.gui.addText(0, 7 + i, 8, 1, "", s_nin);
+      sys.gui.setTexEd(t_nphone[0], 1);
+      nphone[0] = sys.gui.getStr(i_tphone);
+    }
   }
   
 }
@@ -493,6 +530,7 @@ function upd_new {
       while(sys.fs.conf.exists("name_" + id)) {
         id++;
       }
+      print("New contact: picked id " + id);
     } else {
       id = currentContId;
     }
