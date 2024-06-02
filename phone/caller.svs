@@ -8,6 +8,7 @@ function init {
 
   scr_c = sys.gui.addScreen();
   sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr_c);
   
   # call screen
   
@@ -37,7 +38,6 @@ function init {
   
   sys.gui.setVisible(b_cend, 0);
   
-  killOnEnd = 0;
   inCall = 0;
   
   callNumber = "";
@@ -67,11 +67,17 @@ function init {
   vis_ok(0);
   
   at_quiet = 1;
+  
+  t_dummy = 0;
+  
+  exit_timer = 0;
 }
 
 function vis_ok {
   sys.gui.setVisible(t_ok, arg0);
   sys.gui.setVisible(b_ok, arg0);
+  
+  exit_timer = sys.time.get();
 }
 
 function perform_inc #* number, kill_on_end*# {
@@ -96,7 +102,6 @@ function perform_call {
   local number = cont_numsane(arg0);
   
   sys.os.hideKbd();
-  sys.os.gui.setMainScr(scr_c);
   sys.gui.setVisible(b_cend, 1);
   sys.gui.setVisible(b_caccept, 0);
   sys.gui.setVisible(b_cdecline, 0);
@@ -132,8 +137,8 @@ function check_end {
   inc_setnum = 0;
   
   add_to_hist();
-  
-  sys.os.exit();
+
+  sys.os.exit(callType, 0, 0);
 }
 
 
@@ -170,8 +175,9 @@ function update {
     check_end();
   }
   
-  if (sys.gui.getEventC(b_ok) == EV_RELEASED) {
-    sys.os.exit();
+  if (sys.gui.getEventC(b_ok) == EV_RELEASED or (exit_timer + 15 < sys.time.get() and exit_timer != 0)  ) {
+    
+    sys.os.exit(callType, 0, 0);
   }
   
   if (sys.gui.getEventC(b_cdecline) == EV_RELEASED) {
