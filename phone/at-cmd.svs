@@ -83,9 +83,9 @@ function at_command {
     if (sys.time.getAppUptime() > at_timeout or at_timeout == 0) {
       print("AT_WARN: command was borked (" + at_simcmd + ")");
       at_reset();
-    } else {
-      return 0;
     }
+    
+    return 0;
   }
   
   at_init_io();
