@@ -265,8 +265,9 @@ function redraw {
   sys.ds.setArea(1, 33, 318, 448);
 
   if(redrawAll > 2) {
+    print("Redraw all");
     sys.ds.clearArea(sys.ds.mixColor(20, 20, 20));
-    redrawAll = redrawAll - 1;
+    redrawAll--;
     redraw = 1;
     redraw_score = 1;
     
@@ -280,7 +281,7 @@ function redraw {
     sys.ds.drawRect(2, 2, 316, 414, gray);
   }
 
-  if (redraw == 0){
+  if (redraw == 0) {
     return;
   }
   
@@ -528,7 +529,6 @@ function clear_blk {
       print("clearing " + n);
       rmline(n); 
     }
-    
   }
   
   if (tetris == 1) score += 40   * level;
@@ -603,8 +603,8 @@ function update {
     ob = not ob;
     clear_blk();
     direction = -1;
+    redraw = 1;
   }
-  redraw = 1;
   redraw();
 
   if(sys.gui.getEvent(retry) == EV_RELEASED) {
