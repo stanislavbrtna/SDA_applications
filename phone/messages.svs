@@ -10,7 +10,9 @@ function init {
   set_spacing(scr);
   sys.gui.setYscroll(scr, -16);
   
-  sys.gui.addText(0, 0, 8, 1, "SMS Messages", scr);
+  sys.gui.addText(0, 0, 6, 1, "SMS Messages", scr);
+  
+  bOpt    = sys.gui.addButton(7, 0, 1, 1, "...", scr);
   
   bNew    = sys.gui.addButton(5, 11, 3, 1, "New", scr);
   pSld    = sys.gui.addSliderV(8, 1, 1, 10, 100, 50, scr);
@@ -22,6 +24,9 @@ function init {
   sys.gui.setTxtEd(tSearch, 1);
   sys.gui.setVisible(tSearch, 0);
   sSearch = "";
+  
+  # search is disabled for now...
+  sys.gui.setVisible(bSearch, 0);
 
   array pButtons[32];
   array pFiles[32];
@@ -29,7 +34,7 @@ function init {
   set_dir();
 
   pCount = 0;
-
+  
   load_convs();
   
   array ctitle[25];
@@ -81,6 +86,10 @@ function init {
   newMsgLoaded = 0;
   NewMsgConcept = 0;
   currentNumber = "";
+  
+  kbd_back_btn = 0;
+  menu1 = 0;
+  ddm_init();
   
   process_args(arg0, arg1, arg2);
 }
@@ -286,6 +295,8 @@ function load_conv {
     sys.gui.setVisible(bCDn, 0);
   }
   sys.fs.conf.close();
+  
+  kbd_back_btn = bBack;
 }
 
 function getHeight { # arg0: str, arg1: element_width_px
@@ -302,6 +313,7 @@ function upd_conv {
   if (sys.gui.getEventC(bBack) == EV_RELEASED) {
     load_convs();
     sys.os.gui.setMainScr(scr);
+    kbd_back_btn = 0;
     currentConv = "";
   }
   
@@ -321,7 +333,8 @@ function upd_conv {
   
   if(sys.gui.getEventC(bCall) == EV_RELEASED) {
     print("msg: calling: " + currentNumber);
-    sys.os.subProcess("phone/dialer.svs", "", "FILL", currentNumber, 0);
+    #sys.os.subProcess("phone/dialer.svs", "", "FILL", currentNumber, 0);
+    sys.os.subProcess("phone/mngr.svs", "", "CALL", currentNumber, 0);
   }
   
   if(sys.gui.getEventC(bCNew) == EV_RELEASED) {
@@ -338,6 +351,8 @@ function ld_new_msg { # number, prev_Screen
   
   newPrevScr = arg1;
   newMsgLoaded = 1;
+  
+  kbd_back_btn = bNBack;
   
   if (arg0 == "") {
     sNewMsg = "";
@@ -375,6 +390,12 @@ function upd_new_msg {
     
   if((sys.gui.getEventC(bNBack) == EV_RELEASED or sys.gui.getTexAct(tNewMsg) == 0) and newMsgLoaded) {
     sys.os.gui.setMainScr(newPrevScr);
+    if(newPrevScr == scr) {
+      kbd_back_btn = 0;
+    } else {
+      kbd_back_btn = bBack;
+    }
+    
     sys.os.hideKbd();
     newMsgLoaded = 0;
     
@@ -426,6 +447,7 @@ function contRet {
   sys.os.showKbd();
 }
 
+import "lib/inc/ddm.svs"
 
 function update {
   upd_convs();
@@ -443,12 +465,31 @@ function update {
     search_en(1);
   }
   
+  if (sys.gui.getEventC(bOpt) == EV_RELEASED) {
+    ddm_spacing = 3;
+    menu1 = ddm_create(bOpt);
+    ddm_width = 6;
+    ddm_add_btn("Refresh names");
+  }
+  
+  i = ddm_handle(menu1);
+  if (i > 0) {
+    if (i == 1) {
+      refresh_convs();
+      load_convs();
+      ddm_exit();
+    } else {
+      ddm_exit();
+    }
+  }
+  
   sys.gui.setYscroll(sConvs, sys.gui.getValue(pSld) - 6);
   
   if (sys.gui.getEventC(bNew) == EV_RELEASED) {
     ld_new_msg("", scr);
   }
   
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), kbd_back_btn);
 }
 
 function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
@@ -464,4 +505,6 @@ function wakeup {
   }
   
   process_args(arg0, arg1, arg2);
+  sys.os.gui.setMainScr(scr); # todo: fix this on the OS side
+  kbd_back_btn = 0;
 }
