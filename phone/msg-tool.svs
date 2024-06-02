@@ -78,8 +78,7 @@ function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:
     id++;
   }
   
-  sys.fs.conf.write("ots_" + id, arg3);
-  sys.fs.conf.write("ts_" + id, "" + sms_get_ts(arg3));
+  sys.fs.conf.write("ts_" + id, "" + arg3);
   sys.fs.conf.write("msg_" + id, arg2);
   sys.fs.conf.write("omsg_" + id, arg4 + "");
   sys.fs.conf.write("dir_" + id, arg1);
@@ -113,7 +112,7 @@ function sms_upd {
         print(" msg0: " + u16toStr(msg[0]) + " ");
         print(" msg1: " + msg[1] + " ");
         print(" msg2: " + u16toStr(msg[2]) + " ");
-        sms_h_add(u16toStr(msg[0]), "INCOMMING", u16toStr(msg[2]), msg[1], msg[2]);
+        sms_h_add(u16toStr(msg[0]), "INCOMMING", u16toStr(msg[2]), sms_get_ts(msg[1]), msg[2]);
       }
     }
     
