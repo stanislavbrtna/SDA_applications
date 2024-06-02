@@ -69,6 +69,27 @@ function init {
   process_args(arg0, arg1, arg2);
 }
 
+function set_icon {
+  sys.fs.chDir(1);
+
+  if(icon_id != 0) {
+   sys.os.gui.freeNotif(icon_id);
+  }
+
+  icon_id = sys.os.gui.setNotif("phone/sic/missed.sic", &icoCallback);
+  sys.fs.chDir(0);
+}
+
+function clr_icon { 
+  if(icon_id != 0) {
+   sys.os.gui.freeNotif(icon_id);
+  }
+}
+
+function icoCallback {
+  sys.os.arise();
+  clr_icon();
+}
 
 function wakeup {
   print("dialer wakeup!");
@@ -110,6 +131,12 @@ function process_args {
       print("Daler wkup");
       sms_send(arg1, arg2);
       exit_flag = 1;
+    }
+    
+    if (arg0 == "MISSED") {
+      print("Daler wkup, missed call");
+      set_icon();
+      sys.os.suspend();
     }
   }
 }
