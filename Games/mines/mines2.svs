@@ -332,12 +332,14 @@ function update_field {
 
 
 function update {
-  redraw();
   
   if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
     handle_overlay();
     sys.ds.touchClr();
+    return;
   }
+  
+  redraw();
   
   if (draw_init > 0) {
     sys.ds.touchClr();
@@ -468,3 +470,5 @@ function handle_overlay {
     return;
   }
 }
+
+
