@@ -2,10 +2,15 @@ import "~cont-tools.svs"
 import "~hist-tools.svs"
 import "~msg-tool.svs"
 import "~at-cmd.svs"
+import "~mngr-misc.svs"
 
 function init {
+
+  OVERLAY = 1;
+
   # AT init commands
   array initcmds = [
+                    "AT+CFUN=1",          # full phone functionality
                     "AT+CALS=0,0",        # disable ring tone
                     "AT+CLTS=1",          # enable clock from network
                     "AT+CMGF=1",          # set sms as text mode
@@ -25,19 +30,33 @@ function init {
   
   at_init();
 
-  scr = sys.gui.addScreen();
+  # dummy screen, somehow os sometimes launches in this screen...
+  sys.gui.addText(0, 0, 5, 1, "Phone manager", sys.gui.addScreen());
   
-  sys.os.gui.setMainScr(scr);
+  scr = sys.gui.addScreen();
+  sys.gui.setXscroll(scr, -16);
+  sys.gui.setYscroll(scr, -16);
+  
   sys.gui.setRelInit(1);
   
-  tStat = sys.gui.addText(0, 0, 10, 1, "status", scr);
-  tSMS  = sys.gui.addText(0, 1, 10, 1, "", scr);
+  tStat = sys.gui.addText(0, 0, 5, 1, "Status", scr);
+  tOperator = sys.gui.addText(0, 1, 3, 1, "...", scr);
+  bOptions = sys.gui.addButton(0,2, 3, 1, "Options", scr);
+
+  init_gui();
+
+  opt_scr = sys.gui.addScreen();
   
-  sys.gui.addText(0, 3, 3, 1, "Signal:", scr);
-  bSignal = sys.gui.addBar(3, 3, 4, 1, 32, 0, scr);
+  optAirplane = sys.gui.addCheckBox(0, 0, 8, 1, "Airplane mode", opt_scr);
+  bDebug      = sys.gui.addCheckBox(0, 1, 8, 1, "Debug mode", opt_scr);
+  bSMSRcv     = sys.gui.addButton(0, 2, 6, 1, "Receive SMS", opt_scr);
+  tSMS        = sys.gui.addText(0, 3, 10, 1, "", opt_scr);
+  bBack       = sys.gui.addButton(0, 10, 3, 1, "Close", opt_scr);
   
-  bDebug = sys.gui.addCheckBox(0, 5, 5, 1, "Debug mode", scr);
+  inOpt = 0;
   
+  sys.gui.setXscroll(opt_scr, -16);
+  sys.gui.setYscroll(opt_scr, -16);
   #*
   todo:
          - settings: ringtone
@@ -53,6 +72,8 @@ function init {
   t_clcc = 0;
   
   t_csq = 0;
+  t_cspn = 0;
+  t_cfun = 0;
   
   sms_init();
   
@@ -69,6 +90,7 @@ function init {
   inCall = 0;
   RSMS = 0;
   exit_flag = 0;
+  Airplane = 0;
   
   STATUS_FLG = 0;
   PIN_FLG = 0;
@@ -85,102 +107,33 @@ function init {
   gsm_signal = 0;
   gsm_signal_l = 0;
   
+  gui_wkup = 0;
+  
   # arg0 - type of request
   process_args(arg0, arg1, arg2);
   set_icon(0);
 }
 
 
-function set_icon { # 0 - 32 signal
-  local s = 0;
-  
-  if (arg0 == 0) {
-    s = 0;
+function init_gui { 
+  if(OVERLAY == 1) {
+    sys.os.gui.setMainScr(0);
+    local s = sys.gui.addScreen();
+    sys.gui.addFrame(0, 0, 10, 8, scr, s);
+    selfOvr = sys.o.setScr(s);
+    local border = 16;
+    sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*4);
+    
+    draw_flag = 1;
   }
-  
-  if (arg0 > 0 and arg0 <= 8) {
-    s = 1;
-  }
-  
-  if (arg0 > 8 and arg0 <= 16) {
-    s = 2;
-  }
-  
-  if (arg0 > 16 and arg0 <= 24) {
-    s = 3;
-  }
-  
-  if (arg0 > 24) {
-    s = 4;
-  }
-  
-  sys.fs.chDir(1);
-
-  if(icon_id != 0) {
-   sys.os.gui.freeNotif(icon_id);
-  }
-
-  icon_id = sys.os.gui.setNotif("phone/sic/signal" + s + ".sic", &icoCallback);
-  sys.fs.chDir(0);
-}
-
-
-function icoCallback {
-  exit_flag = 0;
-  sys.os.arise();
-}
-
-
-function callback {
-  print("mngr:uart callback called!");
-  sys.com.uartRdClb("", 0);
-  sys.os.arise();
-  
-  if(sys.hw.getLcdState() == 0) {
-    sys.hw.wakeLcd();
-  }
-}
-
-function callRet {
-  sys.hw.claim(INT_EXP_PORT);
-  sys.hw.claim(EXT_EXP_PORT);
-  sys.hw.claim(SERIAL_PORT);
-  sys.com.uartRdClb(&callback, 2);
-  inCall = 0;
-  exit_flag = 1;
-}
-
-function suspend {
-  print("mngr suspend called incall: " + inCall);
-  if (inCall == 0) {
-    sys.hw.claim(INT_EXP_PORT);
-    sys.hw.claim(EXT_EXP_PORT);
-    sys.hw.claim(SERIAL_PORT);
-    sys.com.uartRdClb(&callback, 1);
-    at_set_dtr(1); # sleep enabled
-  } else {
-    sys.com.uartRdClb(&callback, 0);
-    print("mngr:uart callback reset");
-    at_set_dtr(0); # sleep disabled
-    sys.hw.free(INT_EXP_PORT);
-    sys.hw.free(EXT_EXP_PORT);
-    sys.hw.free(SERIAL_PORT);
-  }
-}
-
-function wakeup {
-  sys.com.uartRdClb(&callback, 0);
-  at_set_dtr(0); # sleep disabled
-  sys.gui.setStr(tSMS, "...");
-  print("mngr: Wkup!");
-  process_args(arg0, arg1, arg2);
 }
 
 
 function process_args {
+  print("mngr: processing: " + arg0);
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "DISABLE") {
-      sys.com.uartRdClb(&callback, 0);
+      sys.com.uartRdClb(&uartCB, 0);
       sys.hw.free(INT_EXP_PORT);
       sys.hw.free(EXT_EXP_PORT);
       sys.hw.free(SERIAL_PORT);
@@ -192,7 +145,7 @@ function process_args {
       sys.hw.claim(INT_EXP_PORT);
       sys.hw.claim(EXT_EXP_PORT);
       sys.hw.claim(SERIAL_PORT);
-      sys.com.uartRdClb(&callback, 2);
+      sys.com.uartRdClb(&uartCB, 2);
       inCall = 0;
       sys.os.suspend();
     }
@@ -231,27 +184,99 @@ function process_args {
   }
 }
 
-function run_inits {
-  print("phone mngr: Running inits: ", "");
+
+function uartCB {
+  print("mngr: uart callback wakeup!");
+  sys.com.uartRdClb("", 0);
+  sys.os.arise();
   
-  local i = 0;
-  
-  for(i = 0; i < len(initcmds); i++;) {
-    sys.com.uartTrs(initcmds[i] + "\r\n");
-    at_wait(200);
+  if(sys.hw.getLcdState() == 0) {
+    sys.hw.wakeLcd();
+    sms_read = sys.time.get() - 290;
   }
   
-  at_reset();
-  at_wait(200);
+  if(OVERLAY) {
+    init_gui();
+  }
   
-  print("Done!");
+  exit_flag = 0;
+  
+  # quicky update unsolicited messages...
+  at_update();
+  
+  # don't update signal
+  gsm_signal_l = sys.time.get();
 }
 
-function set_status {
-  print("phone manager: setting status from: " + mngr_status + " to: " + arg0);
-  mngr_status = arg0;
+
+function callRet {
+  print("Call return, claiming resources");
+  sys.hw.claim(INT_EXP_PORT);
+  sys.hw.claim(EXT_EXP_PORT);
+  sys.hw.claim(SERIAL_PORT);
+  #sys.com.uartRdClb(&uartCB, 1); # 
+  inCall = 0;
+  exit_flag = 1;
   
-  sys.gui.setStr(tStat, "status: " + arg0);
+  if(OVERLAY) {
+    init_gui();
+  }
+  
+  if (arg0 + "" == "MISSED") {
+    sys.os.subProcess("phone/dialer.svs", "", "MISSED", "", 0);
+  }
+}
+
+
+function suspend {
+  print("mngr suspend called incall: " + inCall);
+  if (inCall == 0) {
+    sys.hw.claim(INT_EXP_PORT);
+    sys.hw.claim(EXT_EXP_PORT);
+    sys.hw.claim(SERIAL_PORT);
+    # clean up uart stuff
+    if(not sys.os.inSim()) {
+      sys.com.uartGetRd();
+      sys.com.uartGetStr();
+      sys.com.uartRcvIT();
+    }
+    sys.com.uartRdClb(&uartCB, 1);
+    at_set_dtr(1); # sleep enabled
+    
+    sys.time.setTimer(60000, &timerWkup);
+  } else {
+    sys.com.uartRdClb(&uartCB, 0);
+    at_set_dtr(0); # sleep disabled
+    sys.hw.free(INT_EXP_PORT);
+    sys.hw.free(EXT_EXP_PORT);
+    sys.hw.free(SERIAL_PORT);
+    sys.time.clearTimer();
+  }
+}
+
+
+function timerWkup {
+  sys.os.arise();
+  if(DEBUG) print("mngr: timer Wkup!");
+  wakeup();
+  exit_flag = 1;
+}
+
+
+function wakeup {
+  sys.com.uartRdClb(&uartCB, 0);
+  at_set_dtr(0); # sleep disabled
+  sys.gui.setStr(tSMS, "...");
+  print("mngr: Wkup!");
+  process_args(arg0, arg1, arg2);
+  
+  if(OVERLAY) {
+    init_gui();
+    gui_wkup = 1;
+    print("wkup gui init");
+    sys.os.gui.setMainScr(0);
+    inOpt = 0;
+  }
 }
 
 
@@ -259,20 +284,81 @@ function get_signal {
   t_csq = at_command("AT+CSQ");
 }
 
+
 function gsm_ready {
   return (gsm_signal > 0 and pinOk and at_free()); 
 }
 
 
 function update {
+
+  if ((gui_wkup == 1 and sys.o.getId() != selfOvr) and inOpt == 0) {
+    init_gui();
+    gui_wkup = 0;
+    sys.os.gui.setMainScr(0);
+    return;
+  }
+  
+  if(draw_flag and inOpt == 0) {
+    draw_signal();
+    draw_flag = 0;
+  }
+  
+  if (sys.os.getRedraw()) {
+    draw_flag = 1;
+  }
+
+  if (sys.o.getId() != selfOvr and inOpt == 0) {
+    # suspend and return if not valid
+    sys.os.suspend();
+    return;
+  }
+  
+  if (resolve_ring()) {
+    return;
+  }
+  
+  if(sys.gui.getEventC(bOptions) == EV_RELEASED) {
+    inOpt = 1;
+    sys.o.destroy();
+    sys.os.setRedraw();
+    sys.os.gui.setMainScr(opt_scr);
+  }
+  
+  if(sys.gui.getEventC(bBack) == EV_RELEASED) {
+    inOpt = 0;
+    sys.os.setRedraw();
+    sys.os.gui.setMainScr(0);
+    exit_flag = 1;
+    return;
+  }
+  
+  if(sys.gui.getEventC(optAirplane) == EV_RELEASED and at_enabled == 0) {
+    sys.gui.setGrayout(optAirplane, 1);
+    if(sys.gui.getValue(optAirplane) == 1) {
+      t_cfun = at_command("AT+CFUN=4", 50);
+      Airplane = 1;
+      set_icon_ex("phone/sic/plane.sic");
+      gsm_signal = 0;
+      set_status("Airplane");
+    } else {
+      t_cfun = at_command("AT+CFUN=1", 50);   
+      Airplane = 0;
+    }
+  }
+  
+  if(sys.gui.getEventC(bSMSRcv) == EV_RELEASED) {
+    sms_read = 0;
+  }
   
   if(sys.gui.getEventC(bDebug) == EV_RELEASED) {
     DEBUG = sys.gui.getValue(bDebug);
     print("DEBUG: " + DEBUG);
   }
 
-  if (sms_read + 300 < sys.time.get() and gsm_ready()) {
+  if (sms_read + 300 < sys.time.get() and gsm_ready() and Airplane == 0 and at_free()) {
     sys.gui.setStr(tSMS, "Recieving SMS messages...");
+    print("Recieving SMS messages...");
     sms_retrive();
     sms_read = sys.time.get();
   }
@@ -301,6 +387,26 @@ function update {
   }
   
   local res;
+  
+  # CFUN result
+  res = at_result(t_cfun);
+  if(res == RES_OK) {
+    print("mngr: CFUN: OK");
+    sys.gui.setGrayout(optAirplane, 0);
+    
+    if(Airplane == 0) {
+      print("mngr: Re-enable after Airplane mode...");
+      run_inits();
+      t_at = at_command("AT", 1);
+    }
+  }
+  
+  if (res == RES_ERR) {
+    print("phone: CFUN: ERR");
+    sys.gui.setGrayout(optAirplane, 0);
+    Airplane = not Airplane;
+    sys.gui.setValue(optAirplane, Airplane);
+  }
   
   # AT result
   res = at_result(t_at);
@@ -338,7 +444,7 @@ function update {
       print("pin OK");
       set_status("READY");
       pinOk = 1;
-      get_signal();
+      t_cspn = at_command("AT+CSPN?");
     } else {
       set_status("SIMPIN");
       mngr_in_init = 0;
@@ -353,6 +459,20 @@ function update {
     t_cpin = at_command("AT+CPIN?", 2);
   }
   
+  # CSPN Result
+  res = at_result(t_cspn);
+  
+  if(res == RES_OK) {
+    sys.gui.setStr(tOperator, parse_cspn(at_result));
+    get_signal();
+  }
+  
+  if(res == 2) {
+    print("CSPN fail");
+    at_wait(400);
+    t_cpin = at_command("AT+CSPN?", 2);
+  }
+  
   # CSQ result
   res = at_result(t_csq);
   if(res == RES_OK) {
@@ -360,9 +480,9 @@ function update {
     gsm_signal = parse_csq(at_result);
     gsm_signal_l = sys.time.get();
     print("CSQ: " + gsm_signal);
-    sys.gui.setValue(bSignal, gsm_signal);
     
     set_icon(gsm_signal);
+    draw_signal();
     
     if (gsm_signal == 0) {
       set_status("NO_SIGNAL");
@@ -379,18 +499,13 @@ function update {
     t_csq = at_command("AT+CSQ");
   }
   
-  if(gsm_signal_l + 30 < sys.time.get() and at_free() and pinOk) {
-    get_signal();
-  }
-  
-  if(gsm_signal_l + 30 < sys.time.get() and at_free() and pinOk) {
+  if(gsm_signal_l + 30 < sys.time.get() and at_free() and pinOk and Airplane == 0) {
     get_signal();
   }
   
   # handling dummy
   at_result(t_dummy);
   
-  resolve_ring();
   sms_upd();
   
   at_update();
@@ -403,30 +518,74 @@ function update {
     }
     exit_flag = 0;
     return;
-    #sys.os.suspend();
   }
+}
+
+
+function draw_signal {
+  if(inOpt == 1) return;
+
+  sys.ds.setArea(200, 64 + 16, 220 + 70, 64+64 + 16);
+  sys.ds.clearArea(sys.gui.getColor(COL_BACKGROUND));
+  
+  if (gsm_signal > 0) {
+    sys.ds.fillRect(1, 48, 16, 64, sys.gui.getColor(COL_ACTIVE));
+  } else {
+    sys.ds.fillRect(1, 48, 16, 64, sys.gui.getColor(COL_FILL));
+  }
+  sys.ds.drawRect(1, 48, 16, 64, sys.gui.getColor(COL_BORDER));
+  
+  if (gsm_signal > 8) {
+    sys.ds.fillRect(1 + 20, 32, 16 + 20, 64, sys.gui.getColor(COL_ACTIVE));
+  } else {
+    sys.ds.fillRect(1 + 20, 32, 16 + 20, 64, sys.gui.getColor(COL_FILL));
+  }
+  sys.ds.drawRect(1 + 20, 32, 16 + 20, 64, sys.gui.getColor(COL_BORDER));
+  
+  if (gsm_signal > 16) {
+    sys.ds.fillRect(1 + 40, 16, 16 + 40, 64, sys.gui.getColor(COL_ACTIVE));
+  } else {
+    sys.ds.fillRect(1 + 40, 16, 16 + 40, 64, sys.gui.getColor(COL_FILL));
+  }
+  sys.ds.drawRect(1 + 40, 16, 16 + 40, 64, sys.gui.getColor(COL_BORDER));
+  
+  if (gsm_signal > 24) {
+    sys.ds.fillRect(1 + 60, 1, 16 + 60, 64, sys.gui.getColor(COL_ACTIVE));
+  } else {
+    sys.ds.fillRect(1 + 60, 1, 16 + 60, 64, sys.gui.getColor(COL_FILL));
+  }
+  sys.ds.drawRect(1 + 60, 1, 16 + 60, 64, sys.gui.getColor(COL_BORDER));
 }
 
 
 function resolve_ring {
   
   if(sys.os.inSim()) {
-    return;
+    return 0;
+  }
+  
+  if(inCall == 1) {
+    print("mngr: ERR? inCall got hanging!");
+    inCall = 0;
   }
   
   if(at_ring) {
+    print("mngr: got AT RING!");
     at_ring = 0;
     inCall = 1;
     number = "";
     sys.os.subProcess("phone/caller.svs", &callRet, "INCOMMING", "", 0);
-    return;
+    return 1;
   }
   
   if(at_new_sms) {
+    print("mngr: got SMS CMTI!");
     at_new_sms = 0;
-    sms_retrive();
-    return;
+    sms_read = 0; 
+    return 0;
   }
+  
+  return 0;
 }
 
 
@@ -447,8 +606,6 @@ function sms_fin_cb {
   if(new_sms_flg) {
     new_sms_flg = 0;
     sys.snd.beepC(880, 250, &bp2);
-  } else {
-    #sys.os.exit("OK", 0, 0);
   }
 }
 
@@ -466,9 +623,18 @@ function sms_send_cb {
 
 function parse_csq {
   if(instr(arg0, "+CSQ:")) {
-    #print("sub: " + substr(arg0, instr(arg0, "+CSQ:") + 5, instr(arg0, ",") - 1));
     return num(substr(arg0, instr(arg0, "+CSQ:") + 5, instr(arg0, ",") - 1));
   } else {
     return 0;
+  }
+}
+
+
+function parse_cspn {
+  if(instr(arg0, "+CSPN:")) {
+    print("sub: " + substr(arg0, instr(arg0, "+CSPN:") + 3, instr(arg0, "\"") - 1));
+    return substr(arg0, instr(arg0, "+CSPN:") + 8, instr(arg0, "\",") - 1);
+  } else {
+    return "?";
   }
 }
