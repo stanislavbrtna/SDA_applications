@@ -30,10 +30,10 @@ function init {
   sys.gui.setTexAlign(b_ok, ALIGN_CENTER);
   sys.gui.setTexAlign(t_ok, ALIGN_CENTER);
   
-  b_caccept = sys.gui.addButton(6, 6, 3, 1, "Accept", scr_c);
+  b_caccept = sys.gui.addButton(6, 12, 3, 1, "Accept", scr_c);
   sys.gui.setTexAlign(b_caccept, ALIGN_CENTER);
   
-  b_cdecline = sys.gui.addButton(1, 6, 3, 1, "Decline", scr_c);
+  b_cdecline = sys.gui.addButton(1, 12, 3, 1, "Decline", scr_c);
   sys.gui.setTexAlign(b_cdecline, ALIGN_CENTER);
   
   sys.gui.setVisible(b_cend, 0);
@@ -73,12 +73,14 @@ function init {
   exit_timer = 0;
 }
 
+
 function vis_ok {
   sys.gui.setVisible(t_ok, arg0);
   sys.gui.setVisible(b_ok, arg0);
   
   exit_timer = sys.time.get();
 }
+
 
 function perform_inc #* number, kill_on_end*# {
   sys.gui.setVisible(b_cend, 0); 
@@ -93,6 +95,7 @@ function perform_inc #* number, kill_on_end*# {
   
   noise_stop = 1;
 }
+
 
 function perform_call {  
   if (arg0 == "") {
