@@ -32,7 +32,8 @@ function init {
   sys.gui.setTxtSize(b_hash, 32);
   
   t_pin = sys.gui.addText(0, 2, 6, 1, "Enter PIN code", scr_d);
-  b_ok = sys.gui.addButton(7, 6, 2, 1, "Ok", scr_d);
+  b_ok  = sys.gui.addButton(7, 6, 2, 1, "Ok", scr_d);
+  b_add = sys.gui.addButton(7, 6, 2, 1, "Add", scr_d);
   sys.gui.setGrayout(b_ok, 1);
   sys.gui.setVisible(b_ok, 0);
   sys.gui.setVisible(t_pin, 0);
@@ -102,35 +103,13 @@ function wakeup {
 
 function process_args {
   if (typeof(arg0) == TYPE_STR) {
-    if (arg0 == "DISABLE") {
-      sys.com.uartRdClb(&callback, 0);
-      inCall = 1;
-      sys.os.suspend();
-    }
-    
-    if (arg0 == "ENABLE") {
-      sys.com.uartRdClb(&callback, 2);
-      inCall = 0;
-      sys.os.suspend();
-    }
-    
+
     if (arg0 == "FILL") {
       if (pinOk == 1) {
         number = arg1;  
       } else {
         fillNumber = arg1;
       }
-    }
-    
-    if (arg0 == "RSMS") {
-      RSMS = 1;
-      sms_retrive();
-    }
-    
-    if (arg0 == "SMS") {
-      print("Daler wkup");
-      sms_send(arg1, arg2);
-      exit_flag = 1;
     }
     
     if (arg0 == "MISSED") {
@@ -147,11 +126,14 @@ function init_clist {
   sys.gui.setXscroll(cl_scr, 16);
   sys.gui.setYscroll(cl_scr, -16);
   
-  list_scr = sys.gui.addScreen(1, 1, 8, 12, cl_scr);
-  b_back   = sys.gui.addButton(1, 0, 3, 1, "Back", cl_scr);
-  s_bar    = sys.gui.addSliderV(9, 2, 1, 10, 0, 0, cl_scr);
+  list_scr = sys.gui.addScreen(1, 1, 8, 11, cl_scr);
+  sys.gui.setXscroll(list_scr, -8);
+  sys.gui.setYcell(list_scr, 30);
+  sys.gui.addText(1, 0, 5, 1,"Call history", cl_scr);
+  b_back   = sys.gui.addButton(1, 12, 3, 1, "Back", cl_scr);
+  s_bar    = sys.gui.addSliderV(9, 2, 1, 9, 0, 0, cl_scr);
   b_up = sys.gui.addButton(9, 1, 1, 1, "/\\", cl_scr);
-  b_dn = sys.gui.addButton(9, 12, 1, 1, "\\/", cl_scr);
+  b_dn = sys.gui.addButton(9, 11, 1, 1, "\\/", cl_scr);
   
   array b_list[10];
   array num_list[10];
@@ -183,17 +165,20 @@ function count_list {
     sys.gui.setParam(s_bar, list_size - 10);
   } else {
     sys.gui.setParam(s_bar, list_size);
-  }  
+  }
+  print("list size:" + list_size);
 }
 
 
 function load_list {
   
   count_list();
-
-  local i = list_size - list_start - 10;
   
-  for(local g = 0; g < 10; g++;) {
+  local lmax = 4;
+  local i = list_size - list_start - lmax;
+
+  lmax--; # counts from 0
+  for(local g = 0; g <= lmax; g++;) {
     if (b_list[g]) {
       sys.gui.destroy(b_list[g]);
       sys.gui.destroy(t_list[g]);
@@ -205,30 +190,30 @@ function load_list {
   sys.fs.chDir("appdata");
   sys.fs.conf.open("phone/history.cfg");
   
-  local b = 9;
+  local b = lmax;
   while(sys.fs.conf.exists("number_" + i)) {
     
     local number = sys.fs.conf.read("number_" + i);
       
-    b_list[9 - b] = sys.gui.addButton(0, b*3, 8, 1, sys.fs.conf.read("name_" + i), list_scr);
+    b_list[lmax - b] = sys.gui.addButton(0, b*3, 7, 1, sys.fs.conf.read("name_" + i), list_scr);
     
     local start = num(sys.fs.conf.read("start_" + i));
     local stop = num(sys.fs.conf.read("stop_" + i));
     local type = sys.fs.conf.read("type_" + i);
     
     local timeString
-            = lz(sys.time.getTsHr(start)) + ":"
-              + lz(sys.time.getTsMin(start)) + " "
-              + sys.time.getTsDay(start) + ". "
+            = sys.time.getTsDay(start) + ". "
               + sys.time.getTsMonth(start) + ". "
-              + sys.time.getTsYear(start) + "\n"
+              + sys.time.getTsYear(start) + " "
+              + lz(sys.time.getTsHr(start)) + ":"
+              + lz(sys.time.getTsMin(start)) + "\n"
               + type + " "
               + (stop - start)/60 + "m "
               + lz((stop - start)%60) + "s";
     
-    t_list[9 - b] = sys.gui.addText(0, b*3 + 1, 8, 2, number + "\n" + timeString, list_scr);
-    i_list[9 - b] = i;
-    num_list[9 - b] = number;
+    t_list[lmax - b] = sys.gui.addText(0, b*3 + 1, 8, 2, number + "\n" + timeString, list_scr);
+    i_list[lmax - b] = i;
+    num_list[lmax - b] = number;
     if(b == 0) {
       break;
     }
@@ -296,6 +281,18 @@ function update {
     }
   }
   
+  if (mngr_stat == "READY" and number != "" and sys.gui.getVisible(b_add) == 0) {
+    sys.gui.setVisible(b_add, 1);
+  }
+  
+  if (number == "" and sys.gui.getVisible(b_add) == 1) {
+    sys.gui.setVisible(b_add, 0);
+  }
+  
+  if (sys.gui.getEventC(b_add) == EV_RELEASED) {
+    sys.os.subProcess("phone/contacts.svs", "", "OPEN", number, 0);
+  }
+  
   if (sys.gui.getEventC(b_star) == EV_RELEASED) {
     number += "*";
     sys.gui.setStr(t_number, number);
@@ -327,9 +324,9 @@ function update {
   
   
   if (sys.gui.getEventC(b_ok) == EV_RELEASED) {
-    #t_spin = at_command("AT+CPIN=" + number, 150);
     sys.os.subProcess("phone/mngr.svs", &mngr_pin, "PIN", number, 0);
     number = "";
+    mngr_stat = "";
     sys.gui.setGrayout(b_ok, 1);
   }
   
@@ -342,6 +339,7 @@ function update {
     sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), b_back);
   }
 }
+
 
 function mngr_stat {
   print("dialer: Mngr stat loaded");
