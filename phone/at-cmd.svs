@@ -18,8 +18,9 @@ function at_init {
   DEBUG = 0;
   
   # simulator debug options:
-  simpin = 1;
+  simpin = 0;
   
+  # consts
   RES_OK = 1;
   RES_ERR = 2;
 }
@@ -78,14 +79,15 @@ function at_get_ri {
 
 function at_command {
   if (at_ticket != 0) {
-    print("AT_WARN: command not yet processed! (" + arg0 + ")");
+    print("AT_WARN: command (" + at_simcmd + ") not yet processed! (" + arg0 + ")");
     
     if (sys.time.getAppUptime() > at_timeout or at_timeout == 0) {
       print("AT_WARN: command was borked (" + at_simcmd + ")");
       at_reset();
+      return -2;
     }
     
-    return 0;
+    return -1;
   }
   
   at_init_io();
@@ -126,14 +128,19 @@ function at_command {
 }
 
 function at_result #* Ticket *# {
+  if(arg0 < 0) {
+    print("at_result: Got negative Ticket, assuming error!");
+    return 2; # ERROR
+  }
+
   if (at_ticket == arg0 and at_success == 1 and at_ticket != 0) {
     at_reset();
-    return 1;
+    return 1; # OK
   }
   
   if (at_ticket == arg0 and at_success == 2 and at_ticket != 0) {
     at_reset();
-    return 2;
+    return 2; # ERROR
   }
   
   return 0;
@@ -182,7 +189,7 @@ function at_update {
         simpin = 1;
       }
       
-      if(at_simcmd == "AT+CMGR=1") {
+      if(at_simcmd == "AT+CMGR=1" and 0) {
         at_ustring = "at+cmgr=1\n\r+CMGR: \"REC READ\",\"00310032003300340035003600370038\",\"\",\"23/12/09,16:50:53+04\r\n0050015900ED006C006901610020017E006C00750165006F0075010D006B00FD0020006B016F01480020006400760061\n\rOK";
       }
       
@@ -204,7 +211,7 @@ function at_update {
     }
     # =========================================================================
   }
-    
+     
   if (at_enabled) {
     at_result = at_ustring;
       
