@@ -3,6 +3,8 @@ import "~at-cmd.svs"
 import "~msg-lib.svs"
 
 function init {
+  DEBUG = 0;
+
   sys.os.setSingular();
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
@@ -78,7 +80,6 @@ function init {
   t_del = 0;
   cur_msg = 1;
   at_init();
-  #retrive_sms();
   page = 0;
   scrollMax = 0;
   
@@ -111,7 +112,7 @@ function process_args {
     
     if (arg0 == "RCV_NEW") {
       set_icon();
-      sys.os.suspend();
+      #sys.os.suspend();
     }
   }
 }
@@ -140,6 +141,7 @@ function clr_icon {
 }
 
 function icoCallback {
+  clr_icon();
   sys.os.arise();
 }
 
