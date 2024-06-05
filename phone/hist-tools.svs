@@ -1,4 +1,6 @@
 function add_to_hist {
+  if(DEBUG) print("add_to_hist: adding call to history!");
+  
   sys.fs.chDir();
   sys.fs.conf.open("appdata/phone/history.cfg");
   
@@ -12,9 +14,6 @@ function add_to_hist {
   sys.fs.conf.write("start_" + id, "" + callStart);
   sys.fs.conf.write("stop_" + id, "" + callEnd);
   sys.fs.conf.write("type_" + id, "" + callType);
-  
-  #list_size++;
-  #sys.gui.setParam(s_bar, list_size);
   
   sys.fs.conf.close();
 }
