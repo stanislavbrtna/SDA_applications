@@ -7,6 +7,7 @@ import "~mngr-misc.svs"
 function init {
 
   OVERLAY = 1;
+  DEBUG = 0;
 
   # AT init commands
   array initcmds = [
@@ -88,9 +89,10 @@ function init {
   
   pinOk = 0;
   inCall = 0;
-  RSMS = 0;
   exit_flag = 0;
   Airplane = 0;
+  sms_exit_fl = 0;
+  sms_rcv_fl  = 0;
   
   STATUS_FLG = 0;
   PIN_FLG = 0;
@@ -99,15 +101,20 @@ function init {
   CALL_FLG = 0;
   number = "";
   
-  mngr_status = "INIT";
+  mngr_status = "";
   mngr_in_init = 1;
   
   sms_read = 0;
+  sms_delay_s = 300;
   
   gsm_signal = 0;
   gsm_signal_l = 0;
   
   gui_wkup = 0;
+  
+  lcd_off_fl = 0;
+  
+  set_status("INIT");
   
   # arg0 - type of request
   process_args(arg0, arg1, arg2);
@@ -151,12 +158,12 @@ function process_args {
     }
     
     if (arg0 == "RSMS") {
-      RSMS = 1;
-      sms_retrive();
+      sms_read = 0;
     }
     
     if (arg0 == "SMS") {
       if (pinOk == 1 and gsm_signal != 0) {
+        sms_read = sys.time.get(); # postpone sms reading
         print("Phone manager: send sms");
         sys.gui.setStr(tSMS, "Sending sms...");
         sms_send(arg1, arg2);
@@ -188,11 +195,13 @@ function process_args {
 function uartCB {
   print("mngr: uart callback wakeup!");
   sys.com.uartRdClb("", 0);
+  sys.time.clearTimer();
   sys.os.arise();
   
   if(sys.hw.getLcdState() == 0) {
     sys.hw.wakeLcd();
-    sms_read = sys.time.get() - 290;
+    sms_read = sys.time.get() - (sms_delay_s - 10);
+    lcd_off_fl = 1;
   }
   
   if(OVERLAY) {
@@ -200,6 +209,7 @@ function uartCB {
   }
   
   exit_flag = 0;
+  sms_exit_fl = 1;
   
   # quicky update unsolicited messages...
   at_update();
@@ -260,11 +270,13 @@ function timerWkup {
   if(DEBUG) print("mngr: timer Wkup!");
   wakeup();
   exit_flag = 1;
+  sms_exit_fl = 1;
 }
 
 
 function wakeup {
   sys.com.uartRdClb(&uartCB, 0);
+  sys.time.clearTimer();
   at_set_dtr(0); # sleep disabled
   sys.gui.setStr(tSMS, "...");
   print("mngr: Wkup!");
@@ -277,6 +289,8 @@ function wakeup {
     sys.os.gui.setMainScr(0);
     inOpt = 0;
   }
+  
+  sms_exit_fl = 0;
 }
 
 
@@ -314,10 +328,12 @@ function update {
     return;
   }
   
+  # Handling unsolicited messages
   if (resolve_ring()) {
     return;
   }
   
+  # Handling GUI stuff 
   if(sys.gui.getEventC(bOptions) == EV_RELEASED) {
     inOpt = 1;
     sys.o.destroy();
@@ -349,6 +365,8 @@ function update {
   
   if(sys.gui.getEventC(bSMSRcv) == EV_RELEASED) {
     sms_read = 0;
+    exit_flag = 0;
+    sms_rcv_fl = 0;
   }
   
   if(sys.gui.getEventC(bDebug) == EV_RELEASED) {
@@ -356,14 +374,28 @@ function update {
     print("DEBUG: " + DEBUG);
   }
 
-  if (sms_read + 300 < sys.time.get() and gsm_ready() and Airplane == 0 and at_free()) {
+  # Reading SMS, every 5 minutes
+  if (sms_read + sms_delay_s < sys.time.get()
+      and gsm_ready()
+      and Airplane == 0
+      and at_free()
+  ) {
     sys.gui.setStr(tSMS, "Recieving SMS messages...");
-    print("Recieving SMS messages...");
+    print("Mngr: Recieving SMS messages... smsRD+"+sms_delay_s+"=" + sms_read+sms_delay_s + " time:" + sys.time.get());
+    if(sys.hw.getLcdState() == 0) {
+      sys.hw.wakeLcd();
+      lcd_off_fl = 1;
+    }
+    sys.gui.setStr(tStat, "Status: SMSRCV");
     sms_retrive();
+    print("time: " + sys.time.get());
     sms_read = sys.time.get();
+    print("sms_read: " + sms_read);
+    exit_flag = 0;
+    sms_rcv_fl = 1;
   }
 
-  
+  # STATUS_FLG
   if (STATUS_FLG == 1) { # SATUS: INIT, READY, ERR, SIMPIN
     if (mngr_in_init == 0) {
       STATUS_FLG = 0;
@@ -374,11 +406,13 @@ function update {
     }
   }
   
+  # PIN_FLG - try to unlock PIN
   if (PIN_FLG and at_free()) {
     PIN_FLG = 0;
     t_spin = at_command("AT+CPIN=" + pin_num, 150);
   }
   
+  # CALL_FLAG - manager was woken to call someone
   if (CALL_FLG and gsm_ready()) {
     CALL_FLG = 0;
     print("Mngr: calling " + number);
@@ -499,7 +533,12 @@ function update {
     t_csq = at_command("AT+CSQ");
   }
   
-  if(gsm_signal_l + 30 < sys.time.get() and at_free() and pinOk and Airplane == 0) {
+  if(gsm_signal_l + 30 < sys.time.get()
+     and at_free()
+     and pinOk
+     and Airplane == 0
+     and sms_rcv_fl == 0
+  ) {
     get_signal();
   }
   
@@ -510,11 +549,15 @@ function update {
   
   at_update();
   
-  if (exit_flag == 1 and at_enabled == 0) {
-    if (exit_flag == 1){
+  if (exit_flag and at_enabled == 0 and sms_rcv_fl == 0) {
+    if (exit_flag == 1) {
       sys.os.exit("OK", 0, 0);
     } else { 
       sys.os.exit("ERR", 0, 0);
+    }
+    if (lcd_off_fl) {
+      sys.hw.setLcdState(0);
+      lcd_off_fl = 0;
     }
     exit_flag = 0;
     return;
@@ -597,16 +640,29 @@ function bp2 {
 function bp3 {
   sys.snd.beepC(880, 250, "");
   #sys.os.exit("OK", 0, 0);
+  sys.hw.wakeLcd();
   sys.os.subProcess("phone/messages.svs", "", "RCV_NEW", "", 0);
+  sms_rcv_fl = 0;
 }
 
 
 function sms_fin_cb {
-  sys.gui.setStr(tSMS, "Got " + new_sms_flg + " new SMS messages.");
+  print("sms_fin_cb: called");
+  if (sms_exit_fl) {
+    exit_flag = 1;
+    sms_exit_fl = 0;
+  }
+
+  
   if(new_sms_flg) {
     new_sms_flg = 0;
     sys.snd.beepC(880, 250, &bp2);
+  } else {
+    sms_rcv_fl = 0;
   }
+  
+  sys.gui.setStr(tStat, "Status: READY");
+  sys.gui.setStr(tSMS, "Got " + new_sms_flg + " new SMS messages.");
 }
 
 

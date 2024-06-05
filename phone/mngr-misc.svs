@@ -39,11 +39,15 @@ function set_icon_ex {
 function icoCallback {
   exit_flag = 0;
   inOpt = 0;
+  sms_exit_fl = 0;
   sys.os.gui.setMainScr(0);
   sys.os.arise();
   if(OVERLAY) {
     init_gui();
   }
+  sys.com.uartRdClb(&uartCB, 0);
+  sys.time.clearTimer();
+  at_set_dtr(0); # sleep disabled
 }
 
 
