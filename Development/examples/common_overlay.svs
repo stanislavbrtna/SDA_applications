@@ -1,0 +1,62 @@
+#*
+ * Common overlay message example
+ *
+ * com svs library allows user to create simple overlays.
+ * This example shows how to create and handle these overlays.
+ *
+ * s.b. VI. 2024
+*#
+
+import "lib/inc/com.svs"
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.addText(0, 0, 10, 1, "Common overlay messages:", scr);
+  
+  bMsg = sys.gui.addButton(1, 2, 5, 1, "Choice", scr);
+  bMsg2 = sys.gui.addButton(1, 4, 5, 1, "Input", scr);
+  bMsg3 = sys.gui.addButton(1, 6, 5, 1, "Info", scr);
+  
+  com_init();
+
+  com1 = 0;
+  com2 = 0;
+  com3 = 0;
+}
+
+function update {
+  if(sys.gui.getEventC(bMsg) == EV_RELEASED) {
+    com1 = com_new("Yes or no?", 0);
+  }
+  
+  if(sys.gui.getEventC(bMsg2) == EV_RELEASED) {
+    com2 = com_new("New name:", 1);
+  }
+  
+  if(sys.gui.getEventC(bMsg3) == EV_RELEASED) {
+    com3 = com_new("Info message", 2);
+  }
+  
+  local res = com_handle(com1);
+  if(res == 1) {
+    sys.gui.setStr(bMsg1, "Ok");  
+  }
+  
+  if(res == 2) {
+    sys.gui.setStr(bMsg1, "Cancel");  
+  }
+  
+  if(com_handle(com2) == 1) {
+    sys.gui.setStr(bMsg2, "Name: " + com_str);
+  }
+  
+  com_handle(com3);
+}
+
+
+function exit {
+
+}
