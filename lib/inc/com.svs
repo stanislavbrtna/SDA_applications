@@ -8,15 +8,16 @@
 *#
 
 function com_init {
-  com_id = 0;
+  com_id    = 0;
+  com_ov_id = 0;
 }
 
 function com_new { # title, mode
   com_screen = sys.gui.addScreen();
-  com_title = sys.gui.addText(0, 0, 8, 1, arg0, com_screen);
+  com_title  = sys.gui.addText(0, 0, 8, 1, arg0, com_screen);
   
-  com_ok_val = 0;
-  com_str_val = 0;
+  com_ok_val   = 0;
+  com_str_val  = 0;
   com_informal = 1;
   
   if(arg1 == 1) {

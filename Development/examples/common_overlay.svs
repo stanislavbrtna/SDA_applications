@@ -42,11 +42,11 @@ function update {
   
   local res = com_handle(com1);
   if(res == 1) {
-    sys.gui.setStr(bMsg1, "Ok");  
+    sys.gui.setStr(bMsg, "Ok");  
   }
   
   if(res == 2) {
-    sys.gui.setStr(bMsg1, "Cancel");  
+    sys.gui.setStr(bMsg, "Cancel");  
   }
   
   if(com_handle(com2) == 1) {
