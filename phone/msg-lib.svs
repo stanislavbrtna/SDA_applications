@@ -36,7 +36,7 @@ function parse_ts {
   if (min<10) min = "0" + min;
   #local sec = sys.time.getTsSec(arg0);
   #if (sec<0) sec = "0" + sec;
-  return hr + ":" + min + " " + sys.time.getTsDay(arg0) + "." + sys.time.getTsMonth(arg0) + "." + sys.time.getTsYear(arg0); 
+  return hr + ":" + min + " " + sys.time.getTsDay(arg0) + ". " + sys.time.getTsMonth(arg0) + ". " + sys.time.getTsYear(arg0); 
 }
 
 function sms_send { # number, text -> returns

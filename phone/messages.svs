@@ -107,6 +107,7 @@ function set_dir {
 function process_args {
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "OPEN") {
+      load_conv(arg1);
       ld_new_msg(arg1, scr);
     }
     
@@ -117,28 +118,26 @@ function process_args {
   }
 }
 
+
 function set_icon {
   sys.fs.chDir(1);
 
   if(icon_id != 0) {
    sys.os.gui.freeNotif(icon_id);
   }
-
   icon_id = sys.os.gui.setNotif("phone/sic/msg.sic", &icoCallback);
   sys.fs.chDir(0);
-  
   set_dir();
-
-  pCount = 0;
-
   load_convs();
 }
+
 
 function clr_icon { 
   if(icon_id != 0) {
    sys.os.gui.freeNotif(icon_id);
   }
 }
+
 
 function icoCallback {
   clr_icon();
