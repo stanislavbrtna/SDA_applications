@@ -354,7 +354,6 @@ function update {
     if(sys.gui.getValue(optAirplane) == 1) {
       t_cfun = at_command("AT+CFUN=4", 50);
       Airplane = 1;
-      set_icon_ex("phone/sic/plane.sic");
       gsm_signal = 0;
       set_status("Airplane");
     } else {
@@ -425,18 +424,21 @@ function update {
   # CFUN result
   res = at_result(t_cfun);
   if(res == RES_OK) {
-    print("mngr: CFUN: OK");
+    if(DEBUG) print("mngr: CFUN: OK");
     sys.gui.setGrayout(optAirplane, 0);
     
     if(Airplane == 0) {
-      print("mngr: Re-enable after Airplane mode...");
+      if(DEBUG) print("mngr: Re-enable after Airplane mode...");
       run_inits();
       t_at = at_command("AT", 1);
+      set_icon_ex("phone/sic/signal0.sic");
+    } else {
+      set_icon_ex("phone/sic/plane.sic");
     }
   }
   
   if (res == RES_ERR) {
-    print("phone: CFUN: ERR");
+    if(DEBUG) print("phone: CFUN: ERR");
     sys.gui.setGrayout(optAirplane, 0);
     Airplane = not Airplane;
     sys.gui.setValue(optAirplane, Airplane);
@@ -445,7 +447,7 @@ function update {
   # AT result
   res = at_result(t_at);
   if(res == RES_OK) {
-    print("phone mngr: AT: OK");
+    if(DEBUG) print("phone mngr: AT: OK");
     
     run_inits();
     at_wait(100);
@@ -453,7 +455,7 @@ function update {
   }
   
   if (res == RES_ERR) {
-    print("phone: AT: ERR");
+    if(DEBUG) print("phone: AT: ERR");
     
     if (at_err > 10) {
       set_status("ERR");
@@ -475,7 +477,7 @@ function update {
   res = at_result(t_cpin);
   if(res == RES_OK) {
     if(instr(at_result, "+CPIN: READY")) {
-      print("pin OK");
+      if(DEBUG) print("pin OK");
       set_status("READY");
       pinOk = 1;
       t_cspn = at_command("AT+CSPN?");
@@ -488,7 +490,7 @@ function update {
   }
   
   if(res == 2) {
-    print("CPIN fail");
+    if(DEBUG) print("CPIN fail");
     at_wait(400);
     t_cpin = at_command("AT+CPIN?", 2);
   }
@@ -502,7 +504,7 @@ function update {
   }
   
   if(res == 2) {
-    print("CSPN fail");
+    if(DEBUG) print("CSPN fail");
     at_wait(400);
     t_cpin = at_command("AT+CSPN?", 2);
   }
@@ -510,7 +512,7 @@ function update {
   # CSQ result
   res = at_result(t_csq);
   if(res == RES_OK) {
-    print("phone mngr: CSQ: OK");
+    if(DEBUG) print("phone mngr: CSQ: OK");
     gsm_signal = parse_csq(at_result);
     gsm_signal_l = sys.time.get();
     print("CSQ: " + gsm_signal);
@@ -529,7 +531,7 @@ function update {
   }
   
   if (res == RES_ERR) {
-    print("phone: CSQ: ERR");
+    if(DEBUG) print("phone: CSQ: ERR");
     t_csq = at_command("AT+CSQ");
   }
   
@@ -608,12 +610,12 @@ function resolve_ring {
   }
   
   if(inCall == 1) {
-    print("mngr: ERR? inCall got hanging!");
+    if(DEBUG) print("mngr: ERR? inCall got hanging!");
     inCall = 0;
   }
   
   if(at_ring) {
-    print("mngr: got AT RING!");
+    if(DEBUG) print("mngr: got AT RING!");
     at_ring = 0;
     inCall = 1;
     number = "";
@@ -622,7 +624,7 @@ function resolve_ring {
   }
   
   if(at_new_sms) {
-    print("mngr: got SMS CMTI!");
+    if(DEBUG) print("mngr: got SMS CMTI!");
     at_new_sms = 0;
     sms_read = 0; 
     return 0;
@@ -647,7 +649,7 @@ function bp3 {
 
 
 function sms_fin_cb {
-  print("sms_fin_cb: called");
+  if(DEBUG) print("sms_fin_cb: called");
   if (sms_exit_fl) {
     exit_flag = 1;
     sms_exit_fl = 0;
