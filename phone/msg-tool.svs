@@ -121,7 +121,7 @@ function sms_upd {
       t_msg = at_command("AT+CMGR=" + cur_msg, 50);
     } else {
       #delete messages
-      t_del = at_command("AT+CMGDA=\"DEL READ\"");
+      t_del = at_command("AT+CMGDA=\"DEL READ\"", 100);
     }
   }
   
