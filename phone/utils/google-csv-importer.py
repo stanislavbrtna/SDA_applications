@@ -26,9 +26,11 @@ with open(sys.argv[1]) as csvfile:
 
     cn = 0
     for r in contact_list:
+      print("valid_" + str(cn) + "=1")
       print("name_" + str(cn) + "=" +contact_list.get(r)[0])
       print("surname_" + str(cn) + "=" + contact_list.get(r)[1])
       print("company_" + str(cn) + "=" + contact_list.get(r)[2])
       print("phone_" + str(cn) + "_0=" + contact_list.get(r)[3])
+      print("note_" + str(cn) + "=")
       
       cn += 1
