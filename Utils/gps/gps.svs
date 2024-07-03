@@ -322,6 +322,8 @@ function draw_line { # lat, lon, lat, lon, color
 
 
 function redrawMap {
+  if(sys.o.getId() != 0) return;
+
   sys.ds.setArea(1, 65, 286, 286);
   set_sizes();
 
