@@ -63,6 +63,8 @@ function get_fname {
 }
 
 function set_img_clb {
+  if(arg0 + "" == "") return;
+
   print("folder: " + getFolder(arg0) + " (" + arg1 + ") Fname: " + get_fname(arg0));
   inApps = arg1;
   sys.fs.chDir(inApps);
