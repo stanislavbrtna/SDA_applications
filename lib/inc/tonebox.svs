@@ -1,0 +1,189 @@
+#*
+ *  Melody player
+ *
+ *  Plays melody givetn as array of notes and their durations in ms
+ *  Notes: C0 - B8, pause can be insetted as note 0
+ *
+ *  Sets given melody as current one
+ *  pl_set_melody([array] melody, [num] loop, [num] note_len);
+ *
+ *  Starts playback
+ *  pl_play();
+ *
+ *  Stops playback
+ *  pl_pause();
+ *
+ *  Melody array example
+ *  array melody = ["C5", 100, "D5", 100, "E5", 100];
+ *
+*#
+
+ # Melody player functions:
+
+ # pl_set_melody([array] melody, [num] loop, [num] note_len);
+ # if note_len == 0 melody must have notes with lenghts
+function pl_set_melody {
+  print("melody added: len:" + len(arg0));
+  pl_melody = arg0;
+  pl_loop = arg1;
+  pl_len = arg2;
+  pl_note = 0;
+  pl_play = 0;
+}
+
+function pl_play {
+  pl_play = 1;
+  pl_player();
+}
+
+function pl_pause {
+  pl_play = 0;
+}
+
+function pl_player {
+  if(len(pl_melody) < pl_note + 1) {
+    if (pl_loop)
+      pl_note = 0;
+    else 
+      pl_play = 0;
+  }
+  
+  if (pl_play == 1) {
+    if (typeof(pl_melody[pl_note]) == TYPE_STR) {
+      pl_melody[pl_note] = num(notefreq(pl_melody[pl_note]));
+    }
+    if (pl_len == 0) {
+      if (pl_melody[pl_note] == 0) {
+        print("len: " + len(pl_melody) + " note + 1: " + pl_note + 1);
+        sys.time.setTimer(pl_melody[pl_note + 1]*2, &pl_wait);
+      } else {
+        sys.snd.beepC(pl_melody[pl_note], pl_melody[pl_note + 1]*2, &pl_wait); 
+      }
+      pl_note += 2;
+    } else {
+      if (pl_melody[pl_note] == 0) {
+        sys.time.setTimer(pl_len, &pl_wait);
+      } else {
+        sys.snd.beepC(pl_melody[pl_note], pl_len, &pl_wait);
+      }
+      pl_note++;
+    }
+  }
+}
+
+function pl_wait {
+  sys.time.setTimer(pl_len/4, &pl_player);
+}
+
+
+function notefreq {
+    if (arg0 == "C0") return 16.35;
+  if (arg0 == "CS0") return 17.32;
+  if (arg0 == "D0") return 18.35;
+  if (arg0 == "DS0") return 19.45;
+  if (arg0 == "E0") return 20.60;
+  if (arg0 == "F0") return 21.83;
+  if (arg0 == "FS0") return 23.12;
+  if (arg0 == "G0") return 24.50;
+  if (arg0 == "GS0") return 25.96;
+  if (arg0 == "A0") return 27.50;
+  if (arg0 == "AS0") return 29.14;
+  if (arg0 == "B0") return 30.87;
+  if (arg0 == "C1") return 32.70;
+  if (arg0 == "CS1") return 34.65;
+  if (arg0 == "D1") return 36.71;
+  if (arg0 == "DS1") return 38.89;
+  if (arg0 == "E1") return 41.20;
+  if (arg0 == "F1") return 43.65;
+  if (arg0 == "FS1") return 46.25;
+  if (arg0 == "G1") return 49.00;
+  if (arg0 == "GS1") return 51.91;
+  if (arg0 == "A1") return 55.00;
+  if (arg0 == "AS1") return 58.27;
+  if (arg0 == "B1") return 61.74;
+  if (arg0 == "C2") return 65.41;
+  if (arg0 == "CS2") return 69.30;
+  if (arg0 == "D2") return 73.42;
+  if (arg0 == "DS2") return 77.78;
+  if (arg0 == "E2") return 82.41;
+  if (arg0 == "F2") return 87.31;
+  if (arg0 == "FS2") return 92.50;
+  if (arg0 == "G2") return 98.00;
+  if (arg0 == "GS2") return 103.83;
+  if (arg0 == "A2") return 110.00;
+  if (arg0 == "AS2") return 116.54;
+  if (arg0 == "B2") return 123.47;
+  if (arg0 == "C3") return 130.81;
+  if (arg0 == "CS3") return 138.59;
+  if (arg0 == "D3") return 146.83;
+  if (arg0 == "DS3") return 155.56;
+  if (arg0 == "E3") return 164.81;
+  if (arg0 == "F3") return 174.61;
+  if (arg0 == "FS3") return 185.00;
+  if (arg0 == "G3") return 196.00;
+  if (arg0 == "GS3") return 207.65;
+  if (arg0 == "A3") return 220.00;
+  if (arg0 == "AS3") return 233.08;
+  if (arg0 == "B3") return 246.94;
+  if (arg0 == "C4") return 261.63;
+  if (arg0 == "CS4") return 277.18;
+  if (arg0 == "D4") return 293.66;
+  if (arg0 == "DS4") return 311.13;
+  if (arg0 == "E4") return 329.63;
+  if (arg0 == "F4") return 349.23;
+  if (arg0 == "FS4") return 369.99;
+  if (arg0 == "G4") return 392.00;
+  if (arg0 == "GS4") return 415.30;
+  if (arg0 == "A4") return 440.00;
+  if (arg0 == "AS4") return 466.16;
+  if (arg0 == "B4") return 493.88;
+  if (arg0 == "C5") return 523.25;
+  if (arg0 == "CS5") return 554.37;
+  if (arg0 == "D5") return 587.33;
+  if (arg0 == "DS5") return 622.25;
+  if (arg0 == "E5") return 659.25;
+  if (arg0 == "F5") return 698.46;
+  if (arg0 == "FS5") return 739.99;
+  if (arg0 == "G5") return 783.99;
+  if (arg0 == "GS5") return 830.61;
+  if (arg0 == "A5") return 880.00;
+  if (arg0 == "AS5") return 932.33;
+  if (arg0 == "B5") return 987.77;
+  if (arg0 == "C6") return 1046.50;
+  if (arg0 == "CS6") return 1108.73;
+  if (arg0 == "D6") return 1174.66;
+  if (arg0 == "DS6") return 1244.51;
+  if (arg0 == "E6") return 1318.51;
+  if (arg0 == "F6") return 1396.91;
+  if (arg0 == "FS6") return 1479.98;
+  if (arg0 == "G6") return 1567.98;
+  if (arg0 == "GS6") return 1661.22;
+  if (arg0 == "A6") return 1760.00;
+  if (arg0 == "AS6") return 1864.66;
+  if (arg0 == "B6") return 1975.53;
+  if (arg0 == "C7") return 2093.00;
+  if (arg0 == "CS7") return 2217.46;
+  if (arg0 == "D7") return 2349.32;
+  if (arg0 == "DS7") return 2489.02;
+  if (arg0 == "E7") return 2637.02;
+  if (arg0 == "F7") return 2793.83;
+  if (arg0 == "FS7") return 2959.96;
+  if (arg0 == "G7") return 3135.96;
+  if (arg0 == "GS7") return 3322.44;
+  if (arg0 == "A7") return 3520.00;
+  if (arg0 == "AS7") return 3729.31;
+  if (arg0 == "B7") return 3951.07;
+  if (arg0 == "C8") return 4186.01;
+  if (arg0 == "CS8") return 4434.92;
+  if (arg0 == "D8") return 4698.63;
+  if (arg0 == "DS8") return 4978.03;
+  if (arg0 == "E8") return 5274.04;
+  if (arg0 == "F8") return 5587.65;
+  if (arg0 == "FS8") return 5919.91;
+  if (arg0 == "G8") return 6271.93;
+  if (arg0 == "GS8") return 6644.88;
+  if (arg0 == "A8") return 7040.00;
+  if (arg0 == "AS8") return 7458.62;
+  if (arg0 == "B8") return 7902.13;
+  if (arg0 == "0") return 0;
+}
