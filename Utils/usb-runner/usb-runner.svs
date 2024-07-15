@@ -84,7 +84,7 @@ function callRet {
   } else {
     rpl_fname = "";
     dest_folder = 1;
-    sys.gui.setStr(tpath, "APPS/Received" + arg0);
+    sys.gui.setStr(tpath, "APPS/Received/" + arg0);
   }
 }
 
