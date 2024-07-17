@@ -1,7 +1,7 @@
 function sms_init {
-  t_msg = 0;
-  t_sms = 0;
-  t_del = 0;
+  t_sms_rcv = 0;
+  t_sms_send = 0;
+  t_sms_del = 0;
 }
 
 
@@ -10,7 +10,7 @@ function sms_send { # number, text -> returns
   if (DEBUG) print("sending: num: " + arg0 + " text: " + arg1);
   if (DEBUG) print("AT_COMMAND: " + "AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\n" + str2u16(arg1) + "\n(ASCII 26)     \n\n");
   sms_h_add(arg0, "OUTGOING", arg1, sys.time.get() + "");
-  t_sms = at_command("AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\r" + str2u16(arg1), 2500);
+  t_sms_send = at_command("AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\r" + str2u16(arg1), 2500);
   sys.com.qClr();
   sys.com.qAdd(26);
   sys.com.uartTrsQ();
@@ -22,7 +22,7 @@ function sms_retrive {
   at_quiet = 1;
   new_sms_flg = 0;
   
-  t_msg = at_command("AT+CMGR=" + cur_msg, 50);
+  t_sms_rcv = at_command("AT+CMGR=" + cur_msg, 50);
 }
 
 
@@ -88,9 +88,6 @@ function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:
     new_sms_flg += 1;
   }
   sys.fs.conf.close();
-  
-  #print("added msg " + arg2 + " to id: " + id);
-  
   return "n" + mk_safe_name(arg0) +  ".dat";
 }
 
@@ -100,12 +97,16 @@ function sms_upd {
   local res;
   local msg;
   
-  res = at_result(t_msg);
+  # Reading messages from memory
+  res = at_result(t_sms_rcv);
   if(res == 1) {
     print("msg" + cur_msg + ":");
+    if (DEBUG) print("AT_RESULT: " + at_result);
     # parse message
     if(not instr(at_result, "+CMGR")) {
-      print("ERR: Wrong result.");
+      print("ERR: Wrong result, retry");
+      t_sms_rcv = at_command("AT+CMGR=" + cur_msg, 50);
+      return;
     } else {
       msg = sms_parse(at_result);
       if (msg[0] != "") {
@@ -114,24 +115,29 @@ function sms_upd {
         print(" msg2: " + u16toStr(msg[2]) + " ");
         sms_h_add(u16toStr(msg[0]), "INCOMMING", u16toStr(msg[2]), sms_get_ts(msg[1]), msg[2]);
       }
+      
+      #*if(msg[0] == "") {
+        cur_msg = 20; # nothing detected, skipping
+      }*#
     }
     
     cur_msg++;
     if(cur_msg < 11) {
-      t_msg = at_command("AT+CMGR=" + cur_msg, 50);
+      t_sms_rcv = at_command("AT+CMGR=" + cur_msg, 50);
     } else {
       #delete messages
-      t_del = at_command("AT+CMGDA=\"DEL READ\"", 100);
+      t_sms_del = at_command("AT+CMGDA=\"DEL READ\"", 100);
     }
   }
   
   if(res == 2) {
     print("Msg fail: " + at_result + " (end)");
     print("retry: " + cur_msg);
-    t_msg = at_command("AT+CMGR=" + cur_msg, 50);
+    t_sms_rcv = at_command("AT+CMGR=" + cur_msg, 50);
   }
   
-  res = at_result(t_del);
+  # Removing old messages
+  res = at_result(t_sms_del);
   if(res == 1) {
     print("Messages loaded, deleted from sim800");
     #call finish
@@ -140,10 +146,11 @@ function sms_upd {
   
   if(res == 2) {
     print("Message delete error. retry..");
-    t_del = at_command("AT+CMGDA=\"DEL READ\"");
+    t_sms_del = at_command("AT+CMGDA=\"DEL READ\"");
   }
   
-  res = at_result(t_sms);
+  # Sending SMS
+  res = at_result(t_sms_send);
   if(res == 1) {
     print("Sms send ok!");
     if (DEBUG) print("AT_RESULT: " + at_result);
@@ -178,8 +185,9 @@ function mk_safe_name {
   return r;
 }
 
-# message parser
+## message parser
 function sms_parse {
+  #if(DEBUG) print("sms_parse: orig msg:" + arg0);
   local str = "";
   local array nfo[3];
     
