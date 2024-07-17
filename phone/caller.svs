@@ -5,6 +5,8 @@ import "~at-cmd.svs"
 
 function init {
   at_init();
+  
+  DEBUG = 0;
 
   scr_c = sys.gui.addScreen();
   sys.gui.setRelInit(1);
@@ -201,7 +203,12 @@ function update {
     sys.gui.setVisible(b_cdecline, 0);
   }
   
-  if (upd_call_t < sys.time.getAppUptime() and upd_call_t != 0 and t_clcc == 0) {
+  # CLCC Auto update
+  if (upd_call_t < sys.time.getAppUptime()
+      and upd_call_t != 0
+      and t_clcc     == 0
+      and at_enabled == 0
+  ) {
     upd_call_t = sys.time.getAppUptime() + 5000;
     
     print("CLCC auto update");
