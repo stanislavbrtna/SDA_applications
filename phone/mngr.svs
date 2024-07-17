@@ -6,8 +6,9 @@ import "~mngr-misc.svs"
 
 function init {
 
-  OVERLAY = 1;
   DEBUG = 0;
+  
+  timerWkupS = 60 * 3; # manager wkup every 3 min
 
   # AT init commands
   array initcmds = [
@@ -27,12 +28,7 @@ function init {
   sys.hw.claim(EXT_EXP_PORT);
   sys.hw.claim(SERIAL_PORT);
   
-  sys.hw.btn.stdbyEn(1);
-  
   at_init();
-
-  # dummy screen, somehow os sometimes launches in this screen...
-  sys.gui.addText(0, 0, 5, 1, "Phone manager", sys.gui.addScreen());
   
   scr = sys.gui.addScreen();
   sys.gui.setXscroll(scr, -16);
@@ -61,16 +57,15 @@ function init {
   #*
   todo:
          - settings: ringtone
-         - airplane mode
-  
-         - pin screen
   *#
   
+  # AT Command tickets
+  
   at_quiet = 1;
-  t_cpin = 0; # check pin ticket
-  t_spin = 0; # set pin ticket
-  t_dummy = 0;
-  t_clcc = 0;
+  t_cpin   = 0; # check pin ticket
+  t_spin   = 0; # set pin ticket
+  t_dummy  = 0;
+  t_clcc   = 0;
   
   t_csq = 0;
   t_cspn = 0;
@@ -87,30 +82,30 @@ function init {
     sys.fs.mkDir("phone");
   }
   
-  pinOk = 0;
-  inCall = 0;
-  exit_flag = 0;
-  Airplane = 0;
+  pinOk       = 0;
+  inCall      = 0;
+  exit_flag   = 0;
+  Airplane    = 0;
   sms_exit_fl = 0;
   sms_rcv_fl  = 0;
   
-  STATUS_FLG = 0;
-  PIN_FLG = 0;
-  pin_num = arg1;
+  STATUS_FLG  = 0;
+  PIN_FLG     = 0;
+  pin_num     = arg1;
   
-  CALL_FLG = 0;
-  number = "";
+  CALL_FLG    = 0;
+  number      = "";
   
-  mngr_status = "";
+  mngr_status  = "";
   mngr_in_init = 1;
   
-  sms_read = 0;
-  sms_delay_s = 300;
+  sms_read     = 0;
+  sms_delay_s  = 600;  # ckeck for sms every 10min (affects mainly sleep)
   
-  gsm_signal = 0;
+  gsm_signal   = 0;
   gsm_signal_l = 0;
   
-  gui_wkup = 0;
+  gui_wkup   = 0;
   
   lcd_off_fl = 0;
   
@@ -123,16 +118,14 @@ function init {
 
 
 function init_gui { 
-  if(OVERLAY == 1) {
-    sys.os.gui.setMainScr(0);
-    local s = sys.gui.addScreen();
-    sys.gui.addFrame(0, 0, 10, 8, scr, s);
-    selfOvr = sys.o.setScr(s);
-    local border = 16;
-    sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*4);
+  sys.os.gui.setMainScr(0);
+  local s = sys.gui.addScreen();
+  sys.gui.addFrame(0, 0, 10, 8, scr, s);
+  selfOvr = sys.o.setScr(s);
+  local border = 16;
+  sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*4);
     
-    draw_flag = 1;
-  }
+  draw_flag = 1;
 }
 
 
@@ -204,9 +197,7 @@ function uartCB {
     lcd_off_fl = 1;
   }
   
-  if(OVERLAY) {
-    init_gui();
-  }
+  init_gui();
   
   exit_flag = 0;
   sms_exit_fl = 1;
@@ -224,14 +215,11 @@ function callRet {
   sys.hw.claim(INT_EXP_PORT);
   sys.hw.claim(EXT_EXP_PORT);
   sys.hw.claim(SERIAL_PORT);
-  #sys.com.uartRdClb(&uartCB, 1); # 
   inCall = 0;
   exit_flag = 1;
   
-  if(OVERLAY) {
-    init_gui();
-  }
-  
+  init_gui();
+    
   if (arg0 + "" == "MISSED") {
     sys.os.subProcess("phone/dialer.svs", "", "MISSED", "", 0);
   }
@@ -252,8 +240,11 @@ function suspend {
     }
     sys.com.uartRdClb(&uartCB, 1);
     at_set_dtr(1); # sleep enabled
-    
-    sys.time.setTimer(60000, &timerWkup);
+    if (lcd_off_fl) {
+      sys.time.setTimer(timerWkupS * 1000, &timerWkup);
+    } else {
+      sys.time.setTimer(timerWkupS * 2000, &timerWkup);
+    }
   } else {
     sys.com.uartRdClb(&uartCB, 0);
     at_set_dtr(0); # sleep disabled
@@ -261,6 +252,11 @@ function suspend {
     sys.hw.free(EXT_EXP_PORT);
     sys.hw.free(SERIAL_PORT);
     sys.time.clearTimer();
+  }
+  
+  if (lcd_off_fl) {
+    sys.hw.setLcdState(0);
+    lcd_off_fl = 0;
   }
 }
 
@@ -282,14 +278,12 @@ function wakeup {
   print("mngr: Wkup!");
   process_args(arg0, arg1, arg2);
   
-  if(OVERLAY) {
-    init_gui();
-    gui_wkup = 1;
-    print("wkup gui init");
-    sys.os.gui.setMainScr(0);
-    inOpt = 0;
-  }
-  
+  init_gui();
+  gui_wkup = 1;
+  print("wkup gui init");
+  sys.os.gui.setMainScr(0);
+  inOpt = 0;
+ 
   sms_exit_fl = 0;
 }
 
@@ -374,18 +368,19 @@ function update {
   }
 
   # Reading SMS, every 5 minutes
-  if (sms_read + sms_delay_s < sys.time.get()
+  if ((sms_read + sms_delay_s) < sys.time.get()
       and gsm_ready()
       and Airplane == 0
       and at_free()
   ) {
     sys.gui.setStr(tSMS, "Recieving SMS messages...");
-    print("Mngr: Recieving SMS messages... smsRD+"+sms_delay_s+"=" + sms_read+sms_delay_s + " time:" + sys.time.get());
+    print("Mngr: Recieving SMS messages...");
     if(sys.hw.getLcdState() == 0) {
       sys.hw.wakeLcd();
       lcd_off_fl = 1;
     }
     sys.gui.setStr(tStat, "Status: SMSRCV");
+    gc(-1); # perform full garbage collection before calling the sms handling function
     sms_retrive();
     print("time: " + sys.time.get());
     sms_read = sys.time.get();
@@ -478,6 +473,10 @@ function update {
   if(res == RES_OK) {
     if(instr(at_result, "+CPIN: READY")) {
       if(DEBUG) print("pin OK");
+      # better call inits once again after cpin,
+      # otherwise sms read is broken
+      run_inits();
+      at_wait(100);
       set_status("READY");
       pinOk = 1;
       t_cspn = at_command("AT+CSPN?");
@@ -556,10 +555,6 @@ function update {
       sys.os.exit("OK", 0, 0);
     } else { 
       sys.os.exit("ERR", 0, 0);
-    }
-    if (lcd_off_fl) {
-      sys.hw.setLcdState(0);
-      lcd_off_fl = 0;
     }
     exit_flag = 0;
     return;
@@ -641,7 +636,6 @@ function bp2 {
 
 function bp3 {
   sys.snd.beepC(880, 250, "");
-  #sys.os.exit("OK", 0, 0);
   sys.hw.wakeLcd();
   sys.os.subProcess("phone/messages.svs", "", "RCV_NEW", "", 0);
   sms_rcv_fl = 0;
@@ -650,11 +644,11 @@ function bp3 {
 
 function sms_fin_cb {
   if(DEBUG) print("sms_fin_cb: called");
+
   if (sms_exit_fl) {
     exit_flag = 1;
     sms_exit_fl = 0;
   }
-
   
   if(new_sms_flg) {
     new_sms_flg = 0;
