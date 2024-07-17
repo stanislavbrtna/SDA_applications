@@ -63,18 +63,19 @@ function init {
   set_spacing(newScr);
   sys.gui.setYscroll(newScr, -8);
   
-  bNBack = sys.gui.addButton(0, 7, 3, 1, "Back", newScr);
-  bNSend = sys.gui.addButton(5, 7, 3, 1, "Send", newScr);
+  bNBack  = sys.gui.addButton(0, 7, 3, 1, "Back", newScr);
+  bNSend  = sys.gui.addButton(5, 7, 3, 1, "Send", newScr);
+  tNCount = sys.gui.addText  (6, 6, 2, 1, "0/70", newScr);
   
   sys.gui.addText(0, 0, 2, 1, "To:", newScr);
   bNCont = sys.gui.addButton(2, 0, 6, 1, "Contact", newScr);
   
-  newTxScr = sys.gui.addScreen(0, 1, 8, 6, newScr);
-  tNewMsg = sys.gui.addText(0, 0, 9, 12, "", newTxScr);
+  newTxScr = sys.gui.addScreen(0, 1, 8, 5, newScr);
+  tNewMsg = sys.gui.addText(0, 0, 9, 14, "", newTxScr);
   sys.gui.setTexEd(tNewMsg, 1);
   sNewMsg = "";
   
-  newSlider = sys.gui.addSliderV(8, 1, 1, 6, 1024, 0, newScr);
+  newSlider = sys.gui.addSliderV(8, 1, 1, 5, 256 - 16, 0, newScr);
   
   t_msg = 0;
   t_del = 0;
@@ -270,7 +271,6 @@ function load_conv {
       yAdd -= 2;
     }
     
-    
     local text = sys.fs.conf.read("msg_"+i);
     
     ctext[b] = sys.gui.addText(0, b*5 + 1 + yAdd, 8, 2 + getHeight(text, 8*32), text, sMsgList);
@@ -305,7 +305,7 @@ function getHeight { # arg0: str, arg1: element_width_px
   return r;
 }
 
-# update message screen
+## update message screen
 function upd_conv {
   if (currentConv == "") {
     return;
@@ -354,6 +354,7 @@ function ld_new_msg { # number, prev_Screen
   newMsgLoaded = 1;
   
   kbd_back_btn = bNBack;
+  nMsgLen = 0;
   
   if (arg0 == "") {
     sNewMsg = "";
@@ -361,6 +362,7 @@ function ld_new_msg { # number, prev_Screen
     sys.gui.setStr(bNCont, "Select");
     sys.gui.setGrayout(bNCont, 0);
     sys.gui.setGrayout(bNSend, 1);
+    sys.gui.setStr(tNCount, "0/70");
   } else {
     currentNumber = arg0;
     # load concept message
@@ -379,12 +381,15 @@ function ld_new_msg { # number, prev_Screen
         sNewMsg = "";
       }
       sys.fs.conf.close();
+      
+      sys.gui.setStr(tNCount, len(sNewMsg)+"/70");
     } else {
       sys.gui.setStr(bNCont, arg0);
       sNewMsg = "";
     }
   }
 }
+
 
 function upd_new_msg {
   sNewMsg = sys.os.gui.handleText(tNewMsg, sNewMsg);
@@ -407,6 +412,11 @@ function upd_new_msg {
     }
   }
   
+  if (len(sNewMsg) != nMsgLen and len(sNewMsg) != 0) {
+    sys.gui.setStr(tNCount, len(sNewMsg)+"/70");
+    nMsgLen = len(sNewMsg);
+  }
+  
   if(sys.gui.getEventC(bNSend) == EV_RELEASED) {
     sms_send(currentNumber, sNewMsg);
     if (NewMsgConcept == 1 and sys.fs.exists(currentConv)) {
@@ -421,7 +431,10 @@ function upd_new_msg {
     sys.os.hideKbd();
     sys.os.subProcess("phone/contacts.svs", &contRet, "PICK", 0, 0);
   }
+  
+  sys.gui.setYscroll(newTxScr, sys.gui.getValue(newSlider));
 }
+
 
 function contRet {
   if (typeof(arg0) != TYPE_STR or typeof(arg1) != TYPE_STR) {
