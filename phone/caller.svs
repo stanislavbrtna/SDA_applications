@@ -26,6 +26,8 @@ function init {
   b_cend = sys.gui.addButton(3, 12, 4, 1, "End Call", scr_c);
   sys.gui.setTexAlign(b_cend, ALIGN_CENTER);
   
+  b_more = sys.gui.addButton(8, 12, 1, 1, "...", scr_c);
+  
   
   t_ok = sys.gui.addText(3, 11, 4, 1, "Call ended.", scr_c);
   b_ok = sys.gui.addButton(3, 12, 4, 1, "Ok", scr_c);
@@ -39,6 +41,7 @@ function init {
   sys.gui.setTexAlign(b_cdecline, ALIGN_CENTER);
   
   sys.gui.setVisible(b_cend, 0);
+  sys.gui.setVisible(b_more, 0);
   
   inCall = 0;
   
@@ -60,6 +63,10 @@ function init {
     }
   }
   
+  at_vol = 33;
+  
+  init_more();
+  
   upd_call_t = sys.time.getAppUptime() + 50 + sys.os.inSim() * 10000;
   
   t_clcc = 0;
@@ -76,6 +83,27 @@ function init {
 }
 
 
+function init_more {
+  scrMore = sys.gui.addScreen(1, 7, 8, 4, scr_c);
+  
+  array keypad[3*4];
+  
+  for(i = 0; i < 9; i++;) {
+    keypad[i + 1] = sys.gui.addButton(i%3, i/3, 1, 1, "" + i + 1, scrMore);
+  }
+  keypad[0] = sys.gui.addButton(1, 3, 1, 1, "0", scrMore);
+  keypad[10] = sys.gui.addButton(0, 3, 1, 1, "*", scrMore);
+  keypad[11] = sys.gui.addButton(2, 3, 1, 1, "#", scrMore);
+  
+  sys.gui.addText(4, 0, 4, 1, "Volume:", scrMore);
+  slVol = sys.gui.addSliderH(4, 1, 4, 1, 100, at_vol, scrMore);
+  
+  bLoud = sys.gui.addButton(4, 2, 4, 1, "Handsfree", scrMore);
+  bMute = sys.gui.addButton(4, 3, 4, 1, "Mute mic", scrMore);
+  
+  sys.gui.setVisible(scrMore, 0);
+}
+
 function vis_ok {
   sys.gui.setVisible(t_ok, arg0);
   sys.gui.setVisible(b_ok, arg0);
@@ -85,7 +113,9 @@ function vis_ok {
 
 
 function perform_inc #* number, kill_on_end*# {
-  sys.gui.setVisible(b_cend, 0); 
+  sys.gui.setVisible(b_cend, 0);
+  sys.gui.setVisible(b_more, 0);
+  sys.gui.setVisible(scrMore, 0);
   sys.gui.setStr(t_mode, "Incomming call:");
   ring_enabled = 1;
   callStart = sys.time.get();
@@ -108,6 +138,7 @@ function perform_call {
   
   sys.os.hideKbd();
   sys.gui.setVisible(b_cend, 1);
+  sys.gui.setVisible(b_more, 1);
   sys.gui.setVisible(b_caccept, 0);
   sys.gui.setVisible(b_cdecline, 0);
 
@@ -135,6 +166,8 @@ function perform_call {
 function check_end {
 
   sys.gui.setVisible(b_cend, 0);
+  sys.gui.setVisible(b_more, 0);
+  sys.gui.setVisible(scrMore, 0);
   sys.gui.setVisible(b_caccept, 1);
   sys.gui.setVisible(b_cdecline, 1);
   
@@ -180,6 +213,11 @@ function update {
     check_end();
   }
   
+  if (sys.gui.getEventC(b_more) == EV_RELEASED) {
+    sys.gui.setSelect(b_more, 1 - sys.gui.getSelect(b_more));
+    sys.gui.setVisible(scrMore, sys.gui.getSelect(b_more));
+  }
+  
   if (sys.gui.getEventC(b_ok) == EV_RELEASED or (exit_timer + 15 < sys.time.get() and exit_timer != 0)  ) {
     
     sys.os.exit(callType, 0, 0);
@@ -199,6 +237,7 @@ function update {
     inCall = 1;
     at_ring = 0;
     sys.gui.setVisible(b_cend, 1);
+    sys.gui.setVisible(b_more, 1);
     sys.gui.setVisible(b_caccept, 0);
     sys.gui.setVisible(b_cdecline, 0);
   }
@@ -209,7 +248,7 @@ function update {
       and t_clcc     == 0
       and at_enabled == 0
   ) {
-    upd_call_t = sys.time.getAppUptime() + 5000;
+    upd_call_t = sys.time.getAppUptime() + 30000;
     
     print("CLCC auto update");
     t_clcc = at_command("AT+CLCC", 2);
@@ -238,20 +277,7 @@ function update {
     
     # hangup when nothing
     if (not instr(at_result, "+CLCC: ")) {
-      sys.gui.setVisible(b_cend, 0);
-      sys.gui.setVisible(b_caccept, 0);
-      sys.gui.setVisible(b_cdecline, 0);
-      upd_call_t = 0;
-      
-      # save missed call
-      if (callType == "INCOMMING" and ring_enabled == 1) {
-        ring_enabled = 0;
-        callType = "MISSED";
-      }
-      
-      add_to_hist();
-      
-      vis_ok(1);
+      handle_hang();
     }
     
     t_clcc = 0;
@@ -265,8 +291,97 @@ function update {
   at_result(t_dummy);
   
   at_update();
+  
+  if (at_no_carr) {
+    at_no_carr  = 0;
+    handle_hang();
+  }
+  
+  if(sys.gui.getVisible(scrMore)) {
+    upd_more();
+  }
+  
+  if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+    if (at_vol + 10 <= 100) {
+      at_vol += 10;
+      sys.gui.setValue(slVol, at_vol);
+      at_reset();
+      at_dummy = at_command("AT+CLVL=" + at_vol, 2);
+    }
+    
+    sys.hw.btn.clrEvent(BTN_UP);
+  }
+  
+  if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+    if (at_vol - 10 > 0) {
+      at_vol -= 10;
+      sys.gui.setValue(slVol, at_vol);
+      at_reset();
+      at_dummy = at_command("AT+CLVL=" + at_vol, 2);
+    }
+    
+    sys.hw.btn.clrEvent(BTN_UP);
+  }
 }
 
+function upd_more {
+  local i;
+  for(i = 0; i < len(keypad); i++;) {
+    if (sys.gui.getEventC(keypad[i]) == EV_RELEASED) {
+      at_reset();
+      at_dummy = at_command("AT+VTS=\"" + sys.gui.getStr(keypad[i]) + "\"", 2);
+    }
+  }
+  
+  if (sys.gui.getEventC(slVol) == EV_HOLD) {
+    if (at_vol != sys.gui.getValue(slVol)) {
+      at_reset();
+      at_vol = sys.gui.getValue(slVol);
+      at_dummy = at_command("AT+CLVL=" + at_vol, 2);
+    }
+  }
+  
+  if (sys.gui.getEventC(bLoud) == EV_RELEASED) {
+    sys.gui.setSelect(bLoud, 1 - sys.gui.getSelect(bLoud));
+    at_reset();
+    if (sys.gui.getSelect(bLoud)) {
+      at_dummy = at_command("AT+CHF=0,2", 2);
+    } else {
+      at_dummy = at_command("AT+CHF=0,0", 2);
+    }
+  }
+  
+  # bMute
+  if (sys.gui.getEventC(bMute) == EV_RELEASED) {
+    sys.gui.setSelect(bMute, 1 - sys.gui.getSelect(bMute));
+    at_reset();
+    if (sys.gui.getSelect(bMute)) {
+      at_dummy = at_command("AT+CMUT=1", 2);
+    } else {
+      at_dummy = at_command("AT+CMUT=0", 2);
+    }
+  }
+}
+
+
+function handle_hang {
+  sys.gui.setVisible(b_cend, 0);
+  sys.gui.setVisible(b_more, 0);
+  sys.gui.setVisible(scrMore, 0);
+  sys.gui.setVisible(b_caccept, 0);
+  sys.gui.setVisible(b_cdecline, 0);
+  upd_call_t = 0;
+  
+  # save missed call
+  if (callType == "INCOMMING" and ring_enabled == 1) {
+    ring_enabled = 0;
+    callType = "MISSED";
+  }
+  
+  add_to_hist();
+  
+  vis_ok(1);
+}
 
 function inc_setnum {
   local nfo;

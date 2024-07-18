@@ -12,6 +12,7 @@ function at_init {
   at_quiet    = 0;
   at_ring     = 0;
   at_new_sms  = 0;
+  at_no_carr  = 0;
   
   at_ustring  = "";
   
@@ -197,6 +198,10 @@ function at_update {
         }
       }
       
+      if(instr(at_simcmd, "ATD")) {
+        at_ustring = "OK";
+      }
+      
       if(at_simcmd == "AT+CMGR=11") {
         at_ustring = "at+cmgr=1\n\r+CMGR:\n\rERROR\n\r";
       }
@@ -257,6 +262,15 @@ function at_update {
   if(instr(at_ustring, "RING")) {
     if (DEBUG) print("at-cmd: RING detected!");
     at_ring = 1;
+    at_ustring = "";
+  }
+  
+  if(instr(at_ustring, "NO CARRIER")
+     or instr(at_ustring, "BUSY")
+     or instr(at_ustring, "NO ANSWER")
+  ) {
+    if (DEBUG) print("at-cmd: Connection lost detected!");
+    at_no_carr = 1;
     at_ustring = "";
   }
   
