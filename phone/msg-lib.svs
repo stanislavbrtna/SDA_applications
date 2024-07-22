@@ -30,6 +30,7 @@ function set_spacing {
   sys.gui.setXscroll(arg0, -6); # to change xscroll and xscroll old, prevents scroll artefacts
 }
 
+## tmestamp parsing
 function parse_ts {
   local hr =  sys.time.getTsHr(arg0);
   local min = sys.time.getTsMin(arg0);
@@ -39,7 +40,7 @@ function parse_ts {
   return hr + ":" + min + " " + sys.time.getTsDay(arg0) + ". " + sys.time.getTsMonth(arg0) + ". " + sys.time.getTsYear(arg0); 
 }
 
- # load conversations
+## Load conversations
 function refresh_convs {
   local i = 0; 
   local findfil;
@@ -61,10 +62,28 @@ function refresh_convs {
         sys.fs.conf.write("contact_name", "" + nfo[0] + " " + nfo[1]);
         print("Renaming contact: " + nfo[0] + " " + nfo[1]);
       }
-      
-      sys.fs.conf.close();
-      
+
+      sys.fs.conf.close(); 
     }
-    
   }
+}
+
+## Icon management
+function set_icon {
+  if(icon_id != 0) {
+    return;
+  }
+  
+  sys.fs.chDir(1);
+  icon_id = sys.os.gui.setNotif("phone/sic/msg.sic", &icoCallback);
+  sys.fs.chDir(0);
+  set_dir();
+}
+
+
+function clr_icon { 
+  if(icon_id != 0) {
+    sys.os.gui.freeNotif(icon_id);
+  }
+  icon_id = 0;
 }

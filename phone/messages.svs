@@ -48,7 +48,9 @@ function init {
   set_spacing(cscr);
   sys.gui.setYscroll(cscr, -16);
   
-  cScroll = sys.gui.addSliderV(8, 1, 1, 7, 1024, 1024, cscr);
+  cScroll = sys.gui.addSliderV(8, 2, 1, 7, 1024, 1024, cscr);
+  bScrUp  = sys.gui.addButton(8, 1, 1, 1, "/\\", cscr);
+  bScrDn  = sys.gui.addButton(8, 9, 1, 1, "\\/", cscr);
   
   bCall  = sys.gui.addButton(7, 0, 1, 1, "...", cscr);
   tTitle = sys.gui.addText(0, 0, 6, 1, "Placeholder name", cscr); 
@@ -109,34 +111,17 @@ function set_dir {
 function process_args {
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "OPEN") {
-      load_conv(arg1);
-      ld_new_msg(arg1, scr);
+      if (sys.fs.exists("n" + mk_safe_name(arg1) +  ".dat")) {
+        load_conv("n" + mk_safe_name(arg1) +  ".dat");
+      } else {
+        currentConv = "";
+        ld_new_msg(arg1, scr);
+      }
     }
     
     if (arg0 == "RCV_NEW") {
       set_icon();
-      #sys.os.suspend();
     }
-  }
-}
-
-
-function set_icon {
-  sys.fs.chDir(1);
-
-  if(icon_id != 0) {
-   sys.os.gui.freeNotif(icon_id);
-  }
-  icon_id = sys.os.gui.setNotif("phone/sic/msg.sic", &icoCallback);
-  sys.fs.chDir(0);
-  set_dir();
-  load_convs();
-}
-
-
-function clr_icon { 
-  if(icon_id != 0) {
-   sys.os.gui.freeNotif(icon_id);
   }
 }
 
@@ -162,8 +147,9 @@ function search_en {
 }
 
 
-# load conversations
+## Load conversations
 function load_convs {
+  local icon_fl = 0;
   sys.gui.destroy(sConvs);
   sConvs = sys.gui.addScreen(0, 1, 8, 10, scr);
   local i = 0; 
@@ -176,6 +162,7 @@ function load_convs {
       local new = "";
       if (sys.fs.conf.read("new_message") == "1") {
         new = "*";
+        icon_fl = 1;
       }
     
       pButtons[i] = sys.gui.addButton(0, i, 7, 1, new + sys.fs.conf.read("contact_name"), sConvs);
@@ -194,9 +181,13 @@ function load_convs {
   
   sys.gui.setValue(pSld, 0);
   sys.gui.setParam(pSld, (pCount - 1)*34 + 6);
+  
+  if(icon_fl) {
+    set_icon();
+  }
 }
 
-# update conversations screen
+## update conversations screen
 function upd_convs {
   local i;
   for(i = 0; i < pCount; i++;) {
@@ -208,7 +199,7 @@ function upd_convs {
   }
 }
 
-# load message screen
+## load message screen
 function load_conv {
   print("Loading conv:" + arg0);
   currentConv = arg0;
@@ -220,8 +211,10 @@ function load_conv {
   sys.gui.setXscroll(sMsgList, -6);
   
   sys.fs.conf.open(arg0);
-  
+   
   sys.fs.conf.write("new_message", "0");
+  clr_icon();
+  
   local name  = sys.fs.conf.read("contact_name");
   currentName   = sys.fs.conf.read("contact_name");
   currentNumber = sys.fs.conf.read("contact_number");
@@ -357,6 +350,14 @@ function upd_conv {
     ld_new_msg(currentNumber, cscr);
   }
   
+  if(sys.gui.getEventC(bScrDn) == EV_RELEASED and sys.gui.getValue(cScroll) <= 1008) {
+    sys.gui.setValue(cScroll, sys.gui.getValue(cScroll) + 16);
+  }
+  
+  if(sys.gui.getEventC(bScrUp) == EV_RELEASED and sys.gui.getValue(cScroll) >= 16) {
+    sys.gui.setValue(cScroll, sys.gui.getValue(cScroll) - 16);
+  }
+
   scrScroller(sMsgList, cScroll, 0, scrollMax);
 }
 
@@ -380,9 +381,10 @@ function ld_new_msg { # number, prev_Screen
     sys.gui.setStr(tNCount, "0/70");
   } else {
     currentNumber = arg0;
+    
     # load concept message
-    currentConv = "n" + mk_safe_name(arg0) +  ".dat";
-    if(sys.fs.exists(currentConv)) {
+    if(sys.fs.exists("n" + mk_safe_name(arg0) +  ".dat")) {
+      currentConv = "n" + mk_safe_name(arg0) +  ".dat";
       NewMsgConcept = 1;
       sys.fs.conf.open(currentConv);
       currentName = sys.fs.conf.read("contact_name");
@@ -397,11 +399,7 @@ function ld_new_msg { # number, prev_Screen
       }
       sys.fs.conf.close();
       
-      if(rlen(sNewMsg) == len(sNewMsg)) {
-        sys.gui.setStr(tNCount, len(sNewMsg)+"/140");
-      } else {
-        sys.gui.setStr(tNCount, len(sNewMsg)+"/70");
-      }
+      upd_count(rlen(sNewMsg), len(sNewMsg));
     } else {
       sys.gui.setStr(bNCont, arg0);
       sNewMsg = "";
@@ -409,7 +407,24 @@ function ld_new_msg { # number, prev_Screen
   }
 }
 
+## Char count update function
+function upd_count #* rl, l*# {
+  if(arg0 == arg1) {
+    if (arg1 < 140) {
+      sys.gui.setStr(tNCount, arg1+"/140");
+    } else {
+      sys.gui.setStr(tNCount, (arg1/140 + 1) + ". " + arg1%140+"/140");
+    }
+  } else {
+    if (arg1 < 70) {
+      sys.gui.setStr(tNCount, arg1+"/70");
+    } else {
+      sys.gui.setStr(tNCount, (arg1/70 + 1) + ". " + arg1%70+"/70");
+    }
+  }
+}
 
+## Compose new message update
 function upd_new_msg {
   sNewMsg = sys.os.gui.handleText(tNewMsg, sNewMsg);
     
@@ -432,13 +447,9 @@ function upd_new_msg {
   }
   
   if (len(sNewMsg) != nMsgLen) {
-    if(rlen(sNewMsg) == len(sNewMsg)) {
-      sys.gui.setStr(tNCount, len(sNewMsg)+"/140");
-    } else {
-      sys.gui.setStr(tNCount, len(sNewMsg)+"/70");
-    }
-    
-    nMsgLen = len(sNewMsg);
+    local l = len(sNewMsg);
+    upd_count(rlen(sNewMsg), l);
+    nMsgLen = l;
   }
   
   if(sys.gui.getEventC(bNSend) == EV_RELEASED) {
@@ -458,6 +469,7 @@ function upd_new_msg {
 }
 
 
+## SMS send callback
 function sms_ret {
   if(arg0 + "" == "OK") {
     if (NewMsgConcept == 1 and sys.fs.exists(currentConv)) {
@@ -508,8 +520,11 @@ function contRet {
 import "lib/inc/ddm.svs"
 
 function update {
+  
   upd_convs();
+  
   upd_conv();
+  
   upd_new_msg();
   
   sSearch = sys.os.gui.handleText(tSearch, sSearch);
@@ -557,12 +572,11 @@ function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
 
 function wakeup {
   load_convs();
-  clr_icon();
   if(currentConv != "") {
     load_conv(currentConv);
   }
-  
+
   process_args(arg0, arg1, arg2);
-  sys.os.gui.setMainScr(scr); # todo: fix this on the OS side
+  
   kbd_back_btn = 0;
 }

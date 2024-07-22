@@ -171,6 +171,8 @@ function process_args {
     
     if (arg0 == "CALL") {
       print("Phone manager: CALL");
+      gsm_signal_l = sys.time.get(); # postpone CSQ
+      sms_read     = sys.time.get(); # postpone sms reading
       CALL_FLG = 1;
       number = arg1;
     }
