@@ -42,9 +42,7 @@ function icoCallback {
   sms_exit_fl = 0;
   sys.os.gui.setMainScr(0);
   sys.os.arise();
-  if(OVERLAY) {
-    init_gui();
-  }
+  init_gui();
   sys.com.uartRdClb(&uartCB, 0);
   sys.time.clearTimer();
   at_set_dtr(0); # sleep disabled

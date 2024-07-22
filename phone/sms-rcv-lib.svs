@@ -1,7 +1,11 @@
 function sms_init {
-  t_sms_rcv = 0;
+  t_sms_rcv  = 0;
   t_sms_send = 0;
-  t_sms_del = 0;
+  t_sms_del  = 0;
+  t_sms_enc  = 0;
+  t_sms_enc2 = 0;
+  sms_enc_sw = 0;
+  sms_cmd    = "";
 }
 
 
@@ -10,7 +14,31 @@ function sms_send { # number, text -> returns
   if (DEBUG) print("sending: num: " + arg0 + " text: " + arg1);
   if (DEBUG) print("AT_COMMAND: " + "AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\n" + str2u16(arg1) + "\n(ASCII 26)     \n\n");
   sms_h_add(arg0, "OUTGOING", arg1, sys.time.get() + "");
-  t_sms_send = at_command("AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\r" + str2u16(arg1), 2500);
+  
+  # detect UTF16 characters
+  if (len(arg1) == rlen(arg1)) {
+    if (DEBUG) print("SMS: GSM");
+    if (DEBUG) print("AT_COMMAND: " + "AT+CMGS=\"" + nospace(arg0) + "\"\r" + arg1 + "\n(ASCII 26)     \n\n");
+    t_sms_send = at_command("AT+CMGS=\"" + nospace(arg0) + "\"\r" + arg1, 2500);
+  } else {
+    if (DEBUG) print("SMS: UCS2");
+    # switch encoding
+    t_sms_enc  =  at_command("AT+CSCS=\"UCS2\"");
+    sms_enc_sw = 1;
+    sms_cmd    = "AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\r" + str2u16(arg1);
+    if (DEBUG) print("AT_COMMAND: " + sms_cmd);
+    
+    return;
+  }
+  
+  
+  sys.com.qClr();
+  sys.com.qAdd(26);
+  sys.com.uartTrsQ();
+}
+
+function sms_send_u {
+  t_sms_send = at_command(sms_cmd, 2500);
   sys.com.qClr();
   sys.com.qAdd(26);
   sys.com.uartTrsQ();
@@ -100,6 +128,7 @@ function sms_upd {
   # Reading messages from memory
   res = at_result(t_sms_rcv);
   if(res == 1) {
+    gc(-1);
     print("msg" + cur_msg + ":");
     if (DEBUG) print("AT_RESULT: " + at_result);
     # parse message
@@ -110,10 +139,16 @@ function sms_upd {
     } else {
       msg = sms_parse(at_result);
       if (msg[0] != "") {
-        print(" msg0: " + u16toStr(msg[0]) + " ");
-        print(" msg1: " + msg[1] + " ");
-        print(" msg2: " + u16toStr(msg[2]) + " ");
-        sms_h_add(u16toStr(msg[0]), "INCOMMING", u16toStr(msg[2]), sms_get_ts(msg[1]), msg[2]);
+        print(" sms_num: " + msg[0] + " ");
+        print(" sms_tim: " + msg[1] + " ");
+        if(msg[3] == 1) {
+          print(" sms_U16: " + u16toStr(msg[2]) + " ");
+          sms_h_add(msg[0], "INCOMMING", u16toStr(msg[2]), sms_get_ts(msg[1]), msg[2]);
+        } else {
+          print(" sms_txt: " + msg[2] + " ");
+          sms_h_add(msg[0], "INCOMMING", msg[2], sms_get_ts(msg[1]), msg[2]);
+        }
+        
       }
       
       #*if(msg[0] == "") {
@@ -154,13 +189,46 @@ function sms_upd {
   if(res == 1) {
     print("Sms send ok!");
     if (DEBUG) print("AT_RESULT: " + at_result);
-    sms_send_cb(1);
+    if (sms_enc_sw == 0) {
+      sms_send_cb(1);
+    } else {
+      t_sms_enc2  =  at_command("AT+CSCS=\"GSM\"");
+    }
+    
   }
   
   if(res == 2) {
     if (DEBUG) print("AT_RESULT: " + at_result);
     print("Sms send FAILED!");
+    if (sms_enc_sw == 1) {
+      # switch it without checking...
+      sys.com.uartTrs("AT+CSCS=\"GSM\"" + "\r\n");
+    }
     sms_send_cb(0);
+  }
+  
+  # Change sms encoding to UCS2
+  res = at_result(t_sms_enc);
+  if(res == 1) {
+    # send sms
+    sms_send_u();
+  }
+  
+  if(res == 2) {
+    print("sms_upd: Encoding change failed");
+    if (DEBUG) print("AT_RESULT: " + at_result);
+    sms_send_cb(0);
+  }
+  
+  # Change encoding back
+  res = at_result(t_sms_enc2);
+  if(res == 1) {
+    sms_send_cb(1);
+  }
+  
+  if(res == 2) {
+    print("sms_upd: Encoding change failed (2)");
+    t_sms_enc2  =  at_command("AT+CSCS=\"GSM\"");
   }
 }
 
@@ -187,26 +255,48 @@ function mk_safe_name {
 
 ## message parser
 function sms_parse {
-  #if(DEBUG) print("sms_parse: orig msg:" + arg0);
-  local str = "";
-  local array nfo[3];
-    
-  str = substr(arg0, instr(arg0, "\"") + 1, len(arg0));
-  str = substr(str, instr(str, "\"") + 1, len(str));
-  str = substr(str, instr(str, "\"") + 1, len(str));
+  local array nfo[4];
   
-  nfo[0] = substr(str, 0, instr(str, "\"") - 1);  # number
-  str = substr(str, instr(str, "\"") + 1, len(str));
-  str = substr(str, instr(str, "\"") + 1, len(str));
-  str = substr(str, instr(str, "\"") + 1, len(str));
-  str = substr(str, instr(str, "\"") + 1, len(str));
+  local str = arg0;
   
-  nfo[1] = substr(str, 0, instr(str, "\r") - 1);  # timestamp
+  local s = sms_getparam(str, 2);
+  nfo[0] = substr(s, 2, len(s) - 1);  # number
+  
+  s = sms_getparam(str, 4) + "," + sms_getparam(str, 5);
+  nfo[1] = substr(s, 2, len(s) - 1);  # timestamp
+  
+  if (sms_getparam(str, 9) == "8") {
+    nfo[3] = 1; # UCS2
+  } else {
+    nfo[3] = 0;
+  }
+  
+  str = substr(str, instr(str, "\r") + 2, len(str));
   str = substr(str, instr(str, "\r") + 2, len(str));
   
   nfo[2] = substr(str, 1, instr(str, "\n") - 1);  # string
   
   return nfo;
+}
+
+
+## sms getparam
+function sms_getparam #*str, num*# {
+  local s = arg0;
+  local i = 0;
+  while(instr(s, ",")) {
+    i++;
+    if(i == arg1) {
+      return substr(s, 1, instr(s, ",") - 1);
+    }
+    s = substr(s, instr(s, ",") + 1, len(s));
+  }
+  i++;
+  if(i == arg1) {
+    return s;
+  }
+  
+  return "";
 }
 
 

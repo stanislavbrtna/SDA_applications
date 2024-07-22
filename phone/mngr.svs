@@ -1,6 +1,6 @@
 import "~cont-tools.svs"
 import "~hist-tools.svs"
-import "~msg-tool.svs"
+import "~sms-rcv-lib.svs"
 import "~at-cmd.svs"
 import "~mngr-misc.svs"
 
@@ -12,13 +12,15 @@ function init {
 
   # AT init commands
   array initcmds = [
-                    "AT+CFUN=1",          # full phone functionality
-                    "AT+CALS=0,0",        # disable ring tone
-                    "AT+CLTS=1",          # enable clock from network
-                    "AT+CMGF=1",          # set sms as text mode
-                    "AT+CSCLK=1",         # enable sleep by sleep pin
-                    "AT+CSCS=\"UCS2\"",   # set encoding to UCS2
-                    "AT+CSMP=17,167,0,8"  # enable UCS2/UTF16 messaging
+                    "AT+CFUN=1",           # full phone functionality
+                    "AT+CALS=0,0",         # disable ring tone
+                    "AT+CLTS=1",           # enable clock from network
+                    "AT+CMGF=1",           # set sms as text mode
+                    "AT+CSCLK=1",          # enable sleep by sleep pin
+                    "AT+CSCS=\"GSM\"",     # set default encoding to GSM,
+                                           # we will detect UCS2 messages later
+                    "AT+CSDH=1",           # additional sms parameters (to detect UCS2)
+                    "AT+CSMP=17,167,0,8",  # enable UCS2/UTF16 messaging for outbound msmgs
                    ];
 
   # setup all that hacky stuff
@@ -156,9 +158,11 @@ function process_args {
     
     if (arg0 == "SMS") {
       if (pinOk == 1 and gsm_signal != 0) {
-        sms_read = sys.time.get(); # postpone sms reading
+        gsm_signal_l = sys.time.get(); # postpone CSQ
+        sms_read     = sys.time.get(); # postpone sms reading
         print("Phone manager: send sms");
         sys.gui.setStr(tSMS, "Sending sms...");
+        at_reset();
         sms_send(arg1, arg2);
       } else {
         exit_flag = 2;
