@@ -143,9 +143,11 @@ function textOvInit {
 function infoOvrInit {
   infoScr = sys.gui.addScreen();
   infoLbl = sys.gui.addText(1, 0, 8, 1, "Info", infoScr);
-  infoTxt = sys.gui.addText(1, 1, 6, 3, arg0, infoScr);
-  infoOk = sys.gui.addButton(1, 4, 2, 1, "Ok", infoScr);
+  infoTxt = sys.gui.addText(1, 1, 7, 3, arg0, infoScr);
+  infoOk = sys.gui.addButton(5, 4, 2, 1, "Ok", infoScr);
   infoOvr = sys.o.setScr(infoScr);
+  sys.gui.setXscroll(infoScr, 16);
+  sys.gui.setYscroll(infoScr, -8);
   sys.o.setXYXY(32, 64, 278, 240);
   return infoOvr;
 }

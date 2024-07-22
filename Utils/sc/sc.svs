@@ -7,7 +7,7 @@ function init {
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.1.1", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.1.2", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
   sys.gui.setSliderSize(scrollbar, 80);
@@ -291,7 +291,7 @@ function rldFiles {
     sys.gui.setValue(scrollbar, 0);
   }
 
-  if (i > 9) {
+  if (numOfFiles > 8) {
     sys.gui.setParam(scrollbar, 32 * i - 8 * 32);
     sys.gui.setGrayout(scrollbar, 0);
   } else {
