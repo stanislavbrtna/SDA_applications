@@ -50,7 +50,7 @@ function init {
   
   cScroll = sys.gui.addSliderV(8, 1, 1, 7, 1024, 1024, cscr);
   
-  bCall  = sys.gui.addButton(6, 0, 2, 1, "Call", cscr);
+  bCall  = sys.gui.addButton(7, 0, 1, 1, "...", cscr);
   tTitle = sys.gui.addText(0, 0, 6, 1, "Placeholder name", cscr); 
   
   sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
@@ -65,7 +65,8 @@ function init {
   
   bNBack  = sys.gui.addButton(0, 7, 3, 1, "Back", newScr);
   bNSend  = sys.gui.addButton(5, 7, 3, 1, "Send", newScr);
-  tNCount = sys.gui.addText  (6, 6, 2, 1, "0/70", newScr);
+  tNCount = sys.gui.addText  (4, 6, 4, 1, "0/140", newScr);
+  sys.gui.setTexAlign(tNCount, ALIGN_RIGHT);
   
   sys.gui.addText(0, 0, 2, 1, "To:", newScr);
   bNCont = sys.gui.addButton(2, 0, 6, 1, "Contact", newScr);
@@ -332,12 +333,26 @@ function upd_conv {
     sys.gui.setValue(cScroll, 0);
   }
   
-  if(sys.gui.getEventC(bCall) == EV_RELEASED) {
-    print("msg: calling: " + currentNumber);
-    #sys.os.subProcess("phone/dialer.svs", "", "FILL", currentNumber, 0);
-    sys.os.subProcess("phone/mngr.svs", "", "CALL", currentNumber, 0);
+  if (sys.gui.getEventC(bCall) == EV_RELEASED) {
+    ddm_spacing = 3;
+    menu2 = ddm_create(bCall);
+    ddm_width = 5;
+    ddm_add_btn("Call");
+    ddm_add_btn("Open Contact");
   }
   
+  i = ddm_handle(menu2);
+  if (i > 0) {
+    if (i == 1) {
+      print("msg: calling: " + currentNumber);
+      sys.os.subProcess("phone/mngr.svs", "", "CALL", currentNumber, 0);
+    } else if(i == 2) {
+      sys.os.subProcess("phone/contacts.svs", "", "OPEN", currentNumber, 0);
+    } else {
+      ddm_exit();
+    }
+  }
+    
   if(sys.gui.getEventC(bCNew) == EV_RELEASED) {
     ld_new_msg(currentNumber, cscr);
   }
@@ -382,7 +397,11 @@ function ld_new_msg { # number, prev_Screen
       }
       sys.fs.conf.close();
       
-      sys.gui.setStr(tNCount, len(sNewMsg)+"/70");
+      if(rlen(sNewMsg) == len(sNewMsg)) {
+        sys.gui.setStr(tNCount, len(sNewMsg)+"/140");
+      } else {
+        sys.gui.setStr(tNCount, len(sNewMsg)+"/70");
+      }
     } else {
       sys.gui.setStr(bNCont, arg0);
       sNewMsg = "";
@@ -412,19 +431,22 @@ function upd_new_msg {
     }
   }
   
-  if (len(sNewMsg) != nMsgLen and len(sNewMsg) != 0) {
-    sys.gui.setStr(tNCount, len(sNewMsg)+"/70");
+  if (len(sNewMsg) != nMsgLen) {
+    if(rlen(sNewMsg) == len(sNewMsg)) {
+      sys.gui.setStr(tNCount, len(sNewMsg)+"/140");
+    } else {
+      sys.gui.setStr(tNCount, len(sNewMsg)+"/70");
+    }
+    
     nMsgLen = len(sNewMsg);
   }
   
   if(sys.gui.getEventC(bNSend) == EV_RELEASED) {
-    sms_send(currentNumber, sNewMsg);
-    if (NewMsgConcept == 1 and sys.fs.exists(currentConv)) {
-      sys.fs.conf.open(currentConv);
-      sys.fs.conf.write("message_concept", "");
-      sys.fs.conf.close();
-    }
-    sNewMsg = "";
+    #sms_send(currentNumber, sNewMsg);
+    
+    sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, sNewMsg);
+    sms_c_conv = "n" + mk_safe_name(currentNumber) +  ".dat";
+    return;
   }
   
   if(sys.gui.getEventC(bNCont) == EV_RELEASED) {
@@ -433,6 +455,28 @@ function upd_new_msg {
   }
   
   sys.gui.setYscroll(newTxScr, sys.gui.getValue(newSlider));
+}
+
+
+function sms_ret {
+  if(arg0 + "" == "OK") {
+    if (NewMsgConcept == 1 and sys.fs.exists(currentConv)) {
+      sys.fs.conf.open(currentConv);
+      sys.fs.conf.write("message_concept", "");
+      sys.fs.conf.close();
+    }
+    
+    sNewMsg = "";
+    page = 0;
+    load_convs();
+    load_conv(sms_c_conv);
+    sys.os.hideKbd();
+    newMsgLoaded = 0;
+
+  } else {
+    sys.os.error("Error occured while sending sms!");
+  } 
+  
 }
 
 

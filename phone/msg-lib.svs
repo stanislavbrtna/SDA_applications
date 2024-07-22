@@ -39,24 +39,6 @@ function parse_ts {
   return hr + ":" + min + " " + sys.time.getTsDay(arg0) + ". " + sys.time.getTsMonth(arg0) + ". " + sys.time.getTsYear(arg0); 
 }
 
-function sms_send { # number, text -> returns
-  if(DEBUG) print("Sending SMS via phone manager.");
-  sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", arg0, arg1);
-  sms_c_conv = "n" + mk_safe_name(arg0) +  ".dat";
-}
-
-function sms_ret {
-  if(arg0 + "" == "OK") {
-    page = 0;
-    load_convs();
-    load_conv(sms_c_conv);
-    sys.os.hideKbd();
-    newMsgLoaded = 0;
-  } else {
-    sys.os.error("Error occured while sending sms!");
-  } 
-}
-
  # load conversations
 function refresh_convs {
   local i = 0; 
