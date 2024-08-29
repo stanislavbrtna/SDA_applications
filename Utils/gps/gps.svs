@@ -22,8 +22,12 @@ function hw_init {
   if(sys.os.inSim() == 1) return; 
 
   # external pin defines
-  sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+  # enable external
+  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
   sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+  # disable internal
+  sys.hw.iPinDef(7, PIN_IN, PIN_NOPULL);
+  sys.hw.iPinDef(8, PIN_IN, PIN_NOPULL);
   
   # init rcv
   sys.com.uartRcvIT();
