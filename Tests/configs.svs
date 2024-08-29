@@ -2,8 +2,8 @@ function init {
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
   test_name = "Configtest 1.1";
-  sys.gui.addText(1,0,10,10,test_name, scr);
-  result = sys.gui.addText(1,1,10,10,"Result:", scr);
+  sys.gui.addText(1, 0, 10, 1, test_name, scr);
+  result = sys.gui.addText(1, 1, 10, 10, "Result:", scr);
   
   progress = 0;
   tested = 0;
@@ -125,6 +125,13 @@ function test_rw {
   if (sys.fs.conf.read("Key1") != "value1" or sys.fs.conf.read("Key2") != "xyz" or sys.fs.conf.read("Key3") != "value3") {
     FAIL = 1;
     print("Re-read failed");
+  }
+  
+  if (sys.fs.conf.read("Key1", "asdf") != "value1" or sys.fs.conf.read("KeyX", "123") != "123") {
+    FAIL = 1;
+    print(sys.fs.conf.read("Key1", "asdf"));
+    print(sys.fs.conf.read("KeyX", "123"));
+    print("Read with default failed.");
   }
   
   sys.fs.conf.close();
