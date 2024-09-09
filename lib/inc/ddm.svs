@@ -48,19 +48,19 @@ function ddm_add_btn #* str name, return: id *# {
   ddm_btn_cnt++;
  
   # positioning:
-  while (ddm_y1 + sys.gui.getYcell(sys.os.gui.getMainScr()) * ddm_btn_cnt > 480 - 160*sys.os.gui.getLandscape()) {
-    ddm_y1 -= sys.gui.getYcell(sys.os.gui.getMainScr());
+  while (ddm_y1 + sys.gui.getYcell(ddm_screen) * ddm_btn_cnt > 480 - 160*sys.os.gui.getLandscape()) {
+    ddm_y1 -= sys.gui.getYcell(ddm_screen);
   }
   
-  while (ddm_x1 + sys.gui.getXcell(sys.os.gui.getMainScr()) * ddm_width > 320 + 160*sys.os.gui.getLandscape()) {
-    ddm_x1 -= sys.gui.getXcell(sys.os.gui.getMainScr());
+  while (ddm_x1 + sys.gui.getXcell(ddm_screen) * ddm_width > 320 + 160*sys.os.gui.getLandscape()) {
+    ddm_x1 -= sys.gui.getXcell(ddm_screen);
   }
   
   sys.o.setXYXY(
     ddm_x1,
     ddm_y1,
-    ddm_x1 + ddm_width * sys.gui.getXcell(sys.os.gui.getMainScr()) - ddm_spacing*ddm_width,
-    ddm_y1 + sys.gui.getYcell(sys.os.gui.getMainScr()) * ddm_btn_cnt - ddm_spacing*ddm_btn_cnt
+    ddm_x1 + ddm_width * sys.gui.getXcell(ddm_screen),
+    ddm_y1 + sys.gui.getYcell(ddm_screen) * ddm_btn_cnt
   );
   
   return ddm_btn_cnt;

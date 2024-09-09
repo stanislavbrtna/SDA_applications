@@ -25,6 +25,7 @@ function update {
   if (sys.gui.getEventC(b_create) == EV_RELEASED) {
     # Overlay screen must be created right away before calling sys.o.setScr
     menu1 = ddm_create(b_create);
+    ddm_width = 6; # width override, otherwise button width is used
     ddm_add_btn("btn1");
     ddm_add_btn("btn2");
     ddm_add_btn("btn3");
