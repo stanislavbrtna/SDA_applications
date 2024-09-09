@@ -1,0 +1,367 @@
+import "lib/inc/com.svs"
+import "lib/inc/ddm.svs"
+import "lib/inc/fs_misc.svs"
+
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  set_spacing(scr);
+  sys.gui.setYcell(scr, 17);
+  sys.gui.setXscroll(scr, 10);
+  sys.gui.setYscroll(scr, 8);
+  
+  sys.gui.setTxtSize(sys.gui.addText(1, 1, 3, 3, "Notes", scr), 32);
+  tArch = sys.gui.addText(4, 2, 3, 2, "(Archived)", scr);
+  sys.gui.setVisible(tArch, 0);
+  
+  scr_list = 0; # updated in a function
+  sld_list = sys.gui.addSliderV(8, 4, 1, 20, 1024, 0, scr);
+
+  bOpt = sys.gui.addButton(5, 24, 1, 2, "...", scr);
+  bNew = sys.gui.addButton(6, 24, 2, 2, "New", scr);
+    
+  com_init();
+  ddm_init();
+  
+  c_new  = 0;
+  c_del  = 0;
+  
+  menu1 = 0;
+  menu2 = 0;
+  
+  dispArchived = 0;
+  
+  fs_confPath("notes");
+  
+  array files[60];
+  array btns[60];
+  
+  load_notes();
+  
+  # note screen
+  scr_note = sys.gui.addScreen();
+  set_spacing(scr_note);
+  sys.gui.setYcell(scr_note, 17);
+  sys.gui.setXscroll(scr_note, 10);
+  sys.gui.setYscroll(scr_note, -8);
+  
+  tNoteName = sys.gui.addText(1, 1, 8, 2, "Name", scr_note);
+  sys.gui.setTexEd(tNoteName, 1);
+  sys.gui.setTexAlign(tNoteName, ALIGN_CENTER);
+  scr_inote = sys.gui.addScreen(1, 4, 8, 18, scr_note);
+  tNoteText = sys.gui.addText(0, 0, 9, 40, "text", scr_inote);
+  sys.gui.setTexEd(tNoteText, 1);
+  
+  slNote = sys.gui.addSliderV(9, 4, 1, 16, 1024, 0, scr_note);
+  sys.gui.setVisible(slNote, 0);
+  
+  bBack = sys.gui.addButton(1, 22, 2, 2, "<-", scr_note);
+  bOpt2 = sys.gui.addButton(8, 22, 1, 2, "...", scr_note);
+  
+  noteString = "";
+  noteArchived = 0;
+  
+  textActO = 0;
+  
+  backBtn = 0;
+}
+
+
+function load_notes {
+  sys.gui.destroy(scr_list);
+  scr_list = sys.gui.addScreen(1, 4, 7, 20, scr);
+  set_spacing(scr_list);
+  sys.gui.setXscroll(scr_list, -6);
+  sys.gui.setYscroll(scr_list, -6);
+  sys.gui.setXcell(scr_list, 37);
+  
+  findfil = sys.fs.find("nt2", ".");
+
+  local x;
+  fileCnt = 0;
+  
+  for(x = 0; x < 60; x++;) {
+    if (findfil == "") {
+      break;
+    }
+    files[x] = findfil;
+    findfil = sys.fs.findNext();
+  }
+  fileCnt = x;
+  
+  btnCnt  = 0;
+  for(x = 0; x < fileCnt; x++;) {
+    # open file
+    sys.fs.conf.open(files[x]);
+    # read name, add button
+    local archived = sys.fs.conf.read("archived", "0");
+    if ((dispArchived == 1 and archived == "1") or ((dispArchived == 0 and archived == "0"))) {
+      btns[x] = sys.gui.addButton(0, btnCnt, 6, 1, sys.fs.conf.read("name", "Unnamed"), scr_list);
+      #print("adding: " + sys.fs.conf.read("name", "Unnamed"));
+      btnCnt++;
+    } else  {
+      btns[x] = 0;
+    }
+    sys.fs.conf.close();
+  }
+}
+
+
+function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
+  sys.gui.setYscroll(arg0, num((float(arg3 - arg2)/1024.0)*float(sys.gui.getValue(arg1))) + arg2);
+}
+
+
+function update_list {
+  local x;
+
+  for(x = 0; x < fileCnt; x++;) {
+    if (btns[x] != 0) {
+      if(sys.gui.getEventC(btns[x]) == EV_RELEASED) {
+        open_note(files[x]);
+      }
+    }
+  }
+  
+  scrScroller(scr_list, sld_list, -6, (btnCnt - 1) * 32 + 3);
+  
+}
+
+
+function handle_main {
+  if(sys.gui.getEventC(bNew) == EV_RELEASED) {
+    c_new = com_new("New note:", 1);
+    com_str = "";
+  }
+  
+  if(sys.gui.getEventC(bOpt) == EV_RELEASED) {
+    menu1 = ddm_create(bOpt);
+    ddm_width = 6;
+    if (dispArchived == 0) {
+      ddm_add_btn("Show archived");
+    } else {
+      ddm_add_btn("Show active");
+    }
+  }
+  
+  if(com_handle(c_new) == 1) {
+    print(com_str);
+    if (com_str == "") {
+      com_str = "New note";
+    }
+    open_note(new_note(com_str));
+  }
+  
+  i = ddm_handle(menu1);
+  if (i > 0) {
+    if(i == 1) {
+      dispArchived = not dispArchived;
+      sys.gui.setVisible(tArch, dispArchived);
+      load_notes();
+    }
+    ddm_exit();
+  }
+}
+
+
+function update_notes {
+  sys.os.gui.handleText(tNoteName);
+  noteString = sys.os.gui.handleText(tNoteText, noteString);
+  
+  if (sys.gui.getTxtAct(tNoteText) != textActO) {
+    if (sys.gui.getTxtAct(tNoteText)) {
+      sys.gui.setYscroll(scr_note, 65);
+    } else {
+      sys.gui.setYscroll(scr_note, -8);
+    }
+    sys.gui.setModif(scr_note);
+  }
+  
+  textActO = sys.gui.getTxtAct(tNoteText);
+  
+  
+  #TODO: better long file handling
+  if(sys.gui.getVisible(slNote)) {
+    scrScroller(scr_inote, slNote, 0, sys.ds.getTextHeight(noteString) - 18);
+  } else {
+    # detect string height and show slider eventually
+    if (sys.ds.getTextHeight(noteString) > 15*18) {
+      sys.gui.setVisible(slNote, 1);
+      sys.gui.setXcell(scr_note, 32);
+    }
+  }
+  
+  
+  if(sys.gui.getEventC(bBack) == EV_RELEASED) {
+    save_note();
+    load_notes();
+    backBtn = 0;
+    sys.os.gui.setMainScr(scr);
+  }
+  
+  
+  if(sys.gui.getEventC(bOpt2) == EV_RELEASED) {
+    menu2 = ddm_create(bOpt2);
+    ddm_width = 6;
+    ddm_add_btn("Copy text");
+    if (noteArchived == 0) {
+      ddm_add_btn("Archive");
+    } else {
+      ddm_add_btn("Make active");
+    }
+    ddm_add_btn("Delete");
+  }
+  
+  
+  i = ddm_handle(menu2);
+  if (i > 0) {
+    if(i == 1) {
+      sys.os.setClipboard(noteString);
+    }
+    if(i == 2) {
+      ddm_exit();
+      print("archiving");
+      noteArchived = not noteArchived;
+      save_note();
+      load_notes();
+      backBtn = 0;
+      sys.os.gui.setMainScr(scr);
+      return;
+    }
+    if(i == 3) {
+      ddm_exit();
+      c_del = com_new("Delete note?", 0);
+      return;
+    }
+    ddm_exit();
+  }
+  
+  
+  if(1 == com_handle(c_del)) {
+    print("deleting");
+    delete_note(currentFile);
+    load_notes();
+    backBtn = 0;
+    sys.os.gui.setMainScr(scr);
+  }
+  
+}
+
+
+function update {
+  handle_main();
+  update_list();
+  update_notes();
+  
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), backBtn);
+}
+
+
+function open_note {
+  currentFile = arg0;
+  sys.fs.conf.open(currentFile);
+  sys.gui.setStr(tNoteName, sys.fs.conf.read("name"));
+  currentText = sys.fs.conf.read("text");
+  #print("Openning: " + currentFile + " " + currentText);
+  if (sys.fs.exists(currentText)) {
+    noteString = sys.fs.readStr(currentText);
+  } else {
+    noteString = "";
+  }
+  
+  noteArchived = num(sys.fs.conf.read("archived", "0"));
+  
+  sys.fs.conf.close();
+  
+  sys.os.gui.setMainScr(scr_note);
+  sys.gui.setVisible(slNote, 0);
+  sys.gui.setXcell(scr_note, 34);
+  sys.gui.setYscroll(scr_inote, 0);
+  sys.gui.setValue(slNote, 0);
+  
+  backBtn = bBack;
+}
+
+
+function save_note {
+  sys.fs.conf.open(currentFile);
+  sys.fs.conf.write("name", sys.gui.getStr(tNoteName));
+  sys.fs.writeStr(noteString, currentText);
+  sys.fs.conf.write("archived", "" + noteArchived);
+  sys.fs.conf.close();
+}
+
+
+function delete_note {
+  if (arg0 == "") {
+    return;
+  }
+
+  sys.fs.conf.open(arg0);
+  sys.fs.delete(sys.fs.conf.read("text"));
+  sys.fs.conf.close();
+  sys.fs.delete(arg0);
+  currentName = "";
+  currentFile = "";
+  currentText = "";
+}
+
+
+function new_note {
+  local i = 1;  
+  while(i < 100) {
+    currentName = mk_safe_name(arg0) + i;
+    currentFile = currentName + ".nt2";
+    currentText = currentName + ".txt";
+    if(not sys.fs.exists(currentFile) and not sys.fs.exists(currentText)) {
+      print("Creating: " + currentFile + ", " + currentText);
+      break;
+    }
+    i++;
+  }
+  if (i == 100) {
+    sys.os.error("Failed to create file!");
+    return 0;
+  }
+  
+  sys.fs.conf.open(currentFile);
+  sys.fs.conf.write("name", arg0);
+  sys.fs.conf.write("text", currentText);
+  sys.fs.conf.write("time", "" + sys.time.get());
+  sys.fs.conf.write("archived", "0");
+  
+  noteArchived = 0;
+  sys.fs.conf.close();
+  
+  return (currentFile);
+}
+
+
+function exit {
+
+}
+
+## utils
+
+function mk_safe_name {
+  local accepted = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  local i;
+  local r = "";
+  for (i = 1; i <= len(arg0); i++;) {
+    if (instr(accepted, getcp(arg0, i))) {
+      r += getcp(arg0, i);
+    }
+  }
+  return r;
+}
+
+
+function set_spacing {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setXscroll(arg0, -6); # to change xscroll and xscroll old, prevents scroll artefacts
+}
