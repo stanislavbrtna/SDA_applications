@@ -1,0 +1,138 @@
+#*
+#   uarts.svs
+#
+#   Uart Handling library
+#
+#   Manages pin defines, speed settings and resource locking.
+#
+#   uart_init();
+#   - inits the uarts.svs library
+#
+#   uart_init_ext(); return: [num] 0 - ok, 1 - failed
+#   - initializes external uart (and de-inits internal)   
+#
+#   uart_free_ext();
+#
+#   uart_init_int(); return: [num] 0 - ok, 1 - failed
+#   - initializes internal uart (and de-initializes external)
+#
+#   uart_free_int();
+#
+#   uart_init_usb(); return: [num] 0 - ok, 1 - failed
+#   - initializes usb uart
+#
+#   uart_free_usb();
+#
+#   Note:
+#   - set uartSpeed variable to different value before calling
+#     the init function to init uart at different speed [bd]
+*#
+
+
+function uart_init {
+  uartSpeed = 9600;
+  uartLockI = 0;
+  uartLockE = 0;
+  uartLockU = 1;
+}
+
+
+function uart_init_ext {
+  # check for lock
+  if (
+    sys.hw.getLock(EXT_EXP_PORT)
+    or sys.hw.getLock(INT_EXP_PORT)
+    or sys.hw.getLock(SERIAL_PORT)
+  ) {
+    print("Warn: uart_init_ext: Port is locked");
+    return 1;
+  }
+  if (sys.os.inSim()) return 0;
+  # enable external
+  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+  # disable internal
+  sys.hw.iPinDef(7, PIN_IN, PIN_NOPULL);
+  sys.hw.iPinDef(8, PIN_IN, PIN_NOPULL);
+  if (uartSpeed != 0) sys.com.uartSetBd(uartSpeed);
+  # reset
+  sys.com.uartGetRd();
+  sys.com.uartGetStr();
+  
+  uartLockI = 1;
+  return 0;
+}
+
+
+function uart_free_ext {
+  if (uartLockI == 1) {
+    sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+    sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+    sys.hw.free(EXT_EXP_PORT);
+    sys.hw.free(INT_EXP_PORT);
+    sys.hw.free(SERIAL_PORT);
+    uartLockI = 0;
+  }
+}
+
+
+function uart_init_int {
+  # check for lock
+  if (
+    sys.hw.getLock(EXT_EXP_PORT)
+    or sys.hw.getLock(INT_EXP_PORT)
+    or sys.hw.getLock(SERIAL_PORT)
+  ) {
+    print("Warn: uart_init_int: Port is locked");
+    return 1;
+  }
+  if (sys.os.inSim()) return 0;
+  # disable external
+  sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+  # enable internal
+  sys.hw.iPinDef(7, PIN_ALT, PIN_NOPULL);
+  sys.hw.iPinDef(8, PIN_ALT, PIN_NOPULL);
+  if (uartSpeed != 0) sys.com.uartSetBd(uartSpeed);
+  # reset
+  sys.com.uartGetRd();
+  sys.com.uartGetStr();
+  uartLockE = 1;
+  return 0;
+}
+
+
+function uart_free_int {
+  if (uartLockE == 1) {
+    sys.hw.iPinDef(7, PIN_IN, PIN_NOPULL);
+    sys.hw.iPinDef(8, PIN_IN, PIN_NOPULL);
+    sys.hw.free(EXT_EXP_PORT);
+    sys.hw.free(INT_EXP_PORT);
+    sys.hw.free(SERIAL_PORT);
+    uartLockE = 0;
+  }
+}
+
+
+function uart_init_usb {
+  if (
+    sys.hw.getLock(USB_PORT);
+  ) {
+    print("Warn: uart_init_int: Port is locked");
+    return 1;
+  }
+  if (sys.os.inSim()) return 0;
+  if (uartSpeed != 0) sys.com.usbSetBd(uartSpeed);
+  sys.com.usbGetRd();
+  sys.com.usbGetStr();
+  uartLockU = 1;
+  return 0;
+}
+
+
+function uart_free_usb {
+  if (uartLockU == 1) {
+    sys.hw.free(USB_PORT);
+    uartLockU = 0;
+  }
+}
