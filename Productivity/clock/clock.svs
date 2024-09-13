@@ -1,6 +1,7 @@
 function init {
-  print("init: clock v 3.1");
-  sys.os.checkVer(1020);
+  print("init: clock v 3.2");
+  sys.os.checkVer(10410);
+  sys.os.setSingular();
 
   scr = sys.gui.addScreen();
   s_budik = sys.gui.addScreen();
@@ -11,6 +12,8 @@ function init {
 
   tim_ov = 0;
   alarm_siren = 0;
+  
+  alarm_siren_id = 0;
 
   if (sys.os.getLang() == SVP_LANG_CZ) {
     btn_budik = sys.gui.addButton(1, 1, 3, 2, "Budík", scr);
@@ -26,25 +29,44 @@ function init {
 
   sys.gui.setSelect(btn_budik, 1);
   frame = sys.gui.addFrame(0, 2, 10, 14, s_budik, scr);
-  mode = 1; #1-budík 2-stopky 3-minutka
+  mode = 1; # 1-budík 2-stopky 3-minutka
   modeprev = 1;
 
   init_budik();
   init_stop();
   init_min();
 
+  wakeup();
+  
+  sys.fs.conf.open("appdata/clock.dat");
+  local s = sys.fs.conf.read("snooze", "0");
+  
+  if(s != "0") {
+    alarm_siren_id = num(s);
+    sys.gui.setVisible(bud_ok, 1);
+    sys.gui.setVisible(bud_snooze, 1);
+    sys.gui.setGrayout(bud_snooze, 0);
+    showDays(0);
+  }
+  
+  sys.fs.conf.close();
+}
+
+
+function wakeup {
   if (sys.alarm.getFlag()) {
     if (sys.alarm.getPar() == 0) {
       alarm_siren = 1;
       sys.hw.wakeLcd();
       sys.gui.setVisible(bud_ok, 1);
       sys.gui.setVisible(bud_snooze, 1);
+      sys.gui.setGrayout(bud_snooze, 0);
       showDays(0);
     }
     sys.alarm.clrFlag();
   }
-
 }
+
 
 function update {
   #topmenu
@@ -196,21 +218,26 @@ function init_budik {
   sys.snd.beepDef();
 }
 
-function resetAlarm {
+function rmAlarmId { # id
+  if (sys.fs.conf.readInt("id_" + arg0 + 1, 0) != 0) {
+    sys.alarm.destroy(sys.fs.conf.readInt("id_" + arg0 + 1, 0));
+    sys.fs.conf.write("id_" + arg0 + 1 , "0");
+  }
+}
+
+function resetAlarm { # alarm_id, active
   sys.fs.conf.open("appdata/clock.dat");
 
   sys.fs.conf.write("act_" + arg0 + 1 , "" + arg1);
 
+  rmAlarmId(arg0);
+  
   if (arg1 == 1) {
-    sys.alarm.destroy(sys.fs.conf.readInt("id_" + arg0 + 1, 0));
     local id;
     id = sys.alarm.setRep(bud_hour, bud_min, arg0 + 1, 0, 0, 0);
     sys.fs.conf.write("id_" + arg0 + 1 , "" + id);
-  } else {
-    sys.alarm.destroy(sys.fs.conf.readInt("id_" + arg0 + 1, 0));
-    sys.fs.conf.write("id_" + arg0 + 1 , "0");
   }
-
+  
   sys.fs.conf.close();
 }
 
@@ -263,8 +290,7 @@ function upd_bud {
   }
 
   if (sys.gui.getEventC(bud_snooze) == 3) {
-    sys.gui.setVisible(bud_snooze, 0);
-    sys.gui.setVisible(bud_ok, 0);
+    sys.gui.setGrayout(bud_snooze, 1);
     alarm_siren = 0;
     sys.alarm.setFixed(sys.time.get() + 10 * 60, 0);
     sys.os.exit();
