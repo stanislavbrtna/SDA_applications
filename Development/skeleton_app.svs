@@ -6,15 +6,25 @@ function init {
   bFsl = sys.gui.addButton(1, 1, 5, 1, "Choose file", scr);
 
   bOverlay = sys.gui.addButton(1, 3, 5, 1, "Create overlay", scr);
+  
+  # text input
+  tText = sys.gui.addText(1, 5, 5, 1, "Test text", scr);
+  sys.gui.setTexEd(tText, 1);
+  sText = "";
+  sTextO = "";
+  
+  # overlay init
   ov_id = 0;
 }
 
+ # call return for FSL
 function callRet {
   print("argument0: " + arg0);
   sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
 }
 
 
+ # overlay functions
 function init_overlay {
   ov_screen = sys.gui.addScreen();
   sys.gui.addText(1, 1, 8, 1, "This is the overlay", ov_screen);
@@ -33,13 +43,16 @@ function handle_overlay {
     sys.o.destroy();
     return;
   }
+  
+  # keypad handling for the overlay
+  sys.os.gui.btnCtrl(ov_screen, ov_cancel);
 }
 
 
 function update {
   # fsl
   if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
-    sys.os.subProcess("lib/fsl.svs", &callRet, 0, 0, 0);
+    sys.os.subProcess("lib/fsl2.svs", &callRet, 0, 0, 0);
     return;
   }
   
@@ -53,6 +66,19 @@ function update {
   if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
     handle_overlay();
   }
+  
+  # Old text field handling
+  # usefull when you need the text value always in a variable
+  #sText = sys.os.gui.handleText(tText, sText);
+  
+  # New pattern
+  # This handles the text input
+  # You can get the string val with sys.gui.getStr(tText); 
+  # Note: the input string is still internaly stored in svs text memory 
+  sys.os.gui.handleText(tText);
+  
+  # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
 }
 
 
