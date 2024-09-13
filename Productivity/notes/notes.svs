@@ -6,6 +6,7 @@ import "lib/inc/fs_misc.svs"
 function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
+  sys.os.setSingular();
   sys.os.gui.setMainScr(scr);
   set_spacing(scr);
   sys.gui.setYcell(scr, 17);
