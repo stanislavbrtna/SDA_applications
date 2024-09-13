@@ -112,6 +112,9 @@ function set_sizes {
 
 
 function img_redraw {
+  if (sys.o.getId() != 0) {
+    return;
+  }
   sys.ds.setArea(2, 65, 286, 382 + 64);
 
   sys.ds.clearArea(sys.gui.getColor(COL_BACKGROUND));
