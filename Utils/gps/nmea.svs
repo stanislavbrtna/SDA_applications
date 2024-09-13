@@ -1,0 +1,52 @@
+##############################################################################
+## Nmea parsing ##############################################################
+##############################################################################
+
+function parseNMEA {
+  if( not instr(arg0, "$GPGGA")) {
+    return;
+  }
+  
+  local cmd = substr(arg0, instr(arg0, "$GPGGA"), len(arg0));
+  
+  upd_fix = 1;
+  
+  fix = get_arg(cmd, 5);
+  
+  sats = get_arg(cmd, 6);
+  
+  if (sats == "") {
+    stas = "0";
+  }
+  
+  if(fix == "" or fix == "0") {
+    fix = "0";
+    return;
+  }
+  
+  lat  = get_arg(cmd, 1);
+  latS = get_arg(cmd, 2);
+  lon  = get_arg(cmd, 3);
+  lonS = get_arg(cmd, 4);
+  hdop = get_arg(cmd, 7);
+  alt  = get_arg(cmd, 8);
+  
+  pos_acq = 1;
+}
+
+
+function get_arg #* str, arg_no *# {
+  local out = "";
+  out = substr(arg0, instr(arg0, ",") + 1, len(arg0));
+  local i;
+  for(i = 0; i < arg1; i++;) {
+    out = substr(out, instr(out, ",") + 1, len(out));
+  }
+  
+  return substr(out, 0, instr(out, ",") - 1);
+}
+
+
+function fix_valid {
+  return (fix != "" and fix != "0");
+}

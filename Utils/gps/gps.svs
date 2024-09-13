@@ -5,8 +5,9 @@
 ## 
 ###############################################################################
 
-
 import "lib/inc/ddm.svs"
+import "lib/inc/uarts.svs"
+
 
  # misc
 function get_folder {
@@ -19,15 +20,14 @@ function get_folder {
 
 
 function hw_init {
+  uart_init();
+  
+  if(uart_init_ext()) {
+    sys.gui.setStr(txt, "Serial port is claimed\nby some other app.");
+    return;
+  }
+  
   if(sys.os.inSim() == 1) return; 
-
-  # external pin defines
-  # enable external
-  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
-  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
-  # disable internal
-  sys.hw.iPinDef(7, PIN_IN, PIN_NOPULL);
-  sys.hw.iPinDef(8, PIN_IN, PIN_NOPULL);
   
   # init rcv
   sys.com.uartRcvIT();
@@ -42,6 +42,8 @@ function hw_init {
 function init {
   sys.os.checkVer(1310);
   scr = sys.gui.addScreen();
+  sys.hw.lockSleep(1);
+  sys.os.setSingular();
   
   sys.gui.setRelInit(1);
   bMapSel  = sys.gui.addButton(0, 0, 4, 1, "Select map", scr);
@@ -145,6 +147,7 @@ function maps_setup {
   array map_y[map_max];
   array map_xscale[map_max];
   array map_yscale[map_max];
+  array map_tiled[map_max];
   
   # Map 0
   map_name[0] = "Europe";
@@ -154,24 +157,43 @@ function maps_setup {
   #70°12'47.328"N, 24°19'24.779"W
   map_xscale[0] = 7.751; #px/deg
   map_yscale[0] = 15.850; #px/deg
+  map_tiled[0] = 0;
   
   # Map cz
   map_name[1] = "Czechia";
-  map_file[1] = "maps/map_cz.p16";
+  map_file[1] = "maps/map_cz";
+  map_x[1] = 11.950;
+  map_y[1] = -51.07091467;
+  map_xscale[1] = 165.0; #px/deg
+  map_yscale[1] = 265.0; #px/deg
+  map_tiled[1] = 1;
+  
+  #* 
+  #cz old
   map_x[1] = 12.1181008;
   map_y[1] = -51.07091467;
   map_xscale[1] = 110.0; #px/deg
   map_yscale[1] = 161.0; #px/deg
-  
-  # map cb
+  map cb
   map_name[2] = "Budějce";
   map_file[2] = "maps/map_cb.p16";
   map_x[2] = 14.3905;
   map_y[2] = -49.0327;
   map_xscale[2] = 11500.0; #px/deg
   map_yscale[2] = 17200.0; #px/deg
+  map_tiled[2] = 0;
+  *#
   
-  set_map(0);
+  # map cb tiled
+  map_name[2] = "Budějce";
+  map_file[2] = "maps/map_cb";
+  map_x[2] = 14.3921;
+  map_y[2] = -49.0318;
+  map_xscale[2] = 10980.0; #px/deg
+  map_yscale[2] = 16340.0; #px/deg
+  map_tiled[2] = 1;
+  
+  set_map(2);
   
   hw_init();
 }
@@ -181,8 +203,16 @@ function set_map {
   current_map = arg0;
 
   map_dscale = 1;
-  map_w = sys.ds.getImageW(map_file[current_map]);
-  map_h = sys.ds.getImageH(map_file[current_map]);
+  
+  if (map_tiled[arg0] == 0) {
+    map_w = sys.ds.getImageW(map_file[current_map]);
+    map_h = sys.ds.getImageH(map_file[current_map]);
+  } else {
+    sys.fs.conf.open(map_file[current_map] + "/info.cfg");
+    map_w = num(sys.fs.conf.read("map_w", "0"));
+    map_h = num(sys.fs.conf.read("map_h", "0"));
+    sys.fs.conf.close();
+  }
   
   view_w = 285;
   view_h = 222;
@@ -287,6 +317,7 @@ function set_sizes {
 
   xpos = - num(float(sys.gui.getValue(hBar))/1000.0 * float(parH));
   ypos = - num(float(sys.gui.getValue(vBar))/1000.0 * float(parV));
+
 }
 
 
@@ -333,7 +364,10 @@ function redrawMap {
 
   if ((arg1 == 1) or xPos_o != xPos or yPos_o != yPos) {
     sys.ds.clearArea(sys.gui.getColor(COL_BACKGROUND));
-    sys.ds.drawImage(xpos, ypos, map_dscale, map_dscale, map_file[current_map]);
+    #sys.ds.drawImage(xpos, ypos, map_dscale, map_dscale, map_file[current_map]);
+    if (arg2 == 0) {
+      tiledDraw(xpos, ypos, map_dscale, current_map);
+    } 
   }
   
   if (track_display) {
@@ -341,8 +375,9 @@ function redrawMap {
   }
   
   # test dots
-  #draw_dot(-48.9339586, 14.4623514, sys.ds.mixColor(255,0,0));
-  #draw_dot(-48.9628544, 14.4331153, sys.ds.mixColor(255,0,0));
+  #draw_dot(-48.9745986, 14.4743400, sys.ds.mixColor(255,0,0));
+  #draw_dot(-48.9693728, 14.4858519, sys.ds.mixColor(255,0,0));
+  #draw_dot(-48.9770914, 14.4868283, sys.ds.mixColor(255,0,0));
 
   if (arg0) {
     xPos = get_xpos(lon, lonS);
@@ -352,6 +387,69 @@ function redrawMap {
 
     xPos_o = xPos;
     yPos_o = yPos;
+  }
+}
+
+
+function tiledDraw { # x, y, dscale, map_id
+  if(map_tiled[arg3] == 0) {
+    sys.ds.drawImage(arg0, arg1, arg2, arg2, map_file[arg3]);
+    return;
+  }
+   
+  local tile_size = 128;
+  
+  if(arg2 > 0) {
+    tile_size = 128 * arg2;
+  } else {
+    if(arg2 == 0) {
+      tile_size = 64;
+    }
+    if(arg2 == -1) {
+      tile_size = 32;
+    }
+    if(arg2 == -2) {
+      tile_size = 16;
+    }
+    if(arg2 == -3) {
+      tile_size = 8;
+    }
+  }
+  
+  
+  # tile id
+  local tile_x = arg0/tile_size;
+  local tile_y = arg1/tile_size;
+  
+  if(tile_x < 0) tile_x *= -1;
+  if(tile_y < 0) tile_y *= -1;
+  
+  #print("x: " + arg0 + " y: " + arg1 + " scale: " + arg2);
+  
+  local draw_x = arg0 - (arg0/tile_size)*tile_size;
+  local draw_y = arg1 - (arg1/tile_size)*tile_size;
+  
+  #print("draw_x" + draw_x);
+  
+  local i = 0;
+  local b = 0;
+  
+  local bMax = view_h / tile_size + 2;
+  local iMax = view_w / tile_size + 2;
+  
+  if (bMax == 1) bMax = 2;
+  if (iMax == 1) iMax = 2;
+  
+  for(b = 0; b < bMax; b++;) {
+    for(i = 0; i < iMax; i++;) {
+      sys.ds.drawImage(
+        draw_x + i*tile_size,
+        draw_y + b*tile_size,
+        arg2, arg2,
+        map_file[arg3] + "/" + "tile_" + tile_x + i + "_" + tile_y + b + ".p16"
+      );
+      #print("draw: " + "tile_" + tile_x + i + "_" + tile_y + b + ".p16 size:" + tile_size + "x: " + draw_x + i*tile_size + " y: " + draw_y + b*tile_size);
+    }
   }
 }
 
@@ -378,158 +476,7 @@ function center { #xpos, ypos
 ##############################################################################
 ## Track routines ############################################################
 ##############################################################################
-
-function trk_reset {
-  trk_len = 0;
-  trk_rlen = 0;
-  track_dist_p = 0.0;
-  track_enabled = 1;
-  track_display = 1;
-  track_file = sys.time.getYear() + "-"
-               + sys.time.getMonth() + "-"
-               + sys.time.getDay() + "-"
-               + sys.time.getHr() + "-" + sys.time.getMin() + ".gps";
-  
-  sys.gui.setStr(tTrInfo3, "(" + track_file + ")");
-  
-  sys.hw.lockSleep(1);
-}
-
-
-function trk_add_point { #lat, lon
-  if(trk_len != 0) {
-    if (arg0 == trk_lat[trk_len - 1] and trk_lon[trk_len - 1] == arg1) {
-      return;
-    }
-    
-    if (get_distance(arg0, arg1, trk_lat[trk_len - 1], trk_lon[trk_len - 1]) < 40.0) {
-      print("Points too close together...");
-      return;
-    }
-  }
-  
-  if(trk_len > 1) {
-    local ab_len = get_distance(arg0, arg1, trk_lat[trk_len - 1], trk_lon[trk_len - 1])
-                   + get_distance(trk_lat[trk_len - 1], trk_lon[trk_len - 1], trk_lat[trk_len - 2], trk_lon[trk_len - 2]);
-    
-    local c_len = get_distance(arg0, arg1, trk_lat[trk_len - 2], trk_lon[trk_len - 2]);
-    
-    local d = 0.0;
-    
-    if (ab_len > c_len) {
-      d = ab_len - c_len;
-    } else {
-      d = c_len - ab_len;
-    }
-    
-    if (d < ab_len*0.001) {
-      trk_lat[trk_len - 1] = arg0;
-      trk_lon[trk_len - 1] = arg1;
-      return;
-    }
-  }
-  
-  trk_lat[trk_len] = arg0;
-  trk_lon[trk_len] = arg1;
-  
-  trk_len++;
-  
-  if(trk_len == len(trk_lat) - 1) {
-    trk_len = 0;
-    track_dist_p += track_dist;
-  }
-  
-  sys.fs.chDir();
-  
-  sys.fs.chDir("appdata");
-  sys.fs.chDir("gps");
-  
-  sys.fs.conf.open(track_file);
-  
-  sys.fs.conf.write("lat_"  + trk_rlen, "" + arg0);
-  sys.fs.conf.write("lon_"  + trk_rlen, "" + arg1);
-  sys.fs.conf.write("time_" + trk_rlen, "" + sys.time.get());
-  sys.fs.conf.write("alt_"  + trk_rlen, "" + arg2);
-  
-  sys.fs.conf.close();
-  
-  sys.fs.chDir(1);
-  sys.fs.chDir(get_folder(sys.os.getAppPath()));
-  
-  trk_rlen++;
-  sys.gui.setStr(tTrInfo2, "Data: " + trk_len + " points");
-}
-
-
-function trk_draw {
-  local i;
-  local lat_pre = 0.0;
-  local lon_pre = 0.0;
-  track_dist = 0.0;
-  
-  for(i = 0; i < trk_len; i++;) {
-    draw_dot(trk_lat[i], trk_lon[i], sys.ds.mixColor(200, 0, 0));
-    if(lat_pre != 0.0) {
-      draw_line(lat_pre, lon_pre, trk_lat[i], trk_lon[i], sys.ds.mixColor(200, 0, 0));
-      track_dist += get_distance(lat_pre, lon_pre, trk_lat[i], trk_lon[i]);
-    }
-    lat_pre = trk_lat[i];
-    lon_pre = trk_lon[i];
-  }
-  
-  sys.gui.setStr(tTrInfo, "Distance: " + track_dist + track_dist_p + " m");
-}
-
-
-function trk_load {
-  if(arg0 == "") {
-    return;
-  }
-  
-  trk_reset();
-  
-  track_enabled = 0;
-  sys.gui.setStr(tBNew, "Close");
-  
-  sys.fs.chDir();
-  
-  track_file = arg0;
-   
-  sys.fs.conf.open(track_file);
-  
-  while(sys.fs.conf.exists("lat_" + trk_rlen)) {
-    trk_lat[trk_len] = float(sys.fs.conf.read("lat_" + trk_rlen));
-    trk_lon[trk_len] = float(sys.fs.conf.read("lon_" + trk_rlen));
-    #trk_time[trk_len] = float(sys.fs.conf.read("time_" + trk_rlen));
-    
-    trk_len++;
-    
-    if(trk_len == len(trk_lat) - 1) {
-      trk_draw(); # to compute the dist, and also draw it on screen
-      trk_len = 0;
-      track_dist_p += track_dist;
-    }
-    
-    trk_rlen++;
-  }
-
-  sys.fs.conf.close();
-  
-  sys.fs.chDir(1);
-  sys.fs.chDir(get_folder(sys.os.getAppPath()));
-  
-  sys.gui.setStr(tTrInfo2, "Data: " + trk_len + " points");
-}
-
-
-function trk_stop {
-  track_enabled = 0;
-  track_display = 0;
-  sys.gui.setStr(tTrInfo, "");
-  sys.gui.setStr(tTrInfo2, "");
-  sys.gui.setStr(tTrInfo3, "");
-  sys.hw.lockSleep(0);
-}
+import "~tracking.svs"
 
 
 ##############################################################################
@@ -544,17 +491,49 @@ function update {
     redraw--;
   }
   
-  if (redraw == 1) {
+  if (redraw == 1 or sys.os.getRedraw()) {
     redraw--;
     redrawMap((fix != "0") and (fix !=""), 1);
   }
   
-  if(sys.os.getRedraw()) {
-    redrawMap((fix != "0") and (fix !=""), 1);
+  # gui handlers
+  if(sys.gui.getEvent(hBar) == EV_HOLD or sys.gui.getEvent(vBar) == EV_HOLD) {
+    redrawMap((fix != "0") and (fix !=""), 1, 1);
   }
   
-  # gui handlers
   if(sys.gui.getEventC(hBar) == EV_RELEASED or sys.gui.getEventC(vBar) == EV_RELEASED) {
+    redraw = 1;
+  }
+  
+  if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+    if(sys.gui.getValue(vBar) > 0) {
+      sys.gui.setValue(vBar, sys.gui.getValue(vBar) - 10);
+    }
+    sys.hw.btn.clrEvent(BTN_UP);
+    redraw = 1;
+  }
+  
+  if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+    if(sys.gui.getValue(vBar) < 990) {
+      sys.gui.setValue(vBar, sys.gui.getValue(vBar) + 10);
+    }
+    sys.hw.btn.clrEvent(BTN_DOWN);
+    redraw = 1;
+  }
+  
+  if(sys.hw.btn.getEvent(BTN_LEFT) == EV_PRESSED) {
+    if(sys.gui.getValue(hBar) > 0) {
+      sys.gui.setValue(hBar, sys.gui.getValue(hBar) - 10);
+    }
+    sys.hw.btn.clrEvent(BTN_LEFT);
+    redraw = 1;
+  }
+  
+  if(sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
+    if(sys.gui.getValue(hBar) < 990) {
+      sys.gui.setValue(hBar, sys.gui.getValue(hBar) + 10);
+    }
+    sys.hw.btn.clrEvent(BTN_RIGHT);
     redraw = 1;
   }
   
@@ -568,7 +547,7 @@ function update {
     redraw = 1;
   }
   
-  if(sys.gui.getEventC(bS) == EV_RELEASED) {
+  if(sys.gui.getEventC(bS) == EV_RELEASED or sys.hw.btn.getEvent(BTN_B) == EV_PRESSED) {
     if (pos_acq) {
       center(xPos, yPos);
     } else {
@@ -576,7 +555,7 @@ function update {
         center(trk_lon[0], trk_lat[0]);
       }
     }
-    
+    sys.hw.btn.clrEvent(BTN_B);
     redraw = 1;
   }
   
@@ -633,6 +612,19 @@ function update {
     sys.os.subProcess("lib/fsl2.svs", &trk_load, "appdata/gps/", 0, "-filter gps");
     return;
   }
+  
+  if(sys.hw.getLcdState() != lcdPrevState) {
+    if (sys.hw.getLcdState() == 1) {
+      sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+      sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+    } else {
+      sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+      sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+    } 
+    
+    lcdPrevState = sys.hw.getLcdState();
+  }
+  
   
   # read uart data
   if (sys.hw.getLcdState() == 1) {
@@ -730,57 +722,7 @@ function update {
   sys.gui.setValue(bar, 5 - (updTime + 5 - sys.time.getUptime()));
 }
 
+import "~nmea.svs"
 
-##############################################################################
-## Nmea parsing ##############################################################
-##############################################################################
-
-function parseNMEA {
-  if( not instr(arg0, "$GPGGA")) {
-    return;
-  }
-  
-  local cmd = substr(arg0, instr(arg0, "$GPGGA"), len(arg0));
-  
-  upd_fix = 1;
-  
-  fix = get_arg(cmd, 5);
-  
-  sats = get_arg(cmd, 6);
-  
-  if (sats == "") {
-    stas = "0";
-  }
-  
-  if(fix == "" or fix == "0") {
-    fix = "0";
-    return;
-  }
-  
-  lat  = get_arg(cmd, 1);
-  latS = get_arg(cmd, 2);
-  lon  = get_arg(cmd, 3);
-  lonS = get_arg(cmd, 4);
-  hdop = get_arg(cmd, 7);
-  alt  = get_arg(cmd, 8);
-  
-  pos_acq = 1;
-}
-
-
-function get_arg #* str, arg_no *# {
-  local out = "";
-  out = substr(arg0, instr(arg0, ",") + 1, len(arg0));
-  local i;
-  for(i = 0; i < arg1; i++;) {
-    out = substr(out, instr(out, ",") + 1, len(out));
-  }
-  
-  return substr(out, 0, instr(out, ",") - 1);
-}
-
-
-function fix_valid {
-  return (fix != "" and fix != "0");
-}
+function dummy {} #TODO: file is not correctly imported on stm32 without this dummy block, fix this 
 
