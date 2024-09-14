@@ -166,6 +166,7 @@ function count_list {
   } else {
     sys.gui.setParam(s_bar, list_size);
   }
+  
   print("list size:" + list_size);
 }
 
@@ -176,8 +177,16 @@ function load_list {
   
   local lmax = 4;
   local i = list_size - list_start - lmax;
+  
+  if(i < 0) {
+    i = 0;
+  }
+  
+  #print("ll: " + list_size +" "+ list_start +" "+ lmax);
 
   lmax--; # counts from 0
+  
+  # clear list
   for(local g = 0; g <= lmax; g++;) {
     if (b_list[g]) {
       sys.gui.destroy(b_list[g]);
@@ -186,11 +195,16 @@ function load_list {
       num_list[g] = "";
     }
   }
+  
   sys.fs.chDir();
   sys.fs.chDir("appdata");
   sys.fs.conf.open("phone/history.cfg");
   
   local b = lmax;
+  
+  if(list_size < lmax) {
+    b = list_size - 1;
+  }
   while(sys.fs.conf.exists("number_" + i)) {
     
     local number = sys.fs.conf.read("number_" + i);
