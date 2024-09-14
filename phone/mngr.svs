@@ -8,7 +8,7 @@ function init {
 
   DEBUG = 0;
   
-  timerWkupS = 60 * 3; # manager wkup every 3 min
+  timerWkupS = 60 * 3; # manager wkup every 3 min, twice when lcd is on
 
   # AT init commands
   array initcmds = [
