@@ -442,12 +442,16 @@ function tiledDraw { # x, y, dscale, map_id
   
   for(b = 0; b < bMax; b++;) {
     for(i = 0; i < iMax; i++;) {
-      sys.ds.drawImage(
-        draw_x + i*tile_size,
-        draw_y + b*tile_size,
-        arg2, arg2,
-        map_file[arg3] + "/" + "tile_" + tile_x + i + "_" + tile_y + b + ".p16"
-      );
+      local fname = map_file[arg3] + "/" + "tile_" + tile_x + i + "_" + tile_y + b + ".p16";
+      if (sys.fs.exists(fname)) {
+        sys.ds.drawImage(
+          draw_x + i*tile_size,
+          draw_y + b*tile_size,
+          arg2, arg2,
+          fname
+        );
+      }
+      
       #print("draw: " + "tile_" + tile_x + i + "_" + tile_y + b + ".p16 size:" + tile_size + "x: " + draw_x + i*tile_size + " y: " + draw_y + b*tile_size);
     }
   }
