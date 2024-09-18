@@ -53,6 +53,40 @@ function init {
 }
 
 
+function set_icon {
+  if(icon_id != 0) {
+    sys.os.gui.freeNotif(icon_id);
+  }
+  
+  sys.fs.chDir(1);
+  sys.fs.chDir(get_folder(sys.os.getAppPath()));
+  icon_id = sys.os.gui.setNotif("timer.sic", &icoCallback);
+  sys.fs.chDir(0);
+}
+
+
+function free_icon {
+  if(icon_id != 0) {
+    sys.os.gui.freeNotif(icon_id);
+  }
+}
+
+function icoCallback {
+  sys.os.arise();
+}
+
+function get_folder {
+  for(i = len(arg0); i > 0; i--;) {
+    if (getcp(arg0, i) == "/") {
+      arg0 = substr(arg0, 0, i);
+      break;
+    }
+  }
+  
+  return arg0;
+}
+
+
 function wakeup {
   if (sys.alarm.getFlag()) {
     if (sys.alarm.getPar() == 0) {
@@ -510,6 +544,7 @@ function upd_min {
       m_time_u = sys.time.getUptime();
       sys.hw.btn.stdbyEn(1);
       sys.time.setTimer(m_time*1000, &timerCb);
+      set_icon();
     }
     m_time_upd = 1;
   }
@@ -536,6 +571,7 @@ function upd_min {
     sys.gui.setVisible(m_b_ok, 0);
     sys.hw.btn.stdbyEn(0);
     m_time_upd = 1;
+    free_icon();
   }
 
 
