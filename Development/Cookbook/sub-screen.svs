@@ -1,16 +1,34 @@
 function init {
     screen = sys.gui.addScreen();
     sys.os.gui.setMainScr(screen);
+    sys.gui.setRelInit(1);
 
     # Element options
-    grayout = sys.gui.addCheckBox(1, 11, 9, 12,"grayout", screen);
-    ghost = sys.gui.addCheckBox(1, 12, 9, 13,"ghost", screen);
-    select = sys.gui.addCheckBox(1, 13, 9, 14,"select", screen);
+    grayout = sys.gui.addCheckBox(1, 11, 8, 1,"grayout", screen);
+    ghost = sys.gui.addCheckBox(1, 12, 8, 1,"ghost", screen);
+    select = sys.gui.addCheckBox(1, 13, 8, 1,"select", screen);
 
     # DUT
-    element = sys.gui.addScreen(1, 2, 9, 7, screen);
-    sys.gui.addCheckBox(1, 1, 7, 2,"inner element", element);
-    sys.gui.addButton(1, 3, 6, 4,"inner element 2", element);
+    element = sys.gui.addScreen(1, 2, 8, 7, screen);
+    
+    sys.gui.addText(1, 0, 6, 1, "Inner screen", element);
+    sys.gui.addCheckBox(1, 1, 7, 1,"inner element", element);
+    sys.gui.addButton(1, 2, 6, 1,"inner element 2", element);
+    sys.gui.addSliderH(1, 3, 6, 1, 100, 50, element);
+    ic = sys.gui.addIcon(3, 4, 2, 3, "Icon", "none2.p16", element);
+    sys.gui.setParam(ic, 1);
+    sys.gui.setTexAlign(ic, ALIGN_CENTER);
+    
+    path = sys.os.getAppPath();
+    
+    for(i = len(path); i > 0; i--;) {
+      if (getcp(path, i) == "/") {
+        path = substr(path, 0, i);
+        break;
+      }
+    }
+    
+    sys.os.gui.setRoot(1, path);
 }
 
 function update {
