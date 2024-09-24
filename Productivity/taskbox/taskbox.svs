@@ -48,9 +48,10 @@ function init {
   sys.gui.setTexEd(tNameTE, 1);
   sys.gui.addText(0, 1, 4, 1, "Description:", sTaskE);
   scDescrTE = sys.gui.addScreen(0, 2, 8, 6, sTaskE);
+  sys.gui.setBgRedraw(scDescrTE, 0);  
   tDescrTE = sys.gui.addText(0, 0, 9, 21, "", scDescrTE);
   sys.gui.setTexEd(tDescrTE, 1);
-   
+
   bBackTE  = sys.gui.addButton(0, 11, 3, 1, "Back", sTaskE);
   bTrackTE = sys.gui.addButton(3, 11, 5, 1, "Start tracking",sTaskE);
   tTrackTE = sys.gui.addText(0, 10, 8, 1, "", sTaskE);
@@ -72,6 +73,7 @@ function init {
   barNo    = sys.gui.addSliderV(8, 1, 1, 7, 22*32, 0, sNotes);
   
   tNotes = sys.gui.addText(0, 0, 9, 34, "", sListNo);
+  sys.gui.setBgRedraw(sListNo, 0);
   sys.gui.setTexEd(tNotes, 1);
   
   set_spacing(sNotes);
@@ -163,31 +165,6 @@ function bottom_vis {
   sys.gui.setVisible(bTasks, not arg0);
 }
 
-function callRet {
-  print("argument0: " + arg0);
-  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
-}
-
-
-function init_overlay {
-  ov_screen = sys.gui.addScreen();
-  sys.gui.addText(1, 1, 8, 1, "This is the overlay", ov_screen);
-  ov_ok = sys.gui.addButton(5, 2, 2, 1, "Ok", ov_screen);
-  ov_cancel = sys.gui.addButton(1, 2, 3, 1, "Cancel", ov_screen);
-}
-
-
-function handle_overlay {
-  if (sys.gui.getEventC(ov_ok) == EV_RELEASED) {
-    sys.o.destroy();
-    return;
-  }
-    
-  if (sys.gui.getEventC(ov_cancel) == EV_RELEASED) {
-    sys.o.destroy();
-    return;
-  }
-}
 
 #*
 cat 0 - all/unsorted
@@ -356,7 +333,8 @@ function load_tasks {
     
     if (findfil != "daily.tsk") {
       sys.fs.conf.open(findfil);
-      if(num(sys.fs.conf.read("cat")) == num(current_cat) or (num(current_cat) == 0 and num(sys.fs.conf.read("cat")) != 1)) {
+      local cat = num(sys.fs.conf.read("cat"));
+      if(cat == num(current_cat) or (num(current_cat) == 0 and cat != 1)) {
         pButtons[i] = sys.gui.addButton(0, i, 7, 1, sys.fs.conf.read("name"), sList);
         pFiles[i] = findfil;
         i++;
@@ -609,9 +587,9 @@ function upd_task {
     if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
       sys.fs.conf.open(current_task);
       sys.fs.conf.write("tc_" + IDs[i], "" + sys.gui.getValue(pButtons[i]));
-      sys.fs.conf.write("watafak??", "" + sys.gui.getValue(pButtons[i]));
+      #sys.fs.conf.write("watafak??", "" + sys.gui.getValue(pButtons[i]));
       sys.fs.conf.close();
-      print("click!" + sys.gui.getValue(pButtons[i]) + "id:" + IDs[i]);
+      #print("click!" + sys.gui.getValue(pButtons[i]) + "id:" + IDs[i]);
       
       load_task(current_task);
       
