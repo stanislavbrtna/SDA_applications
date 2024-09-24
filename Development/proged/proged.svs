@@ -11,11 +11,9 @@ function init {
 
   sys.gui.setRelInit(1);
 
-  textscreen = sys.gui.addScreen();
+  textscreen = sys.gui.addScreen(0, 1, 9, 11, scr);
 
-  sys.gui.setXYXY(textscreen, 0, 1, 9, 11);
-
-  sys.gui.setScreen(textscreen, scr);
+  sys.gui.setBgRedraw(textscreen, 0);
 
   txt = sys.gui.addText(1, 0, 20, 15, "", textscreen);
   
