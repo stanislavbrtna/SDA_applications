@@ -535,6 +535,7 @@ function upd_min {
     sys.gui.setVisible(m_b_del, 0);
     sys.hw.btn.stdbyEn(0);
     sys.time.clearTimer();
+    free_icon();
   }
 
   if (sys.gui.getEventC(m_b_start) == EV_RELEASED) {
