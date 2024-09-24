@@ -9,7 +9,9 @@ function init {
   sys.gui.addText(0, 0, 6, 1, "Serial tool", screen);
 
   input_t = sys.gui.addText(0, 1, 7, 1, "", screen);
-  b_send = sys.gui.addButton(7, 1, 3, 1, "Send", screen);
+  b_send  = sys.gui.addButton(7, 1, 2, 1, "Send", screen);
+  b_hist  = sys.gui.addButton(9, 1, 1, 1, "", screen);
+  sys.gui.setIcon(b_hist, "down.sic");
   
   sys.gui.addText(0, 2, 6, 1, "Response:", screen);
   
@@ -22,7 +24,7 @@ function init {
   b_port = sys.gui.addButton(4, 13, 3, 1, "USB", screen);
   b_crlf = sys.gui.addButton(7, 13, 3, 1, "LF", screen);
   
-  b_clr = sys.gui.addButton(7, 11, 3, 1, "Clear", screen);
+  b_clr = sys.gui.addButton(7, 2, 3, 1, "Clear", screen);
   
   sys.gui.setTexEd(input_t, 1);
   sys.gui.setTexEd(output_t, 1);
@@ -40,11 +42,29 @@ function init {
   
   ddm_init();
   
-  # external pin defines
-  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
-  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
-  
   uart_str = "";
+  
+  def_port_p = 0;
+  
+  array history[10];
+  
+  for(i = 0; i < len(history); i++;) {
+    history[i] = "";
+  }
+  h_max = 0;
+  
+  sys.os.gui.setRoot(1, get_folder(sys.os.getAppPath()));
+}
+
+function get_folder {
+  for(i = len(arg0); i > 0; i--;) {
+    if (getcp(arg0, i) == "/") {
+      arg0 = substr(arg0, 0, i);
+      break;
+    }
+  }
+  
+  return arg0;
 }
 
 
@@ -57,11 +77,24 @@ function set_speed {
   sys.gui.setStr(b_bd, port_speed + " bd");
 }
 
+
 function update {
   inp = sys.os.gui.handleText(input_t, inp);
   uart_str = sys.os.gui.handleText(output_t, uart_str);
   
-  if (sys.gui.getEventC(b_send) == EV_RELEASED) {
+  if (sys.gui.getEventC(b_send) == EV_RELEASED and inp != "") {
+    
+    if(history[0] != inp) {
+      local i;
+      for(i = len(history) - 1; i > 0; i--;) {
+        history[i] = history[i - 1];
+        print(history[i] + " : " + i);
+      }
+      
+      history[0] = inp;
+      h_max++;
+    }
+    
     if (crlf) {
       inp +="\r";
     }
@@ -76,6 +109,37 @@ function update {
     inp = "";
   }
   
+  if(def_port == 0) { # usb
+    if(sys.hw.getLock(USB_PORT)) {
+      sys.gui.setGrayout(b_receive, 1);
+      sys.gui.setGrayout(b_send, 1);
+      sys.gui.setEvent(b_receive, EV_NONE);
+    } else {
+      sys.gui.setGrayout(b_receive, 0);
+      sys.gui.setGrayout(b_send, 0);
+    }
+  }
+  if(def_port == 1) { # ext
+    if(sys.hw.getLock(SERIAL_PORT) or sys.hw.getLock(EXT_EXP_PORT)) {
+      sys.gui.setGrayout(b_receive, 1);
+      sys.gui.setGrayout(b_send, 1);
+      sys.gui.setEvent(b_receive, EV_NONE);
+    } else {
+      sys.gui.setGrayout(b_receive, 0);
+      sys.gui.setGrayout(b_send, 0);
+    }
+  }
+  if(def_port == 2) { # int
+    if(sys.hw.getLock(SERIAL_PORT) or sys.hw.getLock(INT_EXP_PORT)) {
+      sys.gui.setGrayout(b_receive, 1);
+      sys.gui.setGrayout(b_send, 1);
+      sys.gui.setEvent(b_receive, EV_NONE);
+    } else {
+      sys.gui.setGrayout(b_receive, 0);
+      sys.gui.setGrayout(b_send, 0);
+    }
+  }
+  
   if(sys.gui.getEventC(b_receive) == EV_RELEASED) {
     if (sys.gui.getValue(b_receive)) {
       print("rcv start");
@@ -87,7 +151,8 @@ function update {
     }
   }
   
-  if (sys.gui.getValue(b_receive)) {
+  
+  if (sys.gui.getValue(b_receive) and not sys.os.inSim()) {
     local x = "";
     
     # receive field cleanup
@@ -95,7 +160,7 @@ function update {
       uart_str = "";
     }
     
-    if (def_port == 1) {
+    if (def_port == 1 or def_port == 2) {
       if (sys.com.uartGetRd() == 2) {
         x = sys.com.uartGetStr();
         if (x != "") {
@@ -121,6 +186,17 @@ function update {
   }
   
   
+  if (sys.gui.getEventC(b_hist) == EV_RELEASED and h_max != 0) {
+    menu_h = ddm_create(b_hist);
+    ddm_width = 5;
+    sys.os.hideKbd();
+    local i;
+    for(i = 0; i < 10 and i < h_max; i++;) {
+      ddm_add_btn(history[i]);
+    }
+  }
+  
+  
   if (sys.gui.getEventC(b_clr) == EV_RELEASED) {
     sys.gui.setStr(output_t, "");
     uart_str = "";
@@ -129,10 +205,11 @@ function update {
   if (sys.gui.getEventC(b_port) == EV_RELEASED) {
     menu_port = ddm_create(b_port);
     ddm_add_btn("USB");
+    sys.gui.setGrayout(ddm_options[0], sys.hw.getLock(USB_PORT));
     ddm_add_btn("Exp-ext");
+    sys.gui.setGrayout(ddm_options[1], sys.hw.getLock(EXT_EXP_PORT) or sys.hw.getLock(SERIAL_PORT));
     ddm_add_btn("Exp-int");
-    
-    sys.gui.setValue(b_receive, 0);
+    sys.gui.setGrayout(ddm_options[2], sys.hw.getLock(INT_EXP_PORT) or sys.hw.getLock(SERIAL_PORT));
   }
   
   if (sys.gui.getEventC(b_crlf) == EV_RELEASED) {
@@ -156,6 +233,12 @@ function update {
     ddm_add_btn("115200 bd");
   }
   
+  i = ddm_handle(menu_h);
+  if (i > 0) {
+    inp = history[i - 1];
+    ddm_exit();
+  }
+  
   i = ddm_handle(menu_bd);
   if (i > 0) {
     if (i == 1) {port_speed = 4800;}
@@ -166,7 +249,10 @@ function update {
     if (i == 6) {port_speed = 57600;}
     if (i == 7) {port_speed = 115200;}
     set_speed();
-    sys.gui.setValue(b_receive, 0);
+    if (sys.gui.getValue(b_receive)) {
+      #sys.gui.setValue(b_receive, 0);
+      sys.gui.setEvent(b_receive, EV_RELEASED);
+    }
     ddm_exit();
   }
   
@@ -175,30 +261,41 @@ function update {
     if (i == 1) {
       def_port = 0;
       sys.gui.setStr(b_port, "USB");
-      sys.gui.setValue(b_receive, 0);
     }
     if (i == 2) {
       def_port = 1;
-      sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
-      sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
-      
-      sys.hw.iPinDef(7, PIN_IN, PIN_NOPULL);
-      sys.hw.iPinDef(8, PIN_IN, PIN_NOPULL);
-      
+      init_external();
       sys.gui.setStr(b_port, "Exp-Ext");
-      sys.gui.setValue(b_receive, 0);
     }
     if (i == 3) {
       def_port = 1;
-      sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
-      sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
-      
-      sys.hw.iPinDef(7, PIN_ALT, PIN_NOPULL);
-      sys.hw.iPinDef(8, PIN_ALT, PIN_NOPULL);
+      init_internal();
       sys.gui.setStr(b_port, "Exp-Int");
-      sys.gui.setValue(b_receive, 0);
+    }
+    # start receive
+    if (sys.gui.getValue(b_receive)) {
+      #sys.gui.setValue(b_receive, 0);
+      sys.gui.setEvent(b_receive, EV_RELEASED);
     }
     ddm_exit();
   }
+}
+
+
+function init_external {
+  sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+      
+  sys.hw.iPinDef(7, PIN_IN, PIN_NOPULL);
+  sys.hw.iPinDef(8, PIN_IN, PIN_NOPULL);
+}
+
+
+function init_internal {
+  sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
+  sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+  
+  sys.hw.iPinDef(7, PIN_ALT, PIN_NOPULL);
+  sys.hw.iPinDef(8, PIN_ALT, PIN_NOPULL);
 }
 
