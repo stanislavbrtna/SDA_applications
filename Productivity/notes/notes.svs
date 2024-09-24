@@ -52,6 +52,7 @@ function init {
   sys.gui.setTexEd(tNoteName, 1);
   sys.gui.setTexAlign(tNoteName, ALIGN_CENTER);
   scr_inote = sys.gui.addScreen(1, 4, 8, 18, scr_note);
+  sys.gui.setBgRedraw(scr_inote, 0);
   tNoteText = sys.gui.addText(0, 0, 9, 40, "text", scr_inote);
   sys.gui.setTexEd(tNoteText, 1);
   
@@ -185,10 +186,10 @@ function update_notes {
   
   #TODO: better long file handling
   if(sys.gui.getVisible(slNote)) {
-    scrScroller(scr_inote, slNote, 0, sys.ds.getTextHeight(noteString) - 18);
+    scrScroller(scr_inote, slNote, 0, sys.ds.getTextHeight(noteString));
   } else {
     # detect string height and show slider eventually
-    if (sys.ds.getTextHeight(noteString) > 15*18) {
+    if (sys.ds.getTextHeight(noteString) > 12*18) {
       sys.gui.setVisible(slNote, 1);
       sys.gui.setXcell(scr_note, 32);
     }
@@ -212,6 +213,7 @@ function update_notes {
     } else {
       ddm_add_btn("Make active");
     }
+    ddm_add_btn("Save");
     ddm_add_btn("Delete");
   }
   
@@ -232,6 +234,10 @@ function update_notes {
       return;
     }
     if(i == 3) {
+      ddm_exit();
+      save_note();
+    }
+    if(i == 4) {
       ddm_exit();
       c_del = com_new("Delete note?", 0);
       return;
@@ -341,7 +347,9 @@ function new_note {
 
 
 function exit {
-
+  if(backBtn != 0) {
+    save_note();
+  }
 }
 
 ## utils
