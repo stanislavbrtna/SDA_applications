@@ -19,30 +19,37 @@ function com_new { # title, mode
   com_ok_val   = 0;
   com_str_val  = 0;
   com_informal = 1;
+  com_cancel   = 0;
   
   if(arg1 == 1) {
-    com_text = sys.gui.addText(0, 1, 7, 1, "", com_screen);
+    com_text = sys.gui.addText(0, 1, 6, 1, "", com_screen);
     sys.gui.setTexEd(com_text, 1);
     com_str = "";
     com_str_val = 1;
-    com_ok = sys.gui.addButton(5, 2, 2, 1, "Ok", com_screen);
+    com_ok = sys.gui.addButton(4, 2, 2, 1, "Ok", com_screen);
     com_cancel = sys.gui.addButton(0, 2, 3, 1, "Cancel", com_screen);
     sys.os.showKbd();
     sys.gui.setTexAct(com_text);
     com_informal = 0;
   } else {
-    com_ok = sys.gui.addButton(5, 1, 2, 1, "Ok", com_screen);
+    com_ok = sys.gui.addButton(4, 1, 2, 1, "Ok", com_screen);
     if(arg1 == 0) {
       com_cancel = sys.gui.addButton(0, 1, 3, 1, "Cancel", com_screen);
       com_informal = 0;
     }
   }
   
+  if (com_cancel) {
+    sys.gui.setTexAlign(com_cancel, ALIGN_CENTER);
+  }
+  
+  sys.gui.setTexAlign(com_ok, ALIGN_CENTER);
+  
   com_spacing(com_screen);
   
   com_ov_id = sys.o.setScr(com_screen);
   com_id++;
-  sys.o.setY(156 + ((arg1 == 1)*32));
+  sys.o.setY(170 + ((arg1 == 1)*46));
   
   return com_id;
 }
@@ -96,11 +103,11 @@ function com_handle {
 }
 
 function com_spacing {
-  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
-  sys.gui.setXcell(arg0, 34);
-  sys.gui.setYcell(arg0, 34);
-  sys.gui.setXscroll(arg0, -8);
-  sys.gui.setXscroll(arg0, -8); # to change xscroll and xscroll old, prevents scroll artefacts
-  sys.gui.setYscroll(arg0, -8);
+  sys.gui.setSpacing(arg0, 4, 4, 4, 4);
+  sys.gui.setXcell(arg0, 38);
+  sys.gui.setYcell(arg0, 38);
+  sys.gui.setXscroll(arg0, -14);
+  sys.gui.setXscroll(arg0, -14); # to change xscroll and xscroll old, prevents scroll artefacts
+  sys.gui.setYscroll(arg0, -10);
 }
 
