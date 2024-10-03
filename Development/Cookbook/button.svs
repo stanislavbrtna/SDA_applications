@@ -1,22 +1,39 @@
 function init {
     screen = sys.gui.addScreen();
     sys.os.gui.setMainScr(screen);
+    sys.gui.setRelInit(1);
 
     # Element options
-    grayout = sys.gui.addCheckBox(1, 11, 5, 12,"grayout", screen);
-    ghost = sys.gui.addCheckBox(1, 12, 5, 13,"ghost", screen);
-    select = sys.gui.addCheckBox(1, 13, 5, 14,"select", screen);
+    icon    = sys.gui.addCheckBox(1, 10, 4, 1, "icon", screen); 
+    grayout = sys.gui.addCheckBox(1, 11, 4, 1, "grayout", screen);
+    ghost   = sys.gui.addCheckBox(1, 12, 4, 1, "ghost", screen);
+    select  = sys.gui.addCheckBox(1, 13, 4, 1, "select", screen);
     
-    al_center = sys.gui.addCheckBox(5, 11, 9, 12,"Center", screen);
-    al_left = sys.gui.addCheckBox(5, 12, 9, 13,"Left", screen);
-    al_right = sys.gui.addCheckBox(5, 13, 9, 14,"Right", screen);
+    s_param   = sys.gui.addSliderH(5, 10, 4, 1, 160, 50, screen);
+    al_center = sys.gui.addCheckBox(5, 11, 4, 1, "Center", screen);
+    al_left   = sys.gui.addCheckBox(5, 12, 4, 1, "Left", screen);
+    al_right  = sys.gui.addCheckBox(5, 13, 4, 1, "Right", screen);
 
     # DUT
-    element = sys.gui.addButton(1, 2, 9, 3, "Button", screen);
+    element = sys.gui.addButton(1, 2, 8, 1, "Button", screen);
 }
 
 function update {
     # Handle element options
+    
+    if (sys.gui.getEventC(icon) == EV_RELEASED) {
+        if(sys.gui.getValue(icon)){
+          sys.os.gui.setRoot(1, "Icons/sic");
+          sys.gui.setIcon(element, "check.sic");
+        } else {
+          sys.gui.setIcon(element, "");
+        }
+    }
+    
+    if (sys.gui.getEvent(s_param)) {
+      sys.gui.setParam(element, sys.gui.getValue(s_param));
+    }
+    
     if (sys.gui.getEventC(grayout)) {
         sys.gui.setGrayout(element, sys.gui.getValue(grayout));
     }
