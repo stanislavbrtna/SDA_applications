@@ -42,6 +42,11 @@ function ddm_create_sub #*  return: id*# {
 
 
 function ddm_add_btn #* str name, return: id *# {
+  if(not (ddm_btn_cnt < len(ddm_options))) {
+    sys.error("DDM: Only " + len(ddm_options) + " buttons are supported!");
+    return;
+  }
+  
   ddm_options[ddm_btn_cnt]
     = sys.gui.addButton(0, ddm_btn_cnt, ddm_width, 1, arg0, ddm_screen);
   sys.gui.setRounded(ddm_options[ddm_btn_cnt], 0);
