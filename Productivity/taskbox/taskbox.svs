@@ -116,7 +116,7 @@ function init {
     sys.fs.mkDir("tasks");
   }
   
-  print("chdir? " + sys.fs.chDir("tasks"));
+  sys.fs.chDir("tasks");
   
   array pButtons[100];
   array pFiles[100];
@@ -145,6 +145,17 @@ function init {
   sys.fs.conf.close();
   
   set_cat(current_cat);
+  
+  task_reload = 1;
+  
+  # handle inits:
+  catNewH = 0;
+  catRenH = 0;
+  taskArchH = 0;
+  task_rename = 0;
+  catMenuH = 0;
+  catRmH = 0;
+  
 }
 
 function categ_vis {
@@ -179,6 +190,12 @@ function load_cats {
     cats[i] = sys.fs.conf.read("" + i);
     catID[i] = num(sys.fs.conf.read("id_"+i));
     i++;
+    
+    if(i == len(cats)) {
+      i--;
+      print("Warn: too many categories!");
+      break;
+    }
   }
   
   cat_len = i;
@@ -324,33 +341,71 @@ function store_cats {
 
  # loads list of tasks in the list screen
 function load_tasks {
+  local time = sys.time.get();
   sys.gui.destroy(sList);
   sList = sys.gui.addScreen(0, 1, 8, 10, scr);
   local i = 0;
   
-  for(findfil = sys.fs.find("tsk", "."); findfil != ""; findfil = sys.fs.findNext();) {
-    print("found: " + findfil);
+  if(task_reload == 1) {
+    if (sys.fs.exists("task-cache.tmp")) {
+      sys.fs.delete("task-cache.tmp");
+    }
     
-    if (findfil != "daily.tsk") {
-      sys.fs.conf.open(findfil);
-      local cat = num(sys.fs.conf.read("cat"));
-      if(cat == num(current_cat) or (num(current_cat) == 0 and cat != 1)) {
-        pButtons[i] = sys.gui.addButton(0, i, 7, 1, sys.fs.conf.read("name"), sList);
-        pFiles[i] = findfil;
+    sys.fs.open("task-cache.tmp");
+    # save names & cats
+    for(findfil = sys.fs.find("tsk", "."); findfil != ""; findfil = sys.fs.findNext();) {
+      #print("found: " + findfil);
+      
+      if (findfil != "daily.tsk") {
+        local name;
+        local file;
+        local cat;
+        
+        sys.fs.conf.open(findfil);
+        name = sys.fs.conf.read("name");
+        cat  = sys.fs.conf.read("cat");
+        file = findfil;
+        sys.fs.conf.close();
+        
+        # sys conf writes are slooow
+        sys.fs.writeChars("cat_" + i + "=" + cat + "\n");
+        sys.fs.writeChars("file_" + i + "=" + file + "\n");
+        sys.fs.writeChars("name_" + i + "=" + name + "\n");
+ 
         i++;
       }
-      sys.fs.conf.close();
     }
+    sys.fs.close();
+    print("cache rebuilt! (" + i + " entries in:" + sys.time.get() - time + "s)");
+    task_reload = 0;
   }
+  
+  # load from cache
+  sys.fs.conf.open("task-cache.tmp");
+  i = 0;
+  local l = 0;
+  while(sys.fs.conf.exists("cat_" + i)) {
+    local cat = num(sys.fs.conf.read("cat_" + i));
+    if(cat == num(current_cat) or (num(current_cat) == 0 and cat != 1)) {
+      pFiles[l] = sys.fs.conf.read("file_" + i);
+      pButtons[l] = sys.gui.addButton(0, l, 7, 1, sys.fs.conf.read("name_" + i), sList);
+      l++;
+    }
+    i++;
+  }
+  
+  sys.fs.conf.close();
   
   set_spacing(sList);
   
-  tasksLen = i;
+  tasksLen = l;
   
   sys.gui.setValue(scrBar, 0);
-  sys.gui.setParam(scrBar, (i - 1)*34 + 6);
+  sys.gui.setParam(scrBar, (l - 1)*34 + 6);
   
   current_task = "";
+  
+  print("reload total:" + sys.time.get() - time + "s");
 }
 
 
@@ -368,10 +423,15 @@ function load_task { # arg0: task name
   local time = 0;
   
   sys.fs.conf.open(arg0);
-
+  
+  
   while(sys.fs.conf.exists("t_" + i)) {
     if(sys.fs.conf.read("tv_" + i) == "1"
-       and (sys.fs.conf.read("tc_" + i) == "0" or (sys.fs.conf.read("tc_" + i) == "1" and sys.gui.getValue(bCompleted) == 1))
+       and 
+       (
+         sys.fs.conf.read("tc_" + i) == "0"
+         or (sys.fs.conf.read("tc_" + i) == "1" and sys.gui.getValue(bCompleted) == 1)
+       )
     ) {
       pButtons[b] = sys.gui.addCheckBox(0, b, 6, 1, sys.fs.conf.read("t_" + i), sList);
       pFiles[b] = sys.gui.addButton(6, b, 1, 1, "...", sList);
@@ -400,7 +460,7 @@ function load_task { # arg0: task name
   tasksLen = b;
   
   sys.gui.setValue(scrBar, 0);
-  sys.gui.setParam(scrBar, (b)*34 + 6);
+  sys.gui.setParam(scrBar, (b - 1)*34 + 6);
   
   current_task = arg0;
 }
@@ -456,6 +516,8 @@ function new_task_g {
   sys.fs.conf.write("note", "");
   sys.fs.conf.write("encrypted", "0"); #todo inclement encryption
   sys.fs.conf.close();
+  
+  task_reload = 1;
   
   return fname;
 }
@@ -751,12 +813,17 @@ function update {
       sys.gui.setGrayout(ddm_options[2], 1);
       sys.gui.setGrayout(ddm_options[3], 1);
     }
+    
+    if(cat_len == len(cats)-1) {
+      sys.gui.setGrayout(ddm_options[1], 1);
+    }
   }
   
   i = ddm_handle(bMenuH);
   if (i > 0) {
     if (i == 1) { # archive
       current_cat = 1;
+      task_reload = 1;
       load_tasks();
       ddm_exit();
       sys.gui.setStr(bCategory, "Archived");
@@ -835,11 +902,13 @@ function update {
       sys.fs.conf.open(current_task);
       sys.fs.conf.write("cat", "0");
       sys.fs.conf.close();
+      task_reload = 1;
       set_mode(1);
     } else {
       sys.fs.conf.open(current_task);
       sys.fs.conf.write("cat", "" + catID[i - 2]);
       sys.fs.conf.close();
+      task_reload = 1;
       set_mode(1);
     }
     
@@ -850,6 +919,7 @@ function update {
     sys.fs.conf.open(current_task);
     sys.fs.conf.write("cat", "1");
     sys.fs.conf.close();
+    task_reload = 1;
     set_mode(1);
   }
   
@@ -858,6 +928,7 @@ function update {
     sys.fs.conf.open(current_task);
     sys.fs.conf.write("name", com_str);
     sys.fs.conf.close();
+    task_reload = 1;
     load_task(current_task);
   }
   
