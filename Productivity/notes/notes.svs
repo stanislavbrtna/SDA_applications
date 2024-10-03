@@ -59,7 +59,9 @@ function init {
   slNote = sys.gui.addSliderV(9, 4, 1, 16, 1024, 0, scr_note);
   sys.gui.setVisible(slNote, 0);
   
-  bBack = sys.gui.addButton(1, 22, 2, 2, "<-", scr_note);
+  bBack = sys.gui.addButton(1, 22, 2, 2, "", scr_note);
+  sys.os.gui.setIcon(bBack, ICON_BACK);
+  sys.gui.setParam(bBack, 32);
   bOpt2 = sys.gui.addButton(8, 22, 1, 2, "...", scr_note);
   
   noteString = "";

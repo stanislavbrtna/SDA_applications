@@ -11,8 +11,12 @@ function init {
   bf = sys.gui.addButton(4, 0, 1, 1, "[]", scr);
   bm = sys.gui.addButton(5, 0, 1, 1, "-", scr);
   
-  bl = sys.gui.addButton(6, 0, 2, 1, "<-", scr);
-  br = sys.gui.addButton(8, 0, 2, 1, "->", scr);
+  bl = sys.gui.addButton(6, 0, 2, 1, "", scr);
+  br = sys.gui.addButton(8, 0, 2, 1, "", scr);
+  sys.os.gui.setIcon(bl, ICON_BACK);
+  sys.os.gui.setIcon(br, ICON_FORWARD);
+  sys.gui.setParam(bl, 32);
+  sys.gui.setParam(br, 32);
 
   barv = sys.gui.addSliderV(9, 2, 1, 10, 1000, 0, scr);
   barh = sys.gui.addSliderH(0, 13, 8, 1, 1000, 0, scr);
