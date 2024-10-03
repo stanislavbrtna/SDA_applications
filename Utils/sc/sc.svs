@@ -393,7 +393,7 @@ function tryOpen {
     print("opening: imageview.svs " + getPath()+arg0);
   }
 
-  if (extension == "ppm") {
+  if (extension == "ppm" or extension == "sic") {
     showPpm(arg0);
   }
 }
