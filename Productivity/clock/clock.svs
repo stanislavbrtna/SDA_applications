@@ -473,14 +473,16 @@ function init_min {
     m_b_start = sys.gui.addButton(5, 5, 8, 6, "Start", s_min);
     m_b_del = sys.gui.addButton(1, 5, 4, 6, "Vymazat", s_min);
     m_txt = sys.gui.addText(2, 7, 8, 8,"Čas vypršel!", s_min);
-    m_b_ok = sys.gui.addButton(3, 8, 5, 9, "Ok", s_min);
+    m_b_ok = sys.gui.addButton(3, 8, 6, 10, "Ok", s_min);
   } else {
     sys.gui.addText(1, 0, 6, 1, "Timer:", s_min);
     m_b_start = sys.gui.addButton(5, 5, 8, 6, "Start", s_min);
     m_b_del = sys.gui.addButton(1, 5, 4, 6, "Clear", s_min);
     m_txt = sys.gui.addText(2, 7, 8, 8,"Time out!", s_min);
-    m_b_ok = sys.gui.addButton(3, 8, 5, 9, "Ok", s_min);
+    m_b_ok = sys.gui.addButton(3, 8, 6, 10, "Ok", s_min);
   }
+  sys.gui.setTxtSize(m_b_ok, 32);
+  sys.gui.setTexAlign(m_b_ok, ALIGN_CENTER);
   sys.gui.setVisible(m_txt, 0);
   sys.gui.setVisible(m_b_ok, 0);
   sys.gui.setVisible(m_b_del, 0);
@@ -601,5 +603,6 @@ function upd_min {
 }
 
 function timerCb {
+  mode = 3;
   sys.os.arise();
 }
