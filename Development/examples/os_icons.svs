@@ -1,0 +1,25 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  btn1 = sys.gui.addButton(3, 1, 4, 1, "None", scr);
+  sys.os.gui.setIcon(btn1, ICON_NONE);
+  
+  btn2 = sys.gui.addButton(3, 3, 4, 1, "Back", scr);
+  sys.os.gui.setIcon(btn2, ICON_BACK);
+  
+  btn3 = sys.gui.addButton(3, 5, 4, 1, "Forward", scr);
+  sys.os.gui.setIcon(btn3, ICON_FORWARD);
+  
+}
+
+
+function update {
+  
+}
+
+
+function exit {
+
+}
