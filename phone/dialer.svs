@@ -2,20 +2,16 @@ import "~cont-tools.svs"
 import "~hist-tools.svs"
 
 function init {
-  # AT init commands
-  
-  
-  # setup all that hacky stuff
-  sys.os.setSingular();
-
-  scr_d = sys.gui.addScreen();
-  
-  sys.os.gui.setMainScr(scr_d);
+  sys.os.setSingular();  
   sys.gui.setRelInit(1);
-  
+  scr_d = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr_d);
+
   sys.gui.setXscroll(scr_d, -16);
   sys.gui.setYscroll(scr_d, 16);
   
+  
+  ## Dialer Screen
   array b_dial[10];
   
   for(local i = 1; i < 10; i++;) {
@@ -52,7 +48,8 @@ function init {
   sys.gui.setTexAlign(t_number, ALIGN_CENTER);
   sys.gui.setGrayout(b_call, 1);
   
-  init_clist();
+  ## Call history screen
+  init_hist();
 
   sys.fs.chDir("appdata");
   if(not sys.fs.exists("phone")) {
@@ -66,10 +63,13 @@ function init {
   
   mngr_stat = "";
   
+  list_page = 0;
+  
   # arg0 - type of request
   process_args(arg0, arg1, arg2);
 }
 
+## Tray Icon stuff
 function set_icon {
   sys.fs.chDir(1);
 
@@ -92,6 +92,8 @@ function icoCallback {
   clr_icon();
 }
 
+
+## Wakeup
 function wakeup {
   print("dialer wakeup!");
   sys.os.gui.setMainScr(scr_d);
@@ -100,7 +102,7 @@ function wakeup {
   mngr_stat = "";
 }
 
-
+## Process args for wakeup&init
 function process_args {
   if (typeof(arg0) == TYPE_STR) {
 
@@ -121,24 +123,23 @@ function process_args {
 }
 
 
-function init_clist {
-  cl_scr = sys.gui.addScreen(); 
-  sys.gui.setXscroll(cl_scr, 16);
-  sys.gui.setYscroll(cl_scr, -16);
+## Loads call history screen
+function init_hist {
+  scr_hist = sys.gui.addScreen(); 
+  sys.gui.setXscroll(scr_hist, 16);
+  sys.gui.setYscroll(scr_hist, -16);
   
-  list_scr = sys.gui.addScreen(1, 1, 8, 11, cl_scr);
+  list_scr = sys.gui.addScreen(1, 1, 8, 11, scr_hist);
   sys.gui.setXscroll(list_scr, -8);
   sys.gui.setYcell(list_scr, 30);
-  sys.gui.addText(1, 0, 5, 1,"Call history", cl_scr);
-  b_back   = sys.gui.addButton(1, 12, 3, 1, "Back", cl_scr);
-  s_bar    = sys.gui.addSliderV(9, 2, 1, 9, 0, 0, cl_scr);
-  b_up = sys.gui.addButton(9, 1, 1, 1, "/\\", cl_scr);
-  b_dn = sys.gui.addButton(9, 11, 1, 1, "\\/", cl_scr);
+  sys.gui.addText(1, 0, 5, 1,"Call history", scr_hist);
+  b_back = sys.gui.addButton(1, 12, 3, 1, "Back", scr_hist);
+  s_bar  = sys.gui.addSliderV(9, 2, 1, 9, 0, 0, scr_hist);
+  b_up   = sys.gui.addButton(9, 1, 1, 1, "/\\", scr_hist);
+  b_dn   = sys.gui.addButton(9, 11, 1, 1, "\\/", scr_hist);
   
-  array b_list[10];
-  array num_list[10];
-  array i_list[10];
-  array t_list[10];
+  array btn_list[25];
+  array num_list[25];
   
   # contacts filter
   listFilter  = "";
@@ -147,96 +148,100 @@ function init_clist {
   s_bar_pval = 0;
   list_start = 0;
   
-  load_list();
+  load_hist();
 }
 
 
-function count_list {
+## Load call history inner screen
+function load_hist {
+  # Count history
   sys.fs.chDir();
   sys.fs.chDir("appdata");
   sys.fs.conf.open("phone/history.cfg");
+
   list_size = 0;
+
   while(sys.fs.conf.exists("number_" + list_size)) {
     list_size++;
   }
-  sys.fs.conf.close();
-    
-  if (list_size - 10 > 0) {
-    sys.gui.setParam(s_bar, list_size - 10);
+  
+  sys.gui.destroy(list_scr);
+  list_scr = sys.gui.addScreen(1, 1, 8, 11, scr_hist);
+  sys.gui.setXscroll(list_scr, -8);
+  sys.gui.setYcell(list_scr, 30);
+  
+  #load
+  
+  local list_start;
+  local i = 0;
+  
+  for(i = 0; i < len(btn_list); i++;) {
+    btn_list[i] = 0;
+  }
+  
+  local list_pos = list_size - 1 - len(btn_list)*list_page;
+  
+  # pagination buttons
+  b_list_up = sys.gui.addButton(0, 0, 1, 1, "/\\", list_scr);
+  b_list_dn = sys.gui.addButton(0, 0, 1, 1, "\\/", list_scr);
+  
+  local y_add = 0;
+  
+  if(list_size > len(btn_list)) {
+    sys.gui.setVisible(b_list_up, 1);
+    sys.gui.setVisible(b_list_dn, 1);
+    y_add = 1;
   } else {
-    sys.gui.setParam(s_bar, list_size);
+    sys.gui.setVisible(b_list_up, 0);
+    sys.gui.setVisible(b_list_dn, 0);
   }
   
-  print("list size:" + list_size);
-}
-
-
-function load_list {
-  
-  count_list();
-  
-  local lmax = 4;
-  local i = list_size - list_start - lmax;
-  
-  if(i < 0) {
-    i = 0;
+  if(list_page == 0) {
+    sys.gui.setVisible(b_list_up, 0);
+    y_add = 0;
   }
   
-  #print("ll: " + list_size +" "+ list_start +" "+ lmax);
-
-  lmax--; # counts from 0
-  
-  # clear list
-  for(local g = 0; g <= lmax; g++;) {
-    if (b_list[g]) {
-      sys.gui.destroy(b_list[g]);
-      sys.gui.destroy(t_list[g]);
-      b_list[g] = 0;
-      num_list[g] = "";
-    }
+  if(len(btn_list)*(list_page + 1) > list_size) {
+    sys.gui.setVisible(b_list_dn, 0);
   }
   
-  sys.fs.chDir();
-  sys.fs.chDir("appdata");
-  sys.fs.conf.open("phone/history.cfg");
-  
-  local b = lmax;
-  
-  if(list_size < lmax) {
-    b = list_size - 1;
-  }
-  while(sys.fs.conf.exists("number_" + i)) {
-    
-    local number = sys.fs.conf.read("number_" + i);
-      
-    b_list[lmax - b] = sys.gui.addButton(0, b*3, 7, 1, sys.fs.conf.read("name_" + i), list_scr);
-    
-    local start = num(sys.fs.conf.read("start_" + i));
-    local stop = num(sys.fs.conf.read("stop_" + i));
-    local type = sys.fs.conf.read("type_" + i);
-    
-    local timeString
-            = sys.time.getTsDay(start) + ". "
-              + sys.time.getTsMonth(start) + ". "
-              + sys.time.getTsYear(start) + " "
-              + lz(sys.time.getTsHr(start)) + ":"
-              + lz(sys.time.getTsMin(start)) + "\n"
-              + type + " "
-              + (stop - start)/60 + "m "
-              + lz((stop - start)%60) + "s";
-    
-    t_list[lmax - b] = sys.gui.addText(0, b*3 + 1, 8, 2, number + "\n" + timeString, list_scr);
-    i_list[lmax - b] = i;
-    num_list[lmax - b] = number;
-    if(b == 0) {
+  # Loading the list
+  for(i = 0; i < len(btn_list); i++;) {
+    if(not sys.fs.conf.exists("number_" + list_pos)) {
       break;
     }
-    i++;
-    b--;
+   
+    local number = sys.fs.conf.read("number_" + list_pos);
+    
+    btn_list[len(btn_list) - i - 1] = sys.gui.addButton(0, i*3 + y_add, 7, 1, sys.fs.conf.read("name_" + list_pos), list_scr);
+    
+    local start = num(sys.fs.conf.read("start_" + list_pos));
+    local stop  = num(sys.fs.conf.read("stop_" + list_pos));
+    local type  = sys.fs.conf.read("type_" + list_pos);
+    
+    local timeString
+      = sys.time.getTsDay(start) + ". "
+        + sys.time.getTsMonth(start) + ". "
+        + sys.time.getTsYear(start) + " "
+        + lz(sys.time.getTsHr(start)) + ":"
+        + lz(sys.time.getTsMin(start)) + "\n"
+        + type + " "
+        + (stop - start)/60 + "m "
+        + lz((stop - start)%60) + "s";
+    
+    num_list[len(btn_list) - i - 1] = number;
+    sys.gui.addText(0, i*3 + 1 + y_add, 8, 2, number + "\n" + timeString, list_scr);
+    
+    list_pos--;
   }
   
+  # handling down btn and scrolling
+  sys.gui.setY1(b_list_dn, (i - 1)*3 + 4 - 1*(not y_add));
+  sys.gui.setParam(s_bar, (i - 3) * 30 * 3 + 4 + 32 * y_add);
+  sys.gui.setYscroll(list_scr, sys.gui.getValue(s_bar) - 6);
   sys.fs.conf.close();
 }
+
 
 function lz {
   if (arg0 < 10) {
@@ -246,33 +251,44 @@ function lz {
 }
 
 
-function upd_list {
+function upd_hist {
+  if (sys.gui.getEventC(b_back) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr_d);
+  }
+  
+  if (sys.gui.getEventC(b_list_dn) == EV_RELEASED) {
+    list_page++;
+    sys.gui.setValue(s_bar, 0);  
+    load_hist();
+  }
+  
+  if (sys.gui.getEventC(b_list_up) == EV_RELEASED) {
+    if(list_page) list_page--;
+    load_hist();
+    sys.gui.setValue(s_bar, sys.gui.getParam(s_bar));
+  }
+  
+  sys.gui.setYscroll(list_scr, sys.gui.getValue(s_bar) - 6);
+
   if (sys.gui.getEventC(b_dn) == EV_RELEASED) {
-    if (sys.gui.getValue(s_bar) < sys.gui.getParam(s_bar)) {
-      sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) + 1);
+    if (sys.gui.getValue(s_bar) + 3*32 < sys.gui.getParam(s_bar)) {
+      sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) + 3*32);
+    } else {
+      sys.gui.setValue(s_bar, sys.gui.getParam(s_bar));
     }
   }
   
   if (sys.gui.getEventC(b_up) == EV_RELEASED) {
-    if (sys.gui.getValue(s_bar) > 0) {
-      sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) - 1);
+    if (sys.gui.getValue(s_bar) - 3*32 > 0) {
+      sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) - 3*32);
+    } else {
+      sys.gui.setValue(s_bar, 0);
     }
   }
 
-  if (sys.gui.getValue(s_bar) != s_bar_pval) {
-    list_start = sys.gui.getValue(s_bar);
-    load_list();
-  }
-  
-  s_bar_pval = sys.gui.getValue(s_bar);
-
-  if (sys.gui.getEventC(b_back) == EV_RELEASED) {
-    sys.os.gui.setMainScr(scr_d);
-  }
-
-  for(local i = 0; i < 10; i++;) {
-    if (b_list[i] != 0) {     
-      if(sys.gui.getEventC(b_list[i]) == EV_RELEASED) {
+  for(local i = 0; i < len(btn_list); i++;) {
+    if (btn_list[i] != 0) {
+      if(sys.gui.getEventC(btn_list[i]) == EV_RELEASED) {
         sys.os.subProcess("phone/contacts.svs", "", "OPEN", num_list[i], 0);
       }
     }
@@ -323,7 +339,6 @@ function update {
   }
   
   if (sys.gui.getEventC(b_call) == EV_RELEASED and number != "") {
-    #perform_call(number);
     sys.os.subProcess("phone/mngr.svs", "", "CALL", number, 0);
   }
   
@@ -332,8 +347,8 @@ function update {
   }
   
   if (sys.gui.getEventC(b_history) == EV_RELEASED) {
-    load_list();
-    sys.os.gui.setMainScr(cl_scr);
+    load_hist();
+    sys.os.gui.setMainScr(scr_hist);
   }
   
   
@@ -343,9 +358,8 @@ function update {
     mngr_stat = "";
     sys.gui.setGrayout(b_ok, 1);
   }
-  
-  
-  upd_list();
+
+  upd_hist();
   
   if (sys.os.gui.getMainScr() == scr_d) {
     sys.os.gui.btnCtrl(scr_d, 0);
