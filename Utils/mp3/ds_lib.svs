@@ -1,0 +1,57 @@
+
+function ds_cmd { # cmd, param1, param2
+  sys.com.qAdd(0x7E);
+  sys.com.qAdd(0xFF);
+  sys.com.qAdd(0x06);
+  sys.com.qAdd(arg0);
+  sys.com.qAdd(0x00);
+  sys.com.qAdd(arg1);
+  sys.com.qAdd(arg2);
+
+  local sum;
+
+  sum = 65536 - (0xFF + 0x06 + arg0 + arg1 + arg2);
+
+  sys.com.qAdd(sum / 256);
+  sys.com.qAdd(sum % 0xFF00);
+
+  sys.com.qAdd(0xEF);
+  sys.com.qAdd(0x00);
+  sys.com.uartTrsQ();
+}
+
+function ds_play {
+  ds_cmd(0x0D, 0, 0);
+}
+
+function ds_play_s #* (song no)*# {
+  ds_cmd(0x03, arg0/256, arg0%256);
+}
+
+function ds_pause {
+  ds_cmd(0x0E, 0, 0);
+}
+
+function ds_prev {
+  ds_cmd(0x02, 0, 0);
+}
+
+function ds_next {
+  ds_cmd(0x01, 0, 0);
+}
+
+function ds_vol_incr {
+  ds_cmd(0x04, 0, 0);
+}
+
+function ds_vol_decr {
+  ds_cmd(0x05, 0, 0);
+}
+
+function ds_rnd {
+  ds_cmd(0x18, 0, 0);
+}
+
+function ds_vol {
+  ds_cmd(0x06, 0, arg0);
+}
