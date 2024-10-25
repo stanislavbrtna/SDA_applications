@@ -30,29 +30,26 @@ function init {
   sys.gui.setTexEd(input_t, 1);
   sys.gui.setTexEd(output_t, 1);
   
-  inp = "";
+  inp        = "";
+  menu_bd    = 0;
+  menu_port  = 0;
+  menu_hist  = 0;
+  max_hist   = 0;
   
-  menu_bd = 0;
-  menu_port = 0;
+  uart_str   = "";
+  def_port_p = 0;
   
   port_speed = 9600;
-  
-  def_port = 0; # 0 - usb, 1 - exp_ext, 2 - exp_int
-  
-  crlf = 0; # 0 - LF, 1 - CR+LF
+  def_port   = 0; # 0 - usb, 1 - exp_ext, 2 - exp_int
+  crlf       = 0; # 0 - LF, 1 - CR+LF
   
   ddm_init();
-  
-  uart_str = "";
-  
-  def_port_p = 0;
   
   array history[10];
   
   for(i = 0; i < len(history); i++;) {
     history[i] = "";
   }
-  h_max = 0;
   
   sys.os.gui.setRoot(1, get_folder(sys.os.getAppPath()));
 }
@@ -93,7 +90,7 @@ function update {
       }
       
       history[0] = inp;
-      h_max++;
+      max_hist++;
     }
     
     if (crlf) {
@@ -187,17 +184,16 @@ function update {
   }
   
   
-  if (sys.gui.getEventC(b_hist) == EV_RELEASED and h_max != 0) {
-    menu_h = ddm_create(b_hist);
+  if (sys.gui.getEventC(b_hist) == EV_RELEASED and max_hist != 0) {
+    menu_hist = ddm_create(b_hist);
     ddm_width = 5;
     sys.os.hideKbd();
     local i;
-    for(i = 0; i < 10 and i < h_max; i++;) {
+    for(i = 0; i < 10 and i < max_hist; i++;) {
       ddm_add_btn(history[i]);
     }
   }
-  
-  
+    
   if (sys.gui.getEventC(b_clr) == EV_RELEASED) {
     sys.gui.setStr(output_t, "");
     uart_str = "";
@@ -222,7 +218,6 @@ function update {
     }
   }
   
-
   if (sys.gui.getEventC(b_bd) == EV_RELEASED) {
     menu_bd = ddm_create(b_bd);
     ddm_add_btn("4800 bd");
@@ -234,7 +229,7 @@ function update {
     ddm_add_btn("115200 bd");
   }
   
-  i = ddm_handle(menu_h);
+  i = ddm_handle(menu_hist);
   if (i > 0) {
     inp = history[i - 1];
     ddm_exit();
