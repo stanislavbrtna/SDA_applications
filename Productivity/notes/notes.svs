@@ -14,7 +14,7 @@ function init {
   sys.gui.setYscroll(scr, 8);
   
   sys.gui.setTxtSize(sys.gui.addText(1, 1, 3, 3, "Notes", scr), 32);
-  tArch = sys.gui.addText(4, 2, 3, 2, "(Archived)", scr);
+  tArch = sys.gui.addText(5, 2, 3, 2, "(Archived)", scr);
   sys.gui.setVisible(tArch, 0);
   
   scr_list = 0; # updated in a function
@@ -54,7 +54,8 @@ function init {
   scr_inote = sys.gui.addScreen(1, 4, 8, 18, scr_note);
   sys.gui.setBgRedraw(scr_inote, 0);
   tNoteText = sys.gui.addText(0, 0, 9, 40, "text", scr_inote);
-  sys.gui.setTexEd(tNoteText, 1);
+  sys.gui.setTxtEd(tNoteText, 1);
+  sys.gui.setTxtFit(tNoteText, 1);
   
   slNote = sys.gui.addSliderV(9, 4, 1, 16, 1024, 0, scr_note);
   sys.gui.setVisible(slNote, 0);
@@ -188,10 +189,10 @@ function update_notes {
   
   #TODO: better long file handling
   if(sys.gui.getVisible(slNote)) {
-    scrScroller(scr_inote, slNote, 0, sys.ds.getTextHeight(noteString));
+    scrScroller(scr_inote, slNote, 0, sys.gui.getTxtHeight(tNoteText, 0) - 15);
   } else {
     # detect string height and show slider eventually
-    if (sys.ds.getTextHeight(noteString) > 12*18) {
+    if (sys.gui.getTxtHeight(tNoteText, 0) > 12*18) {
       sys.gui.setVisible(slNote, 1);
       sys.gui.setXcell(scr_note, 32);
     }
