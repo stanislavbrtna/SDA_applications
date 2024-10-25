@@ -89,13 +89,12 @@ function init {
   bUp = sys.gui.addButton(0, 1, 1, 1, "/\\", scr);
   bData = sys.gui.addButton(4, 1, 2, 1, "Data", scr);
   bApps = sys.gui.addButton(6, 1, 2, 1, "Apps", scr);
+  bNewF = sys.gui.addButton(3, 1, 1, 1, "+", scr);
    
   sys.gui.setGhost(bData, 0);
   sys.gui.setGhost(bApps, 1);
 
-  selfOvr = sys.o.setScr(scr);
-  
-  sys.o.setXYXY(16 + sys.os.gui.getLandscape()*80, 48, 304  +  sys.os.gui.getLandscape()*80, 464 - sys.os.gui.getLandscape()*160);
+  init_oscr();
   array fScrBtns[200];
   array path[30];
   
@@ -142,12 +141,87 @@ function init {
   } 
     
   rldFiles();
+  initNewF();
   
   sys.os.gui.setMainScr(0);
   sys.os.hideKbd();
  
   # set default returns
   sys.os.subRetval("", 0, 0);
+}
+
+
+function initNewF {
+  tNewFD = sys.gui.addText(0, 2, 8, 1, "New folder:", scr);
+  tNewF  = sys.gui.addText(0, 3, 8, 1, "", scr);
+  sys.gui.setTxtEd(tNewF, 1);
+  tNewOk = sys.gui.addButton(3, 4, 2, 1, "Ok", scr);
+  tNewCa = sys.gui.addButton(5, 4, 3, 1, "Cancel", scr);
+  
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.setStr(tNewFD, "Nová složka:");
+    sys.gui.setStr(tNewCa, "Zrušit");
+  }
+  bUpPrev = 1;
+  showNewF(0);
+}
+
+function showNewF {
+  sys.gui.setVisible(tNewFD, arg0);
+  sys.gui.setVisible(tNewF, arg0);
+  sys.gui.setVisible(tNewOk, arg0);
+  sys.gui.setVisible(tNewCa, arg0);
+  
+  sys.gui.setVisible(file_scr, not arg0);
+  sys.gui.setVisible(scrollbar, not arg0);
+  
+  if(arg0) {
+    bUpPrev = sys.gui.getGrayout(bUp);
+    sys.gui.setGrayout(bUp, 1);
+  } else {
+    sys.gui.setGrayout(bUp, bUpPrev);
+  }
+  
+  sys.gui.setGrayout(bData, arg0);
+  sys.gui.setGrayout(bApps, arg0);
+  sys.gui.setGrayout(bNewF, arg0);
+  
+  if(pickNew) sys.gui.setVisible(newT, not arg0);
+  
+  if(arg0) {
+    sys.gui.setTxtAct(tNewF);
+    sys.os.showKbd();
+  } else {
+    sys.gui.setStr(tNewF, "");
+    sys.gui.txtDeact();
+    sys.os.hideKbd();
+  }
+  
+  if(sys.os.gui.getLandscape()) {
+    if(arg0) {
+      sys.gui.setYscroll(scr, 64);
+    } else {
+      sys.gui.setYscroll(scr, 0);
+    }
+  }
+}
+
+
+function handleNewF {
+  if(sys.gui.getEventC(tNewOk) == EV_RELEASED) {
+    # create new folder
+    if(not sys.fs.mkDir(sys.gui.getStr(tNewF))) {
+      sys.os.error("Failed to create directory!");
+    }
+    # reload
+    rldFiles();
+    # hide
+    showNewF(0);
+  }
+  
+  if(sys.gui.getEventC(tNewCa) == EV_RELEASED) {
+    showNewF(0);
+  }
 }
 
 
@@ -232,6 +306,23 @@ function getsize {
   x = sys.fs.size();
   sys.fs.close();
   return x;
+}
+
+
+## inits the overlay dummy screen
+## it contains only a frame with the main screen, prevents main screen from being destroyed with the overlay
+function init_oscr {
+  oscr = sys.gui.addScreen();
+  sys.gui.addFrame(0, 0, 9, 15, scr, oscr);
+  selfOvr = sys.o.setScr(oscr);
+  
+  sys.o.setXYXY(16 + sys.os.gui.getLandscape()*80, 48, 304  +  sys.os.gui.getLandscape()*80, 464 - sys.os.gui.getLandscape()*160);
+  
+  if(sys.gui.getTexAct(newT) == 1 or sys.gui.getTexAct(tNewF) == 1) {
+    sys.o.setY(464 - 160 - sys.os.gui.getLandscape()*160);
+  } else {
+    sys.o.setY(464 - sys.os.gui.getLandscape()*160);
+  }
 }
 
 
@@ -434,21 +525,40 @@ function updFiles {
 
 function update {
   # First thing is to check validity of the overlay
+
   if (sys.o.getId() != selfOvr) {
     # exit and return if not valid
     # only if keyboard is not shown, to enable copy&paste overlay
-    if(sys.os.kbdGetState() == 0) {
-      sys.os.exit();
-    } 
-    return;
+    if(sys.o.getId() == 0) {
+      init_oscr();
+      sys.os.setRedraw();
+    } else {
+      return;
+    }
   }
+
   
   if(pickNew == 1) {
     newS = sys.os.gui.handleText(newT, newS);
   }
   
-  if(sys.gui.getTexAct(newT) != newTActO) {
-    if(sys.gui.getTexAct(newT) == 1) {
+  if(sys.gui.getVisible(tNewF)) {
+    sys.os.gui.handleText(tNewF);
+    handleNewF();
+  }
+  
+  if(sys.gui.getTexAct(newT) != newTActO or newFActO != sys.gui.getTexAct(tNewF)) {
+    local active = 0;
+    
+    if(sys.gui.getTexAct(newT) == 1 or sys.gui.getTexAct(tNewF) == 1) {
+      active = 1;
+    }
+    
+    if(sys.gui.getTexAct(tNewF) == 0 and newFActO != 0) {
+      showNewF(0);
+    }
+    
+    if(active) {
       sys.o.setY(464 - 160 - sys.os.gui.getLandscape()*160);
       # opening of the keyboard messes up the screen drawn by the parent app
       # so I set the main app screen as empty one to get rid of any
@@ -461,9 +571,10 @@ function update {
       sys.os.gui.setMainScr(escr);
       sys.os.setRedraw();
     }
+    
+    newTActO = sys.gui.getTexAct(newT);
+    newFActO = sys.gui.getTexAct(tNewF);  
   }
-  
-  newTActO = sys.gui.getTexAct(newT);
   
   updFiles();
 
@@ -497,6 +608,10 @@ function update {
     upCount = 0;
     rldFiles();
   }
+  
+  if (sys.gui.getEventC(bNewF) == EV_RELEASED) {
+    showNewF(1);
+  }
 
   if (sys.gui.getEventC(btnCancel) == EV_RELEASED) {
     sys.os.exit();
@@ -514,7 +629,7 @@ function update {
     sys.os.exit();
   }
   
-  sys.os.gui.btnCtrl(scr, btnCancel);
+  sys.os.gui.btnCtrl(oscr, btnCancel);
 }
 
 
