@@ -14,14 +14,11 @@ function init {
   
   sys.gui.addText(0, 0, 6, 1, "SMS Messages", scr);
   
-  bOpt    = sys.gui.addButton(7, 0, 1, 1, "...", scr);
-  
-  bNew    = sys.gui.addButton(5, 11, 3, 1, "New", scr);
-  pSld    = sys.gui.addSliderV(8, 1, 1, 10, 100, 50, scr);
-  sConvs  = sys.gui.addScreen(0, 1, 8, 10, scr);
+  bOpt = sys.gui.addButton(7, 0, 1, 1, "...", scr);
+  bNew = sys.gui.addButton(6, 11, 2, 1, "New", scr);
+  pSld = sys.gui.addSliderV(8, 1, 1, 10, 100, 50, scr);
   
   bSearch = sys.gui.addButton(0, 11, 3, 1, "Search", scr);
-  
   tSearch = sys.gui.addText(0, 7, 8, 1, "", scr);
   sys.gui.setTxtEd(tSearch, 1);
   sys.gui.setVisible(tSearch, 0);
@@ -29,6 +26,8 @@ function init {
   
   # search is disabled for now...
   sys.gui.setVisible(bSearch, 0);
+  
+  sConvs = sys.gui.addScreen(0, 1, 8, 10, scr);
 
   array pButtons[32];
   array pFiles[32];
@@ -76,7 +75,8 @@ function init {
   newTxScr = sys.gui.addScreen(0, 1, 8, 5, newScr);
   sys.gui.setBgRedraw(newTxScr, 0);
   tNewMsg = sys.gui.addText(0, 0, 9, 14, "", newTxScr);
-  sys.gui.setTexEd(tNewMsg, 1);
+  sys.gui.setTexEd(tNewMsg,  1);
+  sys.gui.setTexFit(tNewMsg, 1);
   sNewMsg = "";
   
   newSlider = sys.gui.addSliderV(8, 1, 1, 5, 256 - 16, 0, newScr);
@@ -84,21 +84,24 @@ function init {
   t_msg = 0;
   t_del = 0;
   cur_msg = 1;
-  at_init();
+
   page = 0;
   scrollMax = 0;
   
-  currentConv = "";
-  newMsgLoaded = 0;
+  currentConv   = "";
+  newMsgLoaded  = 0;
   NewMsgConcept = 0;
   currentNumber = "";
   
   kbd_back_btn = 0;
   menu1 = 0;
+  
+  at_init();
   ddm_init();
   
   process_args(arg0, arg1, arg2);
 }
+
 
 function set_dir {
   sys.fs.chDir("appdata");
@@ -148,7 +151,7 @@ function search_en {
 }
 
 
-## Load conversations
+## Load contact list (conversations)
 function load_convs {
   local icon_fl = 0;
   sys.gui.destroy(sConvs);
@@ -181,14 +184,14 @@ function load_convs {
   pCount = i;
   
   sys.gui.setValue(pSld, 0);
-  sys.gui.setParam(pSld, (pCount - 1)*34 + 6);
+  sys.gui.setParam(pSld, (pCount - 2)*34);
   
   if(icon_fl) {
     set_icon();
   }
 }
 
-## update conversations screen
+## update contact list screen
 function upd_convs {
   local i;
   for(i = 0; i < pCount; i++;) {
@@ -200,12 +203,11 @@ function upd_convs {
   }
 }
 
-## load message screen
+## Load conversations screen
 function load_conv {
   print("Loading conv:" + arg0);
   currentConv = arg0;
   sys.os.gui.setMainScr(cscr);
-  
   sys.gui.destroy(sMsgList);
   
   sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
@@ -250,7 +252,6 @@ function load_conv {
   }
   
   local b = 0;
-  #print("min:" + min + " max: " + cmax);
   local in = 2;
   for (i = min; i < cmax; i++;) {
     incomming = sys.fs.conf.read("dir_" + i) == "INCOMMING";
@@ -266,12 +267,15 @@ function load_conv {
       yAdd -= 2;
     }
     
-    local text = sys.fs.conf.read("msg_"+i);
-    
-    ctext[b] = sys.gui.addText(0, b*5 + 1 + yAdd, 8, 2 + getHeight(text, 8*32), text, sMsgList);
-    yAdd += getHeight(text, 8*32);
+    local text = sys.fs.conf.read("msg_"+i);    
+    ctext[b] = sys.gui.addText(0, b*5 + 1 + yAdd, 8, 2, text, sMsgList);
     sys.gui.setSelect(ctext[b], 1);
     sys.gui.setTexFit(ctext[b], 1);
+    
+    local textH = (sys.gui.getTxtHeight(ctext[b], 0) + 8) / 32;
+    sys.gui.setY2(ctext[b], textH + 1);
+    
+    yAdd += textH - 1;
     
     ctime[b] = sys.gui.addText(0, b*5 + 3 + yAdd, 8, 1, parse_ts(num(sys.fs.conf.read("ts_"+i))), sMsgList);
     sys.gui.setTxtSize(ctime[b], 12);
@@ -283,24 +287,21 @@ function load_conv {
     b++;
   }
   
-  scrollMax = (b*5 + yAdd - 9)*32;
-  
+  scrollMax = (b*5 + yAdd - 11)*32;
   
   bCDn = sys.gui.addButton(0, b*5 + 4 + yAdd - 5, 1, 1, "\\/", sMsgList);
   if (page == 0) {
     sys.gui.setVisible(bCDn, 0);
+  } else {
+    scrollMax += 32;
   }
   sys.fs.conf.close();
   
   kbd_back_btn = bBack;
 }
 
-function getHeight { # arg0: str, arg1: element_width_px
-  local r = num(float(len(arg0)*7)/float(arg1));
-  return r;
-}
 
-## update message screen
+## Update  conversation screen
 function upd_conv {
   if (currentConv == "") {
     return;
@@ -362,6 +363,7 @@ function upd_conv {
   scrScroller(sMsgList, cScroll, 0, scrollMax);
 }
 
+## Load new message screen
 function ld_new_msg { # number, prev_Screen
   sys.os.gui.setMainScr(newScr);
   sys.gui.setTexAct(tNewMsg);
@@ -407,6 +409,7 @@ function ld_new_msg { # number, prev_Screen
     }
   }
 }
+
 
 ## Char count update function
 function upd_count #* rl, l*# {
