@@ -4,14 +4,14 @@ import "~hist-tools.svs"
 function init {
   sys.os.setSingular();  
   sys.gui.setRelInit(1);
+  
+  ## Dialer Screen
   scr_d = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr_d);
 
   sys.gui.setXscroll(scr_d, -16);
   sys.gui.setYscroll(scr_d, 16);
   
-  
-  ## Dialer Screen
   array b_dial[10];
   
   for(local i = 1; i < 10; i++;) {
@@ -34,7 +34,9 @@ function init {
   sys.gui.setVisible(b_ok, 0);
   sys.gui.setVisible(t_pin, 0);
   
-  b_del = sys.gui.addButton(7, 1, 2, 1, "<-", scr_d);
+  b_del = sys.gui.addButton(7, 1, 2, 1, "", scr_d);
+  sys.gui.setIcon(b_del, "backspace.sic");
+  sys.gui.setParam(b_del, 16);
   b_call = sys.gui.addButton(7, 3, 2, 2, "Call", scr_d);
   
   b_contacts = sys.gui.addButton(0, 13, 4, 1, "Contacts", scr_d);
@@ -56,14 +58,16 @@ function init {
     sys.fs.mkDir("phone");
   }
   
-  pinOk = 0;
+  pinOk  = 0;
   inCall = 0;
-  RSMS = 0;
+  RSMS   = 0;
   exit_flag = 0;
   
   mngr_stat = "";
   
   list_page = 0;
+  
+  sys.os.gui.setRoot(1, "phone/sic");
   
   # arg0 - type of request
   process_args(arg0, arg1, arg2);
@@ -81,11 +85,13 @@ function set_icon {
   sys.fs.chDir(0);
 }
 
+
 function clr_icon { 
   if(icon_id != 0) {
    sys.os.gui.freeNotif(icon_id);
   }
 }
+
 
 function icoCallback {
   sys.os.arise();
@@ -245,7 +251,7 @@ function load_hist {
 
 function lz {
   if (arg0 < 10) {
-    return "0"+arg0;
+    return "0" + arg0;
   }
   return arg0;
 }
@@ -374,24 +380,24 @@ function mngr_stat {
   mngr_stat = arg0;
   
   if (mngr_stat == "SIMPIN") {
-    sys.gui.setGrayout(b_ok, 0);
-    sys.gui.setVisible(b_ok, 1);
-    sys.gui.setVisible(t_pin, 1);
+    sys.gui.setGrayout(b_ok,   0);
+    sys.gui.setVisible(b_ok,   1);
+    sys.gui.setVisible(t_pin,  1);
     sys.gui.setGrayout(b_call, 1);
   }
   
   if (mngr_stat == "READY") {
-    sys.gui.setGrayout(b_ok, 1);
-    sys.gui.setVisible(b_ok, 0);
-    sys.gui.setVisible(t_pin, 0);
+    sys.gui.setGrayout(b_ok,   1);
+    sys.gui.setVisible(b_ok,   0);
+    sys.gui.setVisible(t_pin,  0);
     sys.gui.setGrayout(b_call, 0);
   }
 }
 
 function mngr_pin {
   if (arg0 == "OK") {
-    sys.gui.setVisible(b_ok, 0);
-    sys.gui.setVisible(t_pin, 0);
+    sys.gui.setVisible(b_ok,   0);
+    sys.gui.setVisible(t_pin,  0);
     sys.gui.setGrayout(b_call, 0);
   } else {
     sys.gui.setGrayout(b_ok, 0);
