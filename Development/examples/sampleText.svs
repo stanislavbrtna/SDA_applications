@@ -1,0 +1,16 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.setTxtSize(sys.gui.addText(1, 1, 8, 1, "Test text", scr), FONT_12);
+  sys.gui.setTxtSize(sys.gui.addText(1, 2, 8, 1, "Test text", scr), FONT_12_M);
+  sys.gui.setTxtSize(sys.gui.addText(1, 3, 8, 1, "Test text", scr), FONT_18);
+  sys.gui.setTxtSize(sys.gui.addText(1, 4, 8, 2, "Test text", scr), FONT_32);
+  sys.gui.setTxtSize(sys.gui.addText(1, 6, 8, 3, "Test text", scr), FONT_70);
+  sys.gui.setTxtSize(sys.gui.addText(1, 9, 8, 4, "Test text", scr), FONT_87);
+}
+
+function update {
+ 
+}
