@@ -11,6 +11,7 @@ function init {
   scr_c = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr_c);
+  sys.gui.setXscroll(scr_c, 16);
   
   # call screen
   
@@ -24,7 +25,7 @@ function init {
   t_ccompany = sys.gui.addText(1, 5, 6, 1, "", scr_c);
   
   b_cend = sys.gui.addButton(3, 12, 4, 1, "End Call", scr_c);
-  sys.gui.setTexAlign(b_cend, ALIGN_CENTER);
+  sys.gui.setIcon(b_cend, "call_dec.sic");
   
   b_more = sys.gui.addButton(8, 12, 1, 1, "...", scr_c);
   
@@ -34,11 +35,11 @@ function init {
   sys.gui.setTexAlign(b_ok, ALIGN_CENTER);
   sys.gui.setTexAlign(t_ok, ALIGN_CENTER);
   
-  b_caccept = sys.gui.addButton(6, 12, 3, 1, "Accept", scr_c);
-  sys.gui.setTexAlign(b_caccept, ALIGN_CENTER);
+  b_caccept = sys.gui.addButton(6, 12, 4, 1, "Accept", scr_c);
+  sys.gui.setIcon(b_caccept, "call_ans.sic");
   
-  b_cdecline = sys.gui.addButton(1, 12, 3, 1, "Decline", scr_c);
-  sys.gui.setTexAlign(b_cdecline, ALIGN_CENTER);
+  b_cdecline = sys.gui.addButton(1, 12, 4, 1, "Decline", scr_c);
+  sys.gui.setIcon(b_cdecline, "call_dec.sic");
   
   sys.gui.setVisible(b_cend, 0);
   sys.gui.setVisible(b_more, 0);
@@ -80,11 +81,15 @@ function init {
   t_dummy = 0;
   
   exit_timer = 0;
+  
+  sys.os.gui.setRoot(1, "phone/sic");
 }
 
 
 function init_more {
-  scrMore = sys.gui.addScreen(1, 7, 8, 4, scr_c);
+  scrMore = sys.gui.addScreen(1, 6, 9, 5, scr_c);
+  sys.gui.setXscroll(scrMore, -16);
+  sys.gui.setYscroll(scrMore, -16);
   
   array keypad[3*4];
   

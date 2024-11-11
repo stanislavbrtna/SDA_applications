@@ -12,7 +12,7 @@ function init {
   set_spacing(scr);
   sys.gui.setYscroll(scr, -16);
   
-  sys.gui.addText(0, 0, 6, 1, "SMS Messages", scr);
+  sys.gui.addText(0, 0, 6, 1, "Messages", scr);
   
   bOpt = sys.gui.addButton(7, 0, 1, 1, "...", scr);
   bNew = sys.gui.addButton(6, 11, 2, 1, "New", scr);
