@@ -30,7 +30,7 @@ function init {
   fnameT = sys.gui.addText(0, 13, 10, 1, "Proged-X 1.0", scr);
 
   sys.gui.setTexEd(txt, 1);
-  sys.gui.setTxtSize(txt, 12);
+  sys.gui.setTxtSize(txt, 13);
   sys.gui.setTxtSize(liner, 12);
 
   cPosOld = 0;
@@ -63,7 +63,8 @@ function init {
   textOvr = 0;
   menuOvr = 0;
   
-  sld_old = -1;
+  def_font = 0;
+  sld_old  = -1;
   cfg_load();
   ddm_init();
   
@@ -117,16 +118,30 @@ function cfg_load {
   sys.fs.conf.open("settings/proged.cfg");
   sys.gui.setVisible(liner, sys.fs.conf.readInt("liner", 0));
   sys.gui.setX1(txt, sys.fs.conf.readInt("liner", 0));
+  def_font = num(sys.fs.conf.read("def_font", "0"));
   sys.fs.conf.close();
   sys.fs.chDir(fileRoot);
+  
+  if(def_font) {
+    sys.gui.setTxtSize(txt, 12);
+  } else {
+    sys.gui.setTxtSize(txt, 13);
+  }
 }
 
 function cfg_store {
   sys.fs.chDir(0);
   sys.fs.conf.open("settings/proged.cfg");
   sys.fs.conf.write("liner", "" + sys.gui.getVisible(liner));
+  sys.fs.conf.write("def_font", "" + def_font);
   sys.fs.conf.close();
   sys.fs.chDir(fileRoot);
+  
+  if(def_font) {
+    sys.gui.setTxtSize(txt, 12);
+  } else {
+    sys.gui.setTxtSize(txt, 13);
+  }
 }
 
 function resize_bar {
@@ -328,7 +343,16 @@ function menuOvInit {
   btn_lines = sys.gui.addCheckBox(1, 2, 10, 1, "Show lines", menuScr);
   sys.gui.setValue(btn_lines, sys.gui.getVisible(liner));
   
-
+  btn_font1 = sys.gui.addButton(1, 3, 3, 1, "Font 1", menuScr);
+  btn_font2 = sys.gui.addButton(4, 3, 3, 1, "Font 2", menuScr);
+  
+  sys.gui.setTxtSize(btn_font1, 13);
+  sys.gui.setTxtSize(btn_font2, 12);
+  sys.gui.setTexAlign(btn_font1, ALIGN_CENTER);
+  sys.gui.setTexAlign(btn_font2, ALIGN_CENTER);
+  
+  sys.gui.setSelect(btn_font1, def_font == 0);
+  sys.gui.setSelect(btn_font2, def_font == 1);
   
   btn_close = sys.gui.addButton(5, 5, 2, 1, "Close", menuScr);
   
@@ -350,6 +374,20 @@ function menuOvUpdate {
   if (sys.gui.getEventC(btn_lines) == EV_RELEASED) {
     sys.gui.setX1(txt, sys.gui.getValue(btn_lines));
     sys.gui.setVisible(liner, sys.gui.getValue(btn_lines));
+    cfg_store();
+  }
+  
+  if (sys.gui.getEventC(btn_font1) == EV_RELEASED) {
+    def_font = 0;
+    sys.gui.setSelect(btn_font1, def_font == 0);
+    sys.gui.setSelect(btn_font2, def_font == 1);
+    cfg_store();
+  }
+  
+  if (sys.gui.getEventC(btn_font2) == EV_RELEASED) {
+    def_font = 1;
+    sys.gui.setSelect(btn_font1, def_font == 0);
+    sys.gui.setSelect(btn_font2, def_font == 1);
     cfg_store();
   }
   
