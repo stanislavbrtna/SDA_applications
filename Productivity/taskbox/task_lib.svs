@@ -6,7 +6,7 @@ function ascii_only { # arg0: string arg1: ignore_spaces
   
   for(i = 1; i <= len(arg0); i++;) {
     c = getcp(arg0, i);
-    if(rlen(c) == 1) {
+    if(rlen(c) == 1 and instr("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ", c)) {
       if(arg1 == 1 and c == " ") {
         # nothing
       } else {

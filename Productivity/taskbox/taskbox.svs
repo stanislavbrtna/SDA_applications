@@ -551,7 +551,8 @@ function load_te { # arg0 task_entry_id
   sNameTE = sys.fs.conf.read("t_" + arg0);
   sys.gui.setValue(bCheckTE, num(sys.fs.conf.read("tc_" + arg0)));
   sDescrTE = sys.fs.conf.read("td_" + arg0);
-  set_tracktime(num(sys.fs.conf.read("tt_" + idTE)));
+  tracking_time = num(sys.fs.conf.read("tt_" + idTE));
+  set_tracktime(tracking_time);
   sys.fs.conf.close();
   
   sys.gui.setValue(barTE, 0);
