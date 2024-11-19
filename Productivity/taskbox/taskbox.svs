@@ -1,4 +1,6 @@
 import "~task_lib.svs"
+import "lib/inc/ddm.svs"
+import "lib/inc/com.svs"
 
 ## Main int
 function init {
@@ -722,9 +724,6 @@ function set_mode {
     keybBack = bBackNo;
   }
 }
-
-import "lib/inc/ddm.svs"
-import "lib/inc/com.svs"
 
 function update {
   if(com_handle(new_te_hndl) == 1) {
