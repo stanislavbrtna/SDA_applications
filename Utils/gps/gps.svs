@@ -618,12 +618,11 @@ function update {
   }
   
   if(sys.hw.getLcdState() != lcdPrevState) {
+    
     if (sys.hw.getLcdState() == 1) {
-      sys.hw.ePinDef(5, PIN_ALT, PIN_NOPULL);
-      sys.hw.ePinDef(6, PIN_ALT, PIN_NOPULL);
+      uart_init_ext();
     } else {
-      sys.hw.ePinDef(5, PIN_IN, PIN_NOPULL);
-      sys.hw.ePinDef(6, PIN_IN, PIN_NOPULL);
+      uart_free_ext();
     } 
     
     lcdPrevState = sys.hw.getLcdState();
