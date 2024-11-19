@@ -251,6 +251,11 @@ function suspend {
     } else {
       sys.time.setTimer(timerWkupS * 2000, &timerWkup);
     }
+    
+    if (lcd_off_fl) {
+      sys.hw.setLcdState(0);
+      lcd_off_fl = 0;
+    }
   } else {
     sys.com.uartRdClb(&uartCB, 0);
     at_set_dtr(0); # sleep disabled
@@ -260,10 +265,7 @@ function suspend {
     sys.time.clearTimer();
   }
   
-  if (lcd_off_fl) {
-    sys.hw.setLcdState(0);
-    lcd_off_fl = 0;
-  }
+  
 }
 
 
