@@ -377,20 +377,23 @@ function update {
 
 function mngr_stat {
   print("dialer: Mngr stat loaded");
-  mngr_stat = arg0;
+  mngr_stat = "" + arg0;
   
   if (mngr_stat == "SIMPIN") {
     sys.gui.setGrayout(b_ok,   0);
     sys.gui.setVisible(b_ok,   1);
     sys.gui.setVisible(t_pin,  1);
     sys.gui.setGrayout(b_call, 1);
-  }
-  
-  if (mngr_stat == "READY") {
+  } else if (mngr_stat == "READY") {
     sys.gui.setGrayout(b_ok,   1);
     sys.gui.setVisible(b_ok,   0);
     sys.gui.setVisible(t_pin,  0);
     sys.gui.setGrayout(b_call, 0);
+  } else {
+    sys.gui.setGrayout(b_ok,   1);
+    sys.gui.setVisible(b_ok,   0);
+    sys.gui.setVisible(t_pin,  0);
+    sys.gui.setGrayout(b_call, 1);
   }
 }
 
