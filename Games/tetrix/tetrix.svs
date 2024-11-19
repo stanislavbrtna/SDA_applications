@@ -106,6 +106,7 @@ function set_piece {
     bl_col =sys.ds.mixColor(0, 240, 240);
     bl_shape = 1;
     bl_y_add = 1;
+    return;
   }
   
   if (r == 1) { # O
@@ -122,6 +123,7 @@ function set_piece {
     bl_shape = 2;
     
     bl_y_add = 0;
+    return;
   }
   
   if (r == 2) { # T
@@ -141,6 +143,7 @@ function set_piece {
     bl_shape = 3;
     
     bl_y_add = 0;
+    return;
   }
   
   if (r == 3) { # J
@@ -160,6 +163,7 @@ function set_piece {
     bl_shape = 4;
     
     bl_y_add = 0;
+    return;
   }
   
   if (r == 4) { # L
@@ -179,6 +183,7 @@ function set_piece {
     bl_shape = 4;
     
     bl_y_add = 0;
+    return;
   }
   
   if (r == 5) { # S
@@ -198,6 +203,7 @@ function set_piece {
     bl_shape = 4;
     
     bl_y_add = 0;
+    return;
   }
   
   if (r == 6) { # Z
@@ -217,8 +223,8 @@ function set_piece {
     bl_shape = 5;
     
     bl_y_add = 0;
+    return;
   }
-  
 }
 
 function r_next {
@@ -237,8 +243,8 @@ function r_next {
   
   set_piece(next_shape);
   
-  sys.ds.drawText(a + 5, b-22, "Next:", gray);
-  sys.ds.fillRect(a, b, a+16*4, b+16*4, 0);
+  sys.ds.drawText(a + 5, b - 22, "Next:", gray);
+  sys.ds.fillRect(a, b, a + 64, b + 64, 0);
   
   for (local i = 0; i < 4; i++;) {
     sys.ds.fillRect(
@@ -275,15 +281,14 @@ function redraw {
     
     r_next();
     
-    sys.ds.drawRect(0+dx_add - 1, 0+dy_add - 1, 160+dx_add + 1, 320+dy_add + 1, gray);
+    sys.ds.drawRect(dx_add - 1, dy_add - 1, 160+dx_add + 1, 320+dy_add + 1, gray);
     
     sys.ds.drawRect(1, 1, 317, 415, gray);
     sys.ds.drawRect(2, 2, 316, 414, gray);
   }
 
-  if (redraw == 0) {
+  if (redraw == 0)
     return;
-  }
   
   # field
   if(not lost) {
@@ -294,28 +299,23 @@ function redraw {
     for (local x = 0; x < 20*10; x++;) {
       blk = 0;
       for(local i = 0; i < 4; i++;) {
-        if(x%10 == bl_x[i]+ bl_x_add and x/10 == bl_y[i]+ bl_y_add) {
+        if(x%10 == bl_x[i]+ bl_x_add and x/10 == bl_y[i] + bl_y_add)
           blk = 1;
-        }
       }
-      
+      local t_col;
       if(not blk) {
-        sys.ds.fillRect(
-          0 + x%10*16+dx_add,
-          0 + x/10*16+dy_add,
-          16 + x%10*16+dx_add,
-          16 + x/10*16+dy_add,
-          arr[x]
-        );
+        t_col = arr[x];
       } else {
-        sys.ds.fillRect(
-          0 + x%10*16+dx_add,
-          0 + x/10*16+dy_add,
-          16 + x%10*16+dx_add,
-          16 + x/10*16+dy_add,
-          bl_col
-        );
+        t_col = bl_col;
       }
+      sys.ds.fillRect(
+        0 + x%10*16+dx_add,
+        0 + x/10*16+dy_add,
+        16 + x%10*16+dx_add,
+        16 + x/10*16+dy_add,
+        t_col
+      );
+      
     }
   }
   
@@ -340,9 +340,8 @@ function redraw {
 
 function wall_block {
   for (local x = 0; x < 4; x++;) {
-    if (bl_x[x]+ bl_x_add  + (bl_y[x]+bl_y_add)*10 > 0) {
+    if (bl_x[x]+ bl_x_add  + (bl_y[x]+bl_y_add)*10 > 0)
       arr[bl_x[x]+ bl_x_add  + (bl_y[x]+bl_y_add)*10] = bl_col;
-    }
   }
   redr_fld = 1;
 }
@@ -363,11 +362,11 @@ function move_block {
     blocked = 0;
     
     for (local x = 0; x < 4; x++;) {
-      if (bl_x[x]+bl_x_add < 1) {
+      if (bl_x[x] + bl_x_add < 1) {
         blocked = 1;
         break;
       }
-      local v = (bl_x[x]+ bl_x_add - 1) + (bl_y[x] + bl_y_add)*10;
+      local v = bl_x[x]+ bl_x_add - 1 + (bl_y[x] + bl_y_add)*10;
       
       if (v < 200 and v >= 0) {
         if (arr[v] != 0) {
@@ -376,10 +375,8 @@ function move_block {
         }
       }
     }
-    if (not blocked) {
-      bl_x_add--;
-    }
-    
+    if (not blocked)
+      bl_x_add--;    
   }
 
   if (arg0 == 1) { # right
@@ -389,7 +386,7 @@ function move_block {
         blocked = 1;
         break;
       }
-      v = (bl_x[x]+ bl_x_add + 1) + (bl_y[x] + bl_y_add)*10;
+      v = bl_x[x]+ bl_x_add + 1 + (bl_y[x] + bl_y_add)*10;
       
       if (v < 200 and v >= 0) {
         if (arr[v] != 0) {
@@ -398,9 +395,8 @@ function move_block {
         }
       }
     }
-    if (not blocked) {
+    if (not blocked)
       bl_x_add++;
-    }
   }
 
   if (arg0 == 2) { # rotate
@@ -411,9 +407,8 @@ function move_block {
     while(blocked) {
       blocked = 0;
       for (local x = 0; x < 4; x++;) {
-        if (bl_x[x]+bl_x_add > 9) {
+        if (bl_x[x]+bl_x_add > 9)
           blocked = 1;
-        }
       }
       bl_x_add--;
     }
@@ -422,9 +417,8 @@ function move_block {
     while(blocked){
       blocked = 0;
       for (local x = 0; x < 4; x++;) {
-        if (bl_x[x]+bl_x_add < 0) {
+        if (bl_x[x]+bl_x_add < 0)
           blocked = 1;
-        }
       }
       bl_x_add++;
     }
@@ -445,14 +439,14 @@ function move_block {
     local stop = 0;
     while (not stop) {
       for (local x = 0; x < 4 and stop == 0; x++;) {
-        if ((bl_x[x]+ bl_x_add) + (bl_y[x] + bl_y_add +1)*10 < 200) {
-          if (arr[(bl_x[x]+ bl_x_add) + (bl_y[x] + bl_y_add +1)*10] != 0) {
+        if (bl_x[x]+ bl_x_add + (bl_y[x] + bl_y_add +1)*10 < 200) {
+          if (arr[bl_x[x]+ bl_x_add + (bl_y[x] + bl_y_add +1)*10] != 0) {
             stop = 1;
             break;
           }
         }
         
-        if (bl_y[x] + bl_y_add +1 == 20) {
+        if (bl_y[x] + bl_y_add + 1 == 20) {
           stop = 1;
           break;
         }
@@ -481,8 +475,8 @@ function resolve_blk {
   # check if we colided with blocks
   for (local x = 0; x < 4; x++;) {
     for (local x = 0; x < 4 and stop == 0; x++;) {
-      if ((bl_x[x]+ bl_x_add) + (bl_y[x] + bl_y_add +1)*10 < 200) {
-        if (arr[(bl_x[x]+ bl_x_add) + (bl_y[x] + bl_y_add +1)*10] != 0) {
+      if (bl_x[x]+ bl_x_add + (bl_y[x] + bl_y_add +1)*10 < 200) {
+        if (arr[bl_x[x] + bl_x_add + (bl_y[x] + bl_y_add +1)*10] != 0) {
           # freeze block
           wall_block();
           if (bl_y_add == 0) {
@@ -545,7 +539,7 @@ function update {
   }
 
   if (dir_set == 0) {
-    if (sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED and (dir_set == 0)) {
+    if (sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED and not dir_set) {
       direction = 2;
       if (not started) {
         direction = 0;
@@ -555,7 +549,7 @@ function update {
     }
     sys.hw.btn.clrEvent(BTN_UP);
 
-    if (sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED and (dir_set == 0)) {
+    if (sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED and not dir_set) {
       direction = 3;
       if (not started) {
         direction = 0;
@@ -565,14 +559,14 @@ function update {
     }
     sys.hw.btn.clrEvent(BTN_DOWN);
 
-    if (sys.hw.btn.getEvent(BTN_LEFT) == EV_PRESSED and (dir_set == 0)) {
+    if (sys.hw.btn.getEvent(BTN_LEFT) == EV_PRESSED and not dir_set) {
       direction = 0;
       started = 1;
       dir_set = 1;
     }
     sys.hw.btn.clrEvent(BTN_LEFT);
 
-    if (sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED and (dir_set == 0)) {
+    if (sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED and not dir_set) {
       direction = 1;
       started = 1;
       dir_set = 1;
@@ -580,7 +574,7 @@ function update {
     sys.hw.btn.clrEvent(BTN_RIGHT);
   }
 
-  if((sys.cnt.get() != 0)) { # framelimiter
+  if(sys.cnt.get() != 0) { # framelimiter
     return;
   } else {
     sys.cnt.set(game_speed);
@@ -594,7 +588,7 @@ function update {
     print("level up: speed: " + game_speed); 
   }
 
-  if (started and ((lost != 1) and (win != 1))) {
+  if (started and (lost != 1 and win != 1)) {
     move_block(direction);
     resolve_blk();
     if (ob == 1) {
