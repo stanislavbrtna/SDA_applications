@@ -72,9 +72,10 @@ function init {
     #Str number
     #Num contact_id
     
-    sys.fs.db.newTable("numbers", 2);
-    sys.fs.db.setColumn(0, "number", 1);
-    sys.fs.db.setColumn(1, "contact_id", 0);
+    sys.fs.db.newTable("numbers", 3);
+    sys.fs.db.setColumn(0, "number_sane", 1);
+    sys.fs.db.setColumn(1, "number", 1);
+    sys.fs.db.setColumn(2, "contact_id", 0);
     
     sys.fs.db.selectTable("contacts");
   }
@@ -625,6 +626,11 @@ function loadCfg {
   
   sys.fs.db.selectTable("contacts");
   
+  local array ids[100];
+  local array nums[len(ids)];
+  
+  local numCnt = 0;
+  
   while(sys.fs.conf.exists("valid_" + n)) {
     local id;
     sys.fs.db.selectTable("contacts");
@@ -633,29 +639,60 @@ function loadCfg {
     sys.fs.db.setEntryStr("name", sys.fs.conf.read("name_" + n));
     sys.fs.db.setEntryStr("surname", sys.fs.conf.read("surname_" + n));
     sys.fs.db.setEntryStr("company", sys.fs.conf.read("company_" + n));
-    sys.fs.db.setEntryStr("note", sys.fs.conf.read("note_" + n));
-    sys.fs.db.setEntryStr("picture", sys.fs.conf.read("pic_" + n));
     
     #TODO: phone
     
-    # add new ones
-    sys.fs.db.selectTable("numbers");
-    local i = 0;
-    while (sys.fs.conf.exists("phone_" + n + "_" + i)) {
-      sys.fs.db.newRow();
-      sys.fs.db.setEntryStr("number", sys.fs.conf.read("phone_" + n + "_" + i));
-      sys.fs.db.setEntryNum("contact_id", id);
-      i++;
+    if (sys.fs.conf.exists("phone_" + n + "_0")) {
+      ids[numCnt]  = id;
+      nums[numCnt] = sys.fs.conf.read("phone_" + n + "_0");
+      
+      numCnt++;
+      
+      if(numCnt >= len(ids)) {
+        print("writing numbers...");
+        sys.fs.db.selectTable("numbers");
+        for(local b = 0; b < len(ids); b++;) {   
+          sys.fs.db.newRow();
+          sys.fs.db.setEntryStr("number", nums[b]);
+          sys.fs.db.setEntryStr("number_sane", cont_numsane(nums[b]));
+          sys.fs.db.setEntryNum("contact_id", ids[b]);
+        }
+        sys.fs.db.selectTable("contacts");
+       
+        numCnt = 0;
+      }
     }
+    
+    sys.fs.db.setEntryStr("note", sys.fs.conf.read("note_" + n));
+    sys.fs.db.setEntryStr("picture", "phone/empty.p16"); # pic field is missing in the cfg...
     
     print("... " + n);
       
     n++;
   }
   
+  if(numCnt > 0) {
+    print("writing final numbers...");
+    sys.fs.db.selectTable("numbers");
+    for(local b = 0; b < numCnt; b++;) {
+      #print("writing: " + nums[b] + " id:" + ids[b]);
+      sys.fs.db.newRow();
+      sys.fs.db.setEntryStr("number", nums[b]);
+      sys.fs.db.setEntryStr("number_sane", cont_numsane(nums[b]));
+      sys.fs.db.setEntryNum("contact_id", ids[b]);
+    }
+    sys.fs.db.selectTable("contacts");
+    numCnt = 0;
+  }
+  
   sys.fs.db.selectTable("contacts");
   list_size = sys.fs.db.getRowCount();
+  
+  sys.fs.db.sync();
+  
   load_list();
+  
+  sys.chDir("appdata");
   
   sys.fs.conf.close();
 }
@@ -698,6 +735,7 @@ function handle_save {
       sys.fs.db.newRow();
       sys.fs.db.setEntryStr("number", nphone[i]);
       sys.fs.db.setEntryNum("contact_id", id);
+      sys.fs.db.setEntryStr("number_sane", cont_numsane(nphone[i]));
     }
   }
   

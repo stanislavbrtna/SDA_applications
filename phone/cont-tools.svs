@@ -3,7 +3,7 @@
 function cont_get_info {
   sys.fs.chDir();
   sys.fs.chDir("appdata");
-  sys.fs.conf.open("phone/contacts.cfg");
+  sys.fs.db.open("phone/contacts.db");
   
   if(DEBUG) print("cont_get_info: num:" + arg0);
   
@@ -15,54 +15,66 @@ function cont_get_info {
   info[3] = "";
   
   if (arg0 == "") {
+    sys.fs.db.close();
     return info;
   }
   
   local sane = cont_numsane(arg0);
   local i = 0;
   
-  local key = "phone_" + i + "_0";
+  sys.fs.db.selectTable("numbers");
   
-  while(sys.fs.conf.exists(key)) {
-    if (cont_numsane(sys.fs.conf.read(key)) == sane) {
-      info[0] = sys.fs.conf.read("name_" + i);
-      info[1] = sys.fs.conf.read("surname_" + i);
-      info[3] = sys.fs.conf.read("company_" + i);
-      info[2] = sys.fs.conf.read("pic_" + i); #phone/empty.p16
-      sys.fs.conf.close();
+  # find and delete all previous numbers
+  while(sys.fs.db.selectRowStr("number_sane", sane, 0, 1)) {
+    local contact_id = sys.fs.db.getEntryNum("contact_id", 0);
+    
+    if(contact_id == 0) {
+      sys.fs.db.close();
       return info;
     }
-
-    i++;
-    key = "phone_" + i + "_0";
+    
+    sys.fs.db.selectTable("contacts");
+    sys.fs.db.selectRowId(contact_id);
+    
+    info[0] = sys.fs.db.getEntryStr("name", "");
+    info[1] = sys.fs.db.getEntryStr("surname", "");
+    info[3] = sys.fs.db.getEntryStr("company", "");
+    info[2] = sys.fs.db.getEntryStr("picture", "phone/empty.p16");
+    
+    sys.fs.db.close();
+    return info;
   }
   
-  sys.fs.conf.close();
+  sys.fs.db.close();
   return info;
 }
+
 
 function cont_get_id {
   sys.fs.chDir();
   sys.fs.chDir("appdata");
-  sys.fs.conf.open("phone/contacts.cfg");
+  sys.fs.db.open("phone/contacts.db");
   
   local sane = cont_numsane(arg0);
   local i = 0;
-  local key = "phone_" + i + "_0";
   
-  while(sys.fs.conf.exists(key)) {
-    if (cont_numsane(sys.fs.conf.read(key)) == sane) {
-      sys.fs.conf.close();
-      return i;
+  sys.fs.db.selectTable("numbers");
+  
+  while(sys.fs.db.selectRowStr("number_sane", sane, 0, 1)) {
+    local contact_id = sys.fs.db.getEntryNum("contact_id", 0);
+    
+    sys.fs.db.close();
+    
+    if(contact_id == 0) {
+      return -1;
     }
-
-    i++;
-    key = "phone_" + i + "_0";
+    return contact_id;
   }
   
   return -1;
-  sys.fs.conf.close();
+  sys.fs.db.close();
 }
+
 
 function cont_numsane {
   local new = "";
