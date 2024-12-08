@@ -17,8 +17,8 @@ function init {
 
     # DUT
     element = sys.gui.addText(1, 2, 9, 3, "Text field", screen);
-
-    text = "";
+    
+    text = "testoids";
 }
 
 function update {
@@ -56,6 +56,10 @@ Duis bibendum, lectus ut viverra rhoncus, dolor nunc faucibus libero,
 eget facilisis enim ipsum id lacus. Vivamus porttitor turpis ac leo.
 Phasellus rhoncus. Praesent dapibus."
             );
+            
+            if( sys.gui.getValue(editable)) {
+              text = sys.gui.getStr(element);
+            }
             sys.gui.setXYXY(element, 1, 2, 9, 8);
         } else {
             sys.gui.setXYXY(element, 1, 2, 9, 3);
@@ -83,6 +87,8 @@ Phasellus rhoncus. Praesent dapibus."
     # Handle element events
     if (sys.gui.getEvent(element) == EV_PRESSED) {
         print("element pressed");
+        print("w: " + sys.gui.getTxtWidth(element, 0));
+        print("h: " + sys.gui.getTxtHeight(element, 0));
     }
 
     if (sys.gui.getEvent(element) == EV_HOLD) {
