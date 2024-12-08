@@ -104,11 +104,10 @@ function init {
 
 
 function set_dir {
+  sys.fs.chDir();
   sys.fs.chDir("appdata");
   mk_safe_dir("phone");
-  sys.fs.chDir("phone");
   mk_safe_dir("sms");
-  sys.fs.chDir("sms");
 }
 
 
