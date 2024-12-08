@@ -126,6 +126,70 @@ function ar_set {
     arg0[i] = arg1;
 }
 
+function convertDb {
+  sys.fs.conf.open("appdata/mp3-list.dat");
+  
+  if(sys.fs.exists("appdata/mp3-list.db")) {
+    sys.fs.db.open("appdata/mp3-list.db");  
+    sys.fs.db.selectTable("songs");  
+  
+    return;
+    #sys.fs.delete("appdata/mp3-list.db")
+  }
+  
+  sys.fs.db.new("appdata/mp3-list.db");
+  
+  sys.fs.db.newTable("songs", 3);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "len", 0);
+  
+  sys.fs.db.idEnable("id");
+  
+  convDbWork = 1;
+  convDbN = 0;
+  
+  loadScr = sys.gui.addScreen();
+  sys.gui.addText(1, 1, 5, 1, "Loading...", loadScr);
+  
+  local max = 0;
+  
+  while(sys.fs.conf.exists(max + "")) {
+    max++;
+  }
+  
+  loadBar = sys.gui.addBar(1, 3, 8, 1, max, 0, loadScr);
+  
+  sys.os.gui.setMainScr(loadScr);
+  
+  return;
+}
+
+function convDbWork {
+  for(local i = 0; i < 30; i++;) {
+    sys.fs.db.newRow();
+    
+    sys.fs.db.setEntryStr("name", sys.fs.conf.read("" + convDbN, ""));
+    sys.fs.db.setEntryNum("len", num(sys.fs.conf.read(convDbN + "_len", "")));
+    print("setting:" + convDbN);
+    convDbN++;
+    sys.fs.db.sync();
+    
+    if(not sys.fs.conf.exists(convDbN + "")) {
+      print("done");
+      sys.fs.db.sync();
+      convDbWork = 0;
+      numOfSongs = countSongs();
+      sys.gui.setParam(bl_slider, (numOfSongs - 9)*32 + 15);
+      reload_list();
+      sys.os.gui.setMainScr(scr);
+      return;
+    }
+  }
+  
+  sys.gui.setValue(loadBar, convDbN);
+}
+
 
 function init {
   sys.os.checkVer(10420);
@@ -144,6 +208,11 @@ function init {
   t_vol     = sys.gui.addText(1, 9, 3, 1, "Vol:", scr);
   vol_sld   = sys.gui.addSliderH(4, 9, 5, 1, 30, 15, scr);
   timeBar   = sys.gui.addBar(1, 7, 8, 1, 0, 10, scr);
+  
+  #Debug
+  if(sys.os.inSim()) {
+    bSimJack = sys.gui.addCheckBox(1, 0, 5, 2, "JackState", scr);
+  }
   
   sys.gui.setTxtSize(t_name, 32);
   sys.gui.setTxtAlign(t_name, ALIGN_CENTER);
@@ -193,8 +262,6 @@ function init {
   ar_set(btnListSng, 0);
   ar_set(prevSongs, 0);
   
-  numOfSongs = countSongs();
-
   current = sys.gui.addButton(5, 3, 4, 1, "All songs", scr);
 
   prevSong = 0;
@@ -206,6 +273,10 @@ function init {
   landscape = 0;
   
   jackStatO = 1;
+  
+  convertDb();
+  
+  numOfSongs = countSongs();
   
   add_big_list();
   upd_sleep();
@@ -224,15 +295,22 @@ function jack_check {
     pinold = sys.hw.iPinGet(1);
   }
 *#
+  local state = 0;
+  
+  if(sys.os.inSim()) {
+    state = not sys.gui.getValue(bSimJack);
+  } else {
+    state = sys.hw.iPinGet(1); # 1 - unplugged
+  }
 
-  if (sys.hw.iPinGet(1) != jackStatO) {
-    jackDebounce = sys.time.getAppUptime() + 10000;
-    print("dbg: debounce:" + sys.hw.iPinGet(1));
-    jackStatO = sys.hw.iPinGet(1);
+  if (state != jackStatO) {
+    jackDebounce = sys.time.getAppUptime() + 5000;
+    print("dbg: debounce:" + state);
+    jackStatO = state;
   }
   
   if (sys.time.getAppUptime() > jackDebounce and jackDebounce != 0) {
-    if (not sys.hw.iPinGet(1)) {
+    if (not state) {
       # jack insert
       print("dbg: plugin");
     } else {
@@ -291,18 +369,12 @@ function add_big_list {
 
 
 function countSongs {
-  n = 0;
-  while(sys.fs.conf.exists(n + "")) {
-    n++;
-  }
-
-  return n;
+  return sys.fs.db.getRowCount();
 }
 
 function upd_sleep {
   sleep_timer = sys.time.get();
 }
-
 
 function play_no {
   play = 1;
@@ -310,8 +382,9 @@ function play_no {
   ds_play_s(arg0);
   update_song(arg0);
   print("play: " + arg0);
-  sys.gui.setStr(fnameText, "" + sys.fs.conf.read(arg0-1+""));
-  waitTime = num(sys.fs.conf.read(arg0-1+"_len")) + sys.time.get();
+  sys.fs.db.selectRowId(arg0);
+  sys.gui.setStr(fnameText, sys.fs.db.getEntryStr("name", ""));
+  waitTime = sys.fs.db.getEntryNum("len", 10) + sys.time.get();
   startTime = sys.time.get();
   sys.gui.setParam(timeBar, waitTime -  sys.time.get());
   
@@ -342,10 +415,12 @@ function play_next {
   }
 
   if (sys.gui.getValue(btn_rnd)) {
-    local rndSong;
+    local rndSong = sys.os.rnd() % numOfSongs;
     while (rndSong == currentSong) {
       rndSong = sys.os.rnd() % numOfSongs;
+      print(rndSong +"");
     }
+    print("rnd: " + rndSong + " current: " + currentSong);
     play_no(rndSong);
   } else {
     play_no(currentSong + 1);
@@ -354,6 +429,10 @@ function play_next {
 
 
 function update {
+  if(convDbWork) {
+    convDbWork();
+  }
+
   jack_check();
   # wait few cycles before setting the initial volume to let the DFPlayer boot
   if (setInitVolFlag != 0) {
@@ -615,22 +694,24 @@ function reload_list {
   local b;
   local n;
   local a;
+  
   for(b = 0; b < len(btnList); b++;) {
     sys.gui.destroy(btnList[b]);
   }
 
   b = 0;
   a = 0;
+  
+  sys.fs.db.selectRow(0);
+  
   if (list_search == 0) {
     for(n = listBegin; n < (listBegin + len(btnList)); n++;) {
       local text;
-      #if (sys.fs.conf.exists(n + "") == 0) {
-      #  break;
-      #}
-      text = sys.fs.conf.read(n + "");
-      if (text == "") {
+      if (not sys.fs.db.selectRowId(n + 1)) {
         break;
       }
+
+      text = sys.fs.db.getEntryStr("name", "");
       
       btnList[b] = sys.gui.addButton(0, listBegin + b, 7 + 6*landscape, 1, text, big_list_in);
       btnListSng[b] = listBegin + b + 1;
@@ -641,27 +722,22 @@ function reload_list {
       b++;
     }
   } else {
-    for(n = 0; b < len(btnList); n++;) {
+    for(b = 0; b < len(btnList); b++;) {
       local text;
-      #if (sys.fs.conf.exists(n + "") == 0) {
-      #  break;
-      #}
-      local r = sys.fs.conf.valMatch(n + "", list_filter, 0);
       
-      if (r == -1) {
+      if (not sys.fs.db.selectRowStr("name", list_filter, 1, 0)) {
         break;
       }
-      
-      if (r == 1) {
-        text = sys.fs.conf.read(n + "");
 
-        btnList[b] = sys.gui.addButton(0, b, 7 + 6*landscape, 1, text, big_list_in);
-        btnListSng[b] = n + 1;
-        if (n + 1 == currentSong) {
-          sys.gui.setSelect(btnList[b], 1);
-        }
-        b++;
+      text = sys.fs.db.getEntryStr("name", "");
+      n = sys.fs.db.getEntryNum("id", 0);
+      
+      btnList[b] = sys.gui.addButton(0, b, 7 + 6*landscape, 1, text, big_list_in);
+      btnListSng[b] = n + 1;
+      if (n + 1 == currentSong) {
+        sys.gui.setSelect(btnList[b], 1);
       }
+      sys.fs.db.nextRow();
     }
   }
 
@@ -671,13 +747,13 @@ function reload_list {
 
 
 function exit {
-  sys.fs.conf.close();
   sys.fs.chDir();
   sys.fs.conf.open("settings/mp3-play.cfg");
   sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld) + " ");
   sys.fs.conf.write("random", "" + sys.gui.getValue(btn_rnd) + " ");
   sys.fs.conf.write("fixforbrokenConf", "" + sys.gui.getValue(vol_sld) + " ");
   sys.fs.conf.close();
+  sys.fs.db.close();
   ds_pause();
   sys.hw.iPinDef(8, PIN_IN, 0);
   sys.hw.iPinSet(16, 0);
