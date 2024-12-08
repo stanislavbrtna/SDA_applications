@@ -1,0 +1,339 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.gui.setMainScr(scr);
+  test_name = "DB test 0.1";
+  sys.gui.addText(1, 0, 10, 1, test_name, scr);
+  result = sys.gui.addText(1, 1, 10, 10, "Result:", scr);
+  
+  progress = 0;
+  tested = 0;
+  GLOB_FAIL = 0;
+  
+  ignore_glob = 0;
+  
+  if (arg0 == 1) {
+    autoreturn = 1;
+  }
+}
+
+function update {
+  if (tested == 0) {
+    test();
+    if (not ignore_glob) add_result("Final result", GLOB_FAIL);
+    tested = 1;
+    
+    if (autoreturn) {
+      sys.os.subRetval(GLOB_FAIL, test_name, 0);
+      sys.os.exit();
+    }
+  }
+}
+
+function upd_progress {
+  if (progress > 100) {
+    progress = 100
+  }
+  sys.ds.setArea(32, 440, 270, 480);
+  sys.ds.fillRect(0, 0, 240, 20, 0);
+  sys.ds.fillRect(5, 5, 5 + num(230.0 * (float(progress)/100.0)), 15, sys.ds.mixColor(255, 0, 0));
+}
+
+function add_result{
+  if (arg1 == 1) {
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Failed");
+    if (not ignore_glob) GLOB_FAIL = 1;
+  } else
+    sys.gui.setStr(result, sys.gui.getStr(result) + "\n" + arg0 + ": Passed");
+}
+
+function cleanup {
+  if (sys.fs.exists("test.bdb")) {
+     sys.fs.delete("test.bdb");
+  }
+}
+
+function init_test {
+  if (sys.fs.exists("test.bdb")) {
+    sys.fs.delete("test.bdb");
+  }
+}
+
+function test {
+  init_test();
+  if (not GLOB_FAIL) test_open();
+  if (not GLOB_FAIL) test_rw();
+  #if (not GLOB_FAIL) test_rm_ex();
+  #if (not GLOB_FAIL) test_monkey_l();
+  #if (not GLOB_FAIL) test_monkey();
+}
+
+function test_open {
+  local FAIL;
+  FAIL = 0;
+
+  # close on empty
+  if (sys.fs.db.close() != 0) {
+    print("close failed");
+    FAIL = 1;
+  }
+  
+  # open non-existing
+  if (sys.fs.db.open("test.bdb") != 0) {
+    print("open non existing failed");
+    FAIL = 1;
+  }
+  
+  if (sys.fs.db.new("test.bdb") != 1) {
+    print("new failed");
+    FAIL = 1;
+  }
+  
+  if (sys.fs.db.close() != 1) {
+    print("close openned failed");
+    FAIL = 1;
+  }
+  
+  if (sys.fs.db.open("test.bdb") != 1) {
+    print("open existing failed");
+    FAIL = 1;
+  }
+  
+  sys.fs.db.close();
+  
+  add_result("Open, Close", FAIL);
+}
+
+function test_rw {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  
+  sys.fs.db.new("test.bdb");
+  
+  # table management
+  
+  sys.fs.db.newTable("test", 6);
+  
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "surname", 1);
+  sys.fs.db.setColumn(3, "job", 1);
+  sys.fs.db.setColumn(4, "foo", 0);
+  sys.fs.db.setColumn(5, "bar", 1);
+  
+  sys.fs.db.idEnable("id");
+  
+  # fill data
+  for(i = 0; i < 10; i++;) {
+    sys.fs.db.newRow();
+    sys.fs.db.setEntryStr("name", "Joh" + i);
+    sys.fs.db.setEntryStr("surname", "Doe" + i);
+    sys.fs.db.setEntryStr("job", "job " + i);
+    sys.fs.db.setEntryNum("foo", 400 + i);
+  }
+  
+  # print output
+  sys.fs.db.selectRow(0);
+  while(1) {
+    print(
+      sys.fs.db.getEntryNum("id", 0)
+      + " " + sys.fs.db.getEntryStr("surname", "def") 
+      + " " + sys.fs.db.getEntryStr("name", "def") 
+      + " " + sys.fs.db.getEntryNum("foo", 0)
+    );
+    
+    if(not sys.fs.db.nextRow()) {
+      break;
+    }
+  }
+  
+  #*
+  
+  sys.fs.conf.write("Key1", "value1");
+  sys.fs.conf.write("Key2", "value2");
+  sys.fs.conf.write("Key3", "value3");
+  
+  if (sys.fs.conf.read("Key1") != "value1" or sys.fs.conf.read("Key2") != "value2" or sys.fs.conf.read("Key3") != "value3") {
+    FAIL = 1;
+    print("Read failed");
+  }
+  
+  sys.fs.conf.write("Key2", "xyz");
+  
+  if (sys.fs.conf.read("Key1") != "value1" or sys.fs.conf.read("Key2") != "xyz" or sys.fs.conf.read("Key3") != "value3") {
+    FAIL = 1;
+    print("Read failed");
+  }
+  
+  sys.fs.conf.write("Key_int", "123456");
+  
+  if (sys.fs.conf.readInt("Key_notInt", 8) != 8) {
+    print("Present default");
+    FAIL = 1;
+  }
+  
+  if (sys.fs.conf.readInt("Key_int", 8) != 123456) {
+    print("Read int failed");
+    FAIL = 1;
+  }
+  
+  if (sys.fs.conf.read("Key1") != "value1" or sys.fs.conf.read("Key2") != "xyz" or sys.fs.conf.read("Key3") != "value3") {
+    FAIL = 1;
+    print("Re-read failed");
+  }
+  
+  if (sys.fs.conf.read("Key1", "asdf") != "value1" or sys.fs.conf.read("KeyX", "123") != "123") {
+    FAIL = 1;
+    print(sys.fs.conf.read("Key1", "asdf"));
+    print(sys.fs.conf.read("KeyX", "123"));
+    print("Read with default failed.");
+  }
+  
+  sys.fs.conf.close();
+  *#
+  add_result("Read, Write", FAIL);
+}
+
+function test_rm_ex {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  sys.fs.conf.open("test.cfg");
+  
+  sys.fs.conf.write("Key1", "value1");
+  sys.fs.conf.write("Key2", "value2");
+  sys.fs.conf.write("Key3", "value3");
+  
+  if (sys.fs.conf.exists("Key2") != 1) {
+    FAIL = 1;
+  }
+  
+  if (sys.fs.conf.exists("Key_not") != 0) {
+    FAIL = 1;
+  }
+  
+  sys.fs.conf.remove("Key2");
+  
+  if (sys.fs.conf.exists("Key2") != 0) {
+    FAIL = 1;
+  }
+  
+  if (sys.fs.conf.read("Key1") != "value1" or sys.fs.conf.read("Key3") != "value3") {
+    FAIL = 1;
+    print("Remove messed up other keys");
+  }
+  
+  sys.fs.conf.close();
+  add_result("Remove, Exists", FAIL);
+}
+
+
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+
+  return new_str;
+}
+
+function test_monkey {
+  local FAIL;
+  local time;
+  FAIL = 0;
+  time = sys.time.getUptime();
+  
+  cleanup();
+  sys.fs.conf.open("test.cfg");
+  
+  array keys[100];
+  array values[100];
+  
+  for (i = 0; i < 100; i++;) {
+    keys[i] = random_str(sys.os.rnd() % 5 + 5);
+    values[i] = random_str(sys.os.rnd() % 5 + 5);
+    sys.fs.conf.write(keys[i], values[i]);
+    
+    progress = i;
+    upd_progress();
+  }
+  
+  for (i = 0; i < 300; i++;) {
+    val = sys.os.rnd() % 100;
+    
+    sys.fs.conf.remove(keys[val]);
+    
+    keys[val] = random_str(10);
+    values[val] = random_str(10);
+    sys.fs.conf.write(keys[val], values[val]);
+    
+    
+    progress = i/3;
+    upd_progress();
+  }
+  
+  
+  for (i = 0; i < 100; i++;) {
+    if (sys.fs.conf.read(keys[i]) != values[i]) {
+      FAIL = 1;
+    }
+    progress = i;
+    upd_progress();
+  }
+  
+  sys.fs.conf.close();
+  add_result("Monkeybasher (in: " + (sys.time.getUptime() - time) + "s)", FAIL);
+}
+
+function test_monkey_l {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  sys.fs.conf.open("test.cfg");
+  
+  array keys[10];
+  array values[10];
+  
+  for (i = 0; i < 10; i++;) {
+    keys[i] = random_str(10);
+    values[i] = random_str(5+rnd()%16);
+    sys.fs.conf.write(keys[i], values[i]);
+    
+    progress = i;
+    upd_progress();
+  }
+  
+  for (i = 0; i < 30; i++;) {
+    val = sys.os.rnd() % 10;
+    
+    sys.fs.conf.remove(keys[val]);
+    
+    keys[val] = random_str(5+rnd()%16);
+    values[val] = random_str(5+rnd()%16);
+    sys.fs.conf.write(keys[val], values[val]);
+    
+    
+    progress = i/3;
+    upd_progress();
+  }
+  
+  
+  for (i = 0; i < 10; i++;) {
+    if (sys.fs.conf.read(keys[i]) != values[i]) {
+      print("Value on position" + i + " was: " + sys.fs.conf.read(keys[i]) + " should be " + values[i]);
+      FAIL = 1;
+    }
+    progress = i;
+    upd_progress();
+  }
+  
+  sys.fs.conf.close();
+  add_result("Mini_monkey", FAIL);
+}
