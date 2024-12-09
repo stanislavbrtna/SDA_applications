@@ -27,14 +27,7 @@ function hw_init {
     return;
   }
   
-  if(sys.os.inSim() == 1) return; 
-  
-  # init rcv
-  sys.com.uartRcvIT();
-  
-  # clear rcv flags
-  sys.com.uartGetRd();
-  sys.com.uartGetStr();
+  uart_rcv_ie();
 }
 
 
@@ -130,8 +123,18 @@ function init {
   track_enabled = 0;
   track_display = 0;
   track_dist = 0.0;
+ 
+  xPos   = 0;
+  xPos_o = 0;
+  yPos   = 0;
+  yPos_o = 0;
+  
+  lcdPrevState = 0;
+  updTime = 0;
   
   maps_setup();
+  hw_init();
+  ddm_init();
 }
 
 
@@ -195,7 +198,6 @@ function maps_setup {
   
   set_map(2);
   
-  hw_init();
 }
 
 
@@ -621,6 +623,7 @@ function update {
     
     if (sys.hw.getLcdState() == 1) {
       uart_init_ext();
+      uart_rcv_ie();
     } else {
       uart_free_ext();
     } 
@@ -633,9 +636,10 @@ function update {
   if (sys.hw.getLcdState() == 1) {
     local x = "";
     
-    if(sys.os.inSim() == 0) { 
+    if(sys.os.inSim() == 0) {
       if (sys.com.uartGetRd() == 2) {
         x = sys.com.uartGetStr();
+        #print("Got:" + x);
         if (x != "") {
           parseNMEA(x);
           x = 0;

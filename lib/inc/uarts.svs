@@ -33,7 +33,7 @@ function uart_init {
   uartSpeed = 9600;
   uartLockI = 0;
   uartLockE = 0;
-  uartLockU = 1;
+  uartLockU = 0;
 }
 
 
@@ -135,4 +135,38 @@ function uart_free_usb {
     sys.hw.free(USB_PORT);
     uartLockU = 0;
   }
+}
+
+
+function uart_rcv_ie {
+  if(uartLockI == 0 and uartLockE == 0) {
+    print("uart_rcv_ie: Uart not claimed! init it first");
+    return 1;
+  }
+  if(sys.os.inSim() == 1) return 0;
+  
+  # init rcv
+  sys.com.uartRcvIT();
+  
+  # clear rcv flags
+  sys.com.uartGetRd();
+  sys.com.uartGetStr();
+  return 0;
+}
+
+
+function uart_rcv_usb {
+  if(uartLockU == 0) {
+    print("uart_rcv_ie: Uart not claimed! init it first");
+    return 1;
+  }
+  if(sys.os.inSim() == 1) return 0;
+  
+  # init rcv
+  sys.com.usbRcvIT();
+  
+  # clear rcv flags
+  sys.com.usbGetRd();
+  sys.com.usbGetStr();
+  return 0;
 }
