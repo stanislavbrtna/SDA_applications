@@ -45,39 +45,11 @@ function init {
     sys.fs.mkDir("phone");
   }
    
-  if(sys.fs.exists("phone/contacts.db")){
+  if(sys.fs.exists("phone/contacts.db")) {
     sys.fs.db.open("phone/contacts.db");
     sys.fs.db.selectTable("contacts");
   } else {
-    sys.fs.db.new("phone/contacts.db");
-    
-    #Table contacts
-    #Num id*
-    #Str name
-    #Str surname
-    #Str company
-    #Str note
-    #Str picture
-    
-    sys.fs.db.newTable("contacts", 6);
-    sys.fs.db.setColumn(0, "id", 0);
-    sys.fs.db.setColumn(1, "name", 1);
-    sys.fs.db.setColumn(2, "surname", 1);
-    sys.fs.db.setColumn(3, "company", 1);
-    sys.fs.db.setColumn(4, "note", 1);
-    sys.fs.db.setColumn(5, "picture", 1);
-    sys.fs.db.idEnable("id");
-       
-    #Table numbers
-    #Str number
-    #Num contact_id
-    
-    sys.fs.db.newTable("numbers", 3);
-    sys.fs.db.setColumn(0, "number_sane", 1);
-    sys.fs.db.setColumn(1, "number", 1);
-    sys.fs.db.setColumn(2, "contact_id", 0);
-    
-    sys.fs.db.selectTable("contacts");
+    init_db();
   }
   
   list_size = sys.fs.db.getRowCount();
@@ -161,6 +133,7 @@ function init {
     if (arg0 == "OPEN") {
       op_cont_exit = 1;
       local id = cont_get_id(arg1);
+      sys.fs.db.open("phone/contacts.db");
       if (id != -1){
         open_cont(id);
       } else {
@@ -231,7 +204,7 @@ function load_list {
     while(1) {     
       b_list[b] = sys.gui.addButton(0, b, 8, 1,
       sys.fs.db.getEntryStr("name", "")  + " " + sys.fs.db.getEntryStr("surname", "") , list_scr);
-      i_list[b] = i;
+      i_list[b] = sys.fs.db.getEntryNum("id", 0);
       b++;
       i++;
       
@@ -247,22 +220,37 @@ function load_list {
   } else {
     local b = 0;
     local name = "";
-    local search_str = "";
     
-    while(sys.fs.conf.exists("valid_" + i)) {
-      if (sys.fs.conf.read("valid_" + i) == "1") {
-        name = sys.fs.conf.read("name_" + i) + " " + sys.fs.conf.read("surname_" + i);
-        search_str = name + sys.fs.conf.read("company_" + i);
-        if (instr(lower(search_str), lower(listFilter))) {
-          b_list[b] = sys.gui.addButton(0, b, 8, 1, name, list_scr);
-          i_list[b] = i;
-          b++;
-        }
+    sys.fs.db.selectRow(0);
+    # search surname
+    while(b < 10) {
+    
+      if (not sys.fs.db.selectRowStr("surname", listFilter, 1, 0)) {
+        break;
       }
+    
+      b_list[b] = sys.gui.addButton(0, b, 8, 1, sys.fs.db.getEntryStr("name", "")  + " " + sys.fs.db.getEntryStr("surname", "") , list_scr);
+      i_list[b] = sys.fs.db.getEntryNum("id", 0);
+      b++;
       
-      i++;
+      if(b > 10 or not sys.fs.db.nextRow()) {
+        break;
+      }
+    }
+    
+    sys.fs.db.selectRow(0);
+    # search surname
+    while(b < 10) {
+    
+      if (not sys.fs.db.selectRowStr("name", listFilter, 1, 0)) {
+        break;
+      }
+    
+      b_list[b] = sys.gui.addButton(0, b, 8, 1, sys.fs.db.getEntryStr("name", "")  + " " + sys.fs.db.getEntryStr("surname", "") , list_scr);
+      i_list[b] = sys.fs.db.getEntryNum("id", 0);
+      b++;
       
-      if(b > 10) {
+      if(b > 10 or not sys.fs.db.nextRow()) {
         break;
       }
     }
@@ -362,8 +350,9 @@ function open_cont {
   sys.os.hideKbd();
   
   sys.fs.db.selectTable("contacts");
-  sys.fs.db.selectRow(arg0);
-  local id = sys.fs.db.getEntryNum("id", 0);
+  sys.fs.db.selectRowId(arg0);
+  
+  local id = arg0;
   print("selected:"+id);
   
   sys.gui.setStr(i_tname, sys.fs.db.getEntryStr("name", ""));
@@ -612,8 +601,47 @@ function upd_new {
   sys.gui.setYscroll(s_nin, sys.gui.getValue(s_nbar));
 }
 
+function init_db {
+  if(sys.fs.exists("phone/contacts.db"))
+    sys.fs.delete("phone/contacts.db");
+
+  sys.fs.db.new("phone/contacts.db");
+  
+  #Table contacts
+  #Num id*
+  #Str name
+  #Str surname
+  #Str company
+  #Str note
+  #Str picture
+  
+  sys.fs.db.newTable("contacts", 6);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "surname", 1);
+  sys.fs.db.setColumn(3, "company", 1);
+  sys.fs.db.setColumn(4, "note", 1);
+  sys.fs.db.setColumn(5, "picture", 1);
+  sys.fs.db.idEnable("id");
+     
+  #Table numbers
+  #Str number
+  #Num contact_id
+  
+  sys.fs.db.newTable("numbers", 3);
+  sys.fs.db.setColumn(0, "number_sane", 1);
+  sys.fs.db.setColumn(1, "number", 1);
+  sys.fs.db.setColumn(2, "contact_id", 0);
+  
+  sys.fs.db.selectTable("contacts");
+  
+}
+
+
 function loadCfg {
-  #TODO
+  # Drop all previous data
+  init_db();
+  
   sys.fs.chDir();
   sys.fs.conf.open(arg0);
   
@@ -650,7 +678,12 @@ function loadCfg {
       
       if(numCnt >= len(ids)) {
         print("writing numbers...");
-        sys.fs.db.selectTable("numbers");
+        if(not sys.fs.db.selectTable("numbers")) {
+          sys.os.error("DB is borked!");
+          sys.fs.db.close();
+          sys.fs.chDir();
+          sys.fs.delete("appdata/phone/contacts.db");
+        }
         for(local b = 0; b < len(ids); b++;) {   
           sys.fs.db.newRow();
           sys.fs.db.setEntryStr("number", nums[b]);
