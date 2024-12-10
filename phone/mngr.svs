@@ -26,6 +26,7 @@ function init {
   # setup all that hacky stuff
   sys.os.setSingular();
   sys.os.noClose(1);
+  sys.hw.lockSuspend(1);
   sys.hw.claim(INT_EXP_PORT);
   sys.hw.claim(EXT_EXP_PORT);
   sys.hw.claim(SERIAL_PORT);
@@ -619,6 +620,7 @@ function resolve_ring {
   
   if(at_ring) {
     if(DEBUG) print("mngr: got AT RING!");
+    sys.hw.wakeLcd();
     at_ring = 0;
     inCall = 1;
     number = "";
@@ -628,6 +630,7 @@ function resolve_ring {
   
   if(at_new_sms) {
     if(DEBUG) print("mngr: got SMS CMTI!");
+    sys.hw.wakeLcd();
     at_new_sms = 0;
     sms_read = 0; 
     return 0;
