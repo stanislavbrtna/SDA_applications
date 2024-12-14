@@ -2,19 +2,17 @@ function add_to_hist {
   if(DEBUG) print("add_to_hist: adding call to history!");
   
   sys.fs.chDir();
-  sys.fs.conf.open("appdata/phone/history.cfg");
+  sys.fs.db.open("appdata/phone/history.db");
+  sys.fs.db.selectTable("history");
   
-  local id = 0;
-  while(sys.fs.conf.exists("number_" + id)) {
-    id++;
-  }
+  sys.fs.db.newRow();
   
-  sys.fs.conf.write("number_" + id, "" + callNumber);
-  sys.fs.conf.write("name_" + id, "" + callName);
-  sys.fs.conf.write("start_" + id, "" + callStart);
-  sys.fs.conf.write("stop_" + id, "" + callEnd);
-  sys.fs.conf.write("type_" + id, "" + callType);
+  sys.fs.db.setEntryStr("number", callNumber);
+  sys.fs.db.setEntryStr("name", callName);
+  sys.fs.db.setEntryNum("start", callStart);
+  sys.fs.db.setEntryNum("stop", callEnd);
+  sys.fs.db.setEntryStr("type", callType);
   
-  sys.fs.conf.close();
+  sys.fs.db.close();
 }
 

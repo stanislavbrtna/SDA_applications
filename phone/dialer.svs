@@ -163,13 +163,31 @@ function load_hist {
   # Count history
   sys.fs.chDir();
   sys.fs.chDir("appdata");
-  sys.fs.conf.open("phone/history.cfg");
-
-  list_size = 0;
-
-  while(sys.fs.conf.exists("number_" + list_size)) {
-    list_size++;
+  
+  if(not sys.fs.exists("phone/history.db")) {
+    sys.fs.db.new("phone/history.db");
+    
+    #Table history
+    #Str name
+    #Num contact_id
+    #Num start
+    #num stop
+    #str type
+    
+    sys.fs.db.newTable("history", 6);
+    sys.fs.db.setColumn(0, "name", 1);
+    sys.fs.db.setColumn(1, "number", 1);
+    sys.fs.db.setColumn(2, "contact_id", 0);
+    sys.fs.db.setColumn(3, "start", 0);
+    sys.fs.db.setColumn(4, "stop", 0);
+    sys.fs.db.setColumn(5, "type", 1);
+  } else {
+    sys.fs.db.open("phone/history.db");
+    sys.fs.db.selectTable("history");
   }
+  
+  list_size = sys.fs.db.getRowCount();
+
   
   sys.gui.destroy(list_scr);
   list_scr = sys.gui.addScreen(1, 1, 8, 11, scr_hist);
@@ -213,17 +231,25 @@ function load_hist {
   
   # Loading the list
   for(i = 0; i < len(btn_list); i++;) {
-    if(not sys.fs.conf.exists("number_" + list_pos)) {
+    if(not sys.fs.db.selectRow(list_pos)) {
       break;
     }
    
-    local number = sys.fs.conf.read("number_" + list_pos);
+    local number = sys.fs.db.getEntryStr("number", "");
     
-    btn_list[len(btn_list) - i - 1] = sys.gui.addButton(0, i*3 + y_add, 7, 1, sys.fs.conf.read("name_" + list_pos), list_scr);
+    btn_list[len(btn_list) - i - 1]
+      = sys.gui.addButton(
+        0,
+        i*3 + y_add,
+        7,
+        1,
+        sys.fs.db.getEntryStr("name", ""), 
+        list_scr
+    );
     
-    local start = num(sys.fs.conf.read("start_" + list_pos));
-    local stop  = num(sys.fs.conf.read("stop_" + list_pos));
-    local type  = sys.fs.conf.read("type_" + list_pos);
+    local start = sys.fs.db.getEntryNum("start", 0);
+    local stop  = sys.fs.db.getEntryNum("stop", 0);
+    local type  = sys.fs.db.getEntryStr("type", "");
     
     local timeString
       = sys.time.getTsDay(start) + ". "
@@ -245,7 +271,8 @@ function load_hist {
   sys.gui.setY1(b_list_dn, (i - 1)*3 + 4 - 1*(not y_add));
   sys.gui.setParam(s_bar, (i - 3) * 30 * 3 + 4 + 32 * y_add);
   sys.gui.setYscroll(list_scr, sys.gui.getValue(s_bar) - 6);
-  sys.fs.conf.close();
+  
+  sys.fs.db.close();
 }
 
 
