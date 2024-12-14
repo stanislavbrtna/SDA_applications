@@ -1,6 +1,7 @@
-import "~cont-tools.svs";
-import "~at-cmd.svs"
+import "~cont-tools.svs"
 import "~msg-lib.svs"
+import "lib/inc/com.svs"
+import "lib/inc/ddm.svs"
 
 function init {
   DEBUG = 0;
@@ -96,8 +97,8 @@ function init {
   kbd_back_btn = 0;
   menu1 = 0;
   
-  at_init();
   ddm_init();
+  com_init();
   
   process_args(arg0, arg1, arg2);
 }
@@ -332,19 +333,37 @@ function upd_conv {
     menu2 = ddm_create(bCall);
     ddm_width = 5;
     ddm_add_btn("Call");
-    ddm_add_btn("Open Contact");
+    ddm_add_btn("Open contact");
+    ddm_add_btn("Remove conv.");
   }
   
   i = ddm_handle(menu2);
   if (i > 0) {
     if (i == 1) {
       print("msg: calling: " + currentNumber);
-      sys.os.subProcess("phone/mngr.svs", "", "CALL", currentNumber, 0);
-    } else if(i == 2) {
-      sys.os.subProcess("phone/contacts.svs", "", "OPEN", currentNumber, 0);
-    } else {
       ddm_exit();
+      sys.os.subProcess("phone/mngr.svs", "", "CALL", currentNumber, 0);
+      return;
     }
+    
+    if(i == 2) {
+      ddm_exit();
+      sys.os.subProcess("phone/contacts.svs", "", "OPEN", currentNumber, 0);
+      return;
+    }
+    
+    if(i == 3) {
+      ddm_exit();
+      del_com = com_new("Remove conversation?", 0);
+    }
+  }
+  
+  if (com_handle(del_com) == 1) {
+    sys.fs.delete(currentConv);
+    load_convs();
+    sys.os.gui.setMainScr(scr);
+    kbd_back_btn = 0;
+    currentConv = "";
   }
     
   if(sys.gui.getEventC(bCNew) == EV_RELEASED) {
@@ -520,7 +539,6 @@ function contRet {
   sys.os.showKbd();
 }
 
-import "lib/inc/ddm.svs"
 
 function update {
   
