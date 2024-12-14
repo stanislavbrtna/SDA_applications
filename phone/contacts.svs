@@ -128,13 +128,14 @@ function init {
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "ONLYBACK") {
        sys.gui.setVisible(b_exit, 1);
+       sys.gui.setVisible(b_new, 0);
     }
     
     if (arg0 == "OPEN") {
       op_cont_exit = 1;
       local id = cont_get_id(arg1);
       sys.fs.db.open("phone/contacts.db");
-      if (id != -1){
+      if (id != -1) {
         open_cont(id);
       } else {
         open_unknown(arg1);
@@ -639,6 +640,10 @@ function init_db {
 
 
 function loadCfg {
+  if("" + arg0 == "" or "" + arg0 = "0") {
+    return;
+  }
+  
   # Drop all previous data
   init_db();
   
@@ -667,9 +672,7 @@ function loadCfg {
     sys.fs.db.setEntryStr("name", sys.fs.conf.read("name_" + n));
     sys.fs.db.setEntryStr("surname", sys.fs.conf.read("surname_" + n));
     sys.fs.db.setEntryStr("company", sys.fs.conf.read("company_" + n));
-    
-    #TODO: phone
-    
+       
     if (sys.fs.conf.exists("phone_" + n + "_0")) {
       ids[numCnt]  = id;
       nums[numCnt] = sys.fs.conf.read("phone_" + n + "_0");
