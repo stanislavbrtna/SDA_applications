@@ -1,0 +1,98 @@
+## Main int
+function init {
+
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  
+  bSync     = sys.gui.addButton(2, 2, 4, 1, "Sync", scr);
+  
+  bDrop     = sys.gui.addButton(2, 4, 4, 1, "Drop tables", scr);
+   
+  sys.fs.chDir("appdata");
+  
+  if (not sys.fs.exists("tasks")) {
+    sys.os.error("Missing dir \" tasks\"");
+  }
+  
+  sys.fs.chDir("tasks");
+  
+  if(sys.fs.exists("taskbox.db")) {
+    sys.fs.db.open("taskbox.db");
+  } else {
+    sys.os.error("DB not found");
+  }
+  sys.os.gui.setMainScr(scr);
+}
+
+
+function sync {
+  for(findfil = sys.fs.find("tsk", "."); findfil != ""; findfil = sys.fs.findNext();) {
+    print("found: " + findfil);
+    
+    local name;
+    local file;
+    local cat;
+    local note;
+    local grp_id;
+    
+    sys.fs.conf.open(findfil);
+    name = sys.fs.conf.read("name");
+    cat  = num(sys.fs.conf.read("cat"));
+    note  = sys.fs.conf.read("note");
+    
+    #new group
+    sys.fs.db.selectTable("groups");
+    sys.fs.db.newRow();
+    sys.fs.db.setEntryStr("name", name);
+    sys.fs.db.setEntryNum("cat_id", 0);
+    sys.fs.db.setEntryStr("note", note);
+    sys.fs.db.setEntryNum("archived", cat == 1);
+    
+    if (findfil == "daily.tsk") {
+      grp_id = 1;
+    } else {
+      grp_id = sys.fs.db.getEntryNum("id", 0);
+    }
+    
+    # tasks
+
+    local i = 0;
+    while(sys.fs.conf.exists("t_" + i)) {
+      if(sys.fs.conf.read("tv_" + i) == "1") {
+        sys.fs.db.selectTable("tasks");
+        sys.fs.db.newRow();
+        sys.fs.db.setEntryStr("name", sys.fs.conf.read("t_" + i));
+        sys.fs.db.setEntryNum("done", num(sys.fs.conf.read("tc_" + i)));
+        sys.fs.db.setEntryStr("note", sys.fs.conf.read("td_" + i));
+        sys.fs.db.setEntryNum("time_spent", num(sys.fs.conf.read("tt_" + i)));
+        sys.fs.db.setEntryNum("group_id", grp_id);
+        sys.fs.db.setEntryNum("in_daily", 0);
+      }
+      i++;
+    }
+    sys.fs.conf.close();
+    print("Added " + i + "tasks");
+  }
+}
+
+
+function update {
+  if (sys.gui.getEventC(bSync) == EV_RELEASED) {
+    sync();
+  }
+  
+  if (sys.gui.getEventC(bDrop) == EV_RELEASED) {
+    sys.fs.db.selectTable("cats");
+    sys.fs.db.dropAllRows();
+    sys.fs.db.selectTable("groups");
+    sys.fs.db.dropAllRows();
+    sys.fs.db.selectTable("tasks");
+    sys.fs.db.dropAllRows();
+  }
+  
+}
+
+
+function exit {
+
+}

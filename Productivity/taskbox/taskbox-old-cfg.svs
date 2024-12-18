@@ -53,7 +53,6 @@ function init {
   sys.gui.setBgRedraw(scDescrTE, 0);  
   tDescrTE = sys.gui.addText(0, 0, 9, 21, "", scDescrTE);
   sys.gui.setTexEd(tDescrTE, 1);
-  bInDaily = sys.gui.addCheckBox(0, 8, 8, 1, "Show in daily", sTaskE);
 
   bBackTE  = sys.gui.addButton(0, 11, 3, 1, "Back", sTaskE);
   bTrackTE = sys.gui.addButton(3, 11, 5, 1, "Start tracking",sTaskE);
@@ -66,9 +65,6 @@ function init {
   sDescrTE = "";
   
   idTE = 0;
-  
-  # task entry del com handler
-  oDelTE = 0;
   
   # notes screen
   sNotes   = sys.gui.addScreen();
@@ -105,7 +101,7 @@ function init {
   
   tasksLen = 0;
   
-  current_group = "";
+  current_task = "";
   current_cat = 0;
   
   tracking = 0;
@@ -133,9 +129,25 @@ function init {
   tTaskTime = 0;
   
   cat_len = 0;
-    
+   
+  if(not sys.fs.exists("daily.tsk")) {
+    sys.fs.conf.open("daily.tsk");
+    sys.fs.conf.write("name", "daily");
+    sys.fs.conf.close();
+  }
+  
+  load_task("daily.tsk");
+  
   ddm_init();
- 
+  
+  load_cats();
+  
+  sys.fs.conf.open("cats.cfg");
+  current_cat = num(sys.fs.conf.read("current"));
+  sys.fs.conf.close();
+  
+  set_cat(current_cat);
+  
   task_reload = 1;
   
   # handle inits:
@@ -145,76 +157,6 @@ function init {
   task_rename = 0;
   catMenuH = 0;
   catRmH = 0;
-  
-  show_archive = 0;
-  
-  if(sys.fs.exists("taskbox.db")) {
-    sys.fs.db.open("taskbox.db");
-  } else {
-    db_init();
-  }
-   
-  load_cats();
- 
-  sys.fs.conf.open("taskbox.cfg");
-  current_cat = num(sys.fs.conf.read("current_cat"));
-  sys.fs.conf.close();
-  
-  set_cat(current_cat);
-  
-  
-  load_group(1);
-}
-
-function db_init {
-  if(sys.fs.exists("taskbox.db"))
-    sys.fs.delete("taskbox.db");
-
-  sys.fs.db.new("taskbox.db");
-  
-  #Table cats
-  #Num id*
-  #Str name
-  
-  sys.fs.db.newTable("cats", 2);
-  sys.fs.db.setColumn(0, "id", 0);
-  sys.fs.db.setColumn(1, "name", 1);
-  sys.fs.db.idEnable("id");
-     
-  #Table groups
-  #num id
-  #Str name
-  #Num cat_id
-  #Str Note
-  
-  sys.fs.db.newTable("groups", 5);
-  sys.fs.db.setColumn(0, "id", 0);
-  sys.fs.db.setColumn(1, "name", 1);
-  sys.fs.db.setColumn(2, "cat_id", 0);
-  sys.fs.db.setColumn(3, "note", 1);
-  sys.fs.db.setColumn(4, "archived", 0);
-  sys.fs.db.idEnable("id");
-  
-  #Table tasks
-  #num id
-  #Str name
-  #Num group_id
-  #Str Note
-  
-  sys.fs.db.newTable("tasks", 7);
-  sys.fs.db.setColumn(0, "id", 0);
-  sys.fs.db.setColumn(1, "name", 1);
-  sys.fs.db.setColumn(2, "group_id", 0);
-  sys.fs.db.setColumn(3, "note", 1);
-  sys.fs.db.setColumn(4, "time_spent", 0);
-  sys.fs.db.setColumn(5, "done", 0);
-  sys.fs.db.setColumn(6, "in_daily", 0);
-  sys.fs.db.idEnable("id");
-  
-  # create daily task group
-  sys.fs.db.selectTable("groups");
-  sys.fs.db.newRow();
-  sys.fs.db.setEntryStr("name", "Daily tasks");
   
 }
 
@@ -244,27 +186,12 @@ cat 1 - archived
 
 function load_cats {
   local i = 0;
-  local id = 0;
-  sys.fs.db.selectTable("cats");
+  sys.fs.conf.open("cats.cfg");
   
-  for(local a = 0; a < len(cats); a++;) {
-    cats[a] = "";
-    catID[a] = 0;
-  }
-
-  if(not sys.fs.db.selectRow(0)) {
-    cat_len = 0;
-    return;  
-  }
-  
-  while(1) {
-    cats[i] = sys.fs.db.getEntryStr("name", "");
-    catID[i] = sys.fs.db.getEntryNum("id", 0);
+  while(sys.fs.conf.exists("" + i)) {
+    cats[i] = sys.fs.conf.read("" + i);
+    catID[i] = num(sys.fs.conf.read("id_"+i));
     i++;
-    
-    if(not sys.fs.db.nextRow()) {
-      break;
-    }
     
     if(i == len(cats)) {
       i--;
@@ -274,17 +201,28 @@ function load_cats {
   }
   
   cat_len = i;
+  
+  sys.fs.conf.close();
 }
-
 
 function new_cat {
   local i = 0;
-  local new_id = 0;
+  local new_id = 2;
+  local c = 0;
+  sys.fs.conf.open("cats.cfg");
   
-  sys.fs.db.selectTable("cats");
-  sys.fs.db.newRow();
-  sys.fs.db.setEntryStr("name", arg0);
-  new_id = sys.fs.db.getEntryNum("id", 0);
+  while(sys.fs.conf.exists("" + i)) {
+    c = num(sys.fs.conf.read("id_"+i));
+    if (c >= new_id) {
+      new_id = c + 1;
+    }
+    i++;
+  }
+  
+  sys.fs.conf.write("" + i, arg0);
+  sys.fs.conf.write("id_" + i, "" + new_id);
+  
+  sys.fs.conf.close();
   
   load_cats();
   
@@ -294,7 +232,10 @@ function new_cat {
 function get_cat_name { # arg0: id
   if(arg0 == 0)
     return "Unsorted";
-
+  
+  if(arg0 == 1)
+    return "Archived";
+   
   local i = 0;
   
   for(i = 0; i < cat_len; i++;) {
@@ -306,10 +247,9 @@ function get_cat_name { # arg0: id
   sys.gui.setStr(bCategory, "" + cats[i]);
 }
 
-
 function set_cat {
-  sys.fs.conf.open("taskbox.cfg");
-  sys.fs.conf.write("current_cat", "" + arg0);
+  sys.fs.conf.open("cats.cfg");
+  sys.fs.conf.write("current", "" + arg0);
   sys.fs.conf.close();
   
   arg0 = num(arg0);
@@ -330,110 +270,153 @@ function set_cat {
   
   current_cat = arg0;
   if (mode == 1) {
-    load_groups();
+    load_tasks();
   }
 }
 
-
 function ren_cat { # arg0: id, arg1: new name
-  if (arg0 == 0 or arg0 == 1){
-    return;
-  }
+  #sys.fs.conf.open("cats.cfg");
+  #sys.fs.conf.write("current", "" + arg0);
+  #sys.fs.conf.close();
   
-  sys.fs.db.selectTable("cats");
-  if(sys.fs.db.selectRowId(arg0)) {
-    sys.fs.db.setEntryStr("name", arg1);
-  }
-   
-  load_cats();
+  arg0 = num(arg0);
+  
+  local i = 0;  
+  for(i = 0; i < cat_len; i++;) {
+    if(catID[i] == arg0) {
+      cats[i] = arg1;
+      break;
+    }
+  } 
   
   if(current_cat == arg0) {
-    sys.gui.setStr(bCategory, arg1);
+    sys.gui.setStr(bCategory, cats[i]);
   }
+  
+  store_cats();
 }
 
 
 function rem_cat {
-  if (arg0 == 0){
+  if (arg0 == 0 or arg0 == 1){
     return;
   }
+
+  arg0 = num(arg0);
   
-  sys.fs.db.selectTable("cats");
-  if(sys.fs.db.selectRowId(arg0)) {
-    sys.fs.db.dropRow();
+  local i = 0;  
+  for(i = 0; i < cat_len; i++;) {
+    if(catID[i] == arg0) {
+      break;
+    }
+  }
+
+  for(cat_len--; i < cat_len; i++;) {
+    catID[i] = catID[i + 1];
+    cats[i] = cats[i+1];
   }
   
-  load_cats();
+  # save
+  store_cats();
+  
+  # go to all
   set_cat(0);
 }
 
 
+function store_cats {
+  sys.fs.delete("cats.cfg");
+  
+  sys.fs.conf.open("cats.cfg");
+  sys.fs.conf.write("current", "" + current_cat);
+  
+  local i = 0;
+    
+  for(i = 0; i < cat_len; i++;) {
+    sys.fs.conf.write("" + i, "" + cats[i]);
+    sys.fs.conf.write("id_" + i, "" + catID[i]);
+  } 
+  
+  sys.fs.conf.close();
+}
+
+
  # loads list of tasks in the list screen
-function load_groups {
+function load_tasks {
   local time = sys.time.get();
   sys.gui.destroy(sList);
   sList = sys.gui.addScreen(0, 1, 8, 10, scr);
   local i = 0;
   
-  
-  # load from cache
-  sys.fs.db.selectTable("groups");
-  
-  i = 0;
-  local l = 0;
-  
-  if(sys.fs.db.selectRow(1)) {
-    # skipping daily
-    if(show_archive == 0 and current_cat != 0) {
-      while(sys.fs.db.selectRowNum("cat_id", current_cat)) {
-        if(sys.fs.db.getEntryNum("archived", 0) == 0) {
-          pFiles[l] = sys.fs.db.getEntryNum("id", 0);
-          pButtons[l] = sys.gui.addButton(0, l, 7, 1, sys.fs.db.getEntryStr("name", ""), sList);
-          l++;
-          i++;
-        }
-        if(not sys.fs.db.nextRow()) {
-          break;
-        }
-      }
-    } else {
-      #list all, show archived only
-      while(1) {
-        if(sys.fs.db.getEntryNum("archived", 0) == show_archive) {
-          pFiles[l] = sys.fs.db.getEntryNum("id", 0);
-          local name = "";
-          if(sys.fs.db.getEntryNum("cat_id", 0) != 0) {
-            name = sys.fs.db.getEntryStr("name", "") + " (" + get_cat_name(sys.fs.db.getEntryNum("cat_id", -1)) + ")";
-          } else {
-            name = sys.fs.db.getEntryStr("name", "");
-          }
-           
-          pButtons[l] = sys.gui.addButton(0, l, 7, 1, name, sList);
-          l++;
-          i++;
-        }
-        if(not sys.fs.db.nextRow()) {
-          break;
-        }
+  if(task_reload == 1) {
+    if (sys.fs.exists("task-cache.tmp")) {
+      sys.fs.delete("task-cache.tmp");
+    }
+    
+    sys.fs.open("task-cache.tmp");
+    # save names & cats
+    for(findfil = sys.fs.find("tsk", "."); findfil != ""; findfil = sys.fs.findNext();) {
+      #print("found: " + findfil);
+      
+      if (findfil != "daily.tsk") {
+        local name;
+        local file;
+        local cat;
+        
+        sys.fs.conf.open(findfil);
+        name = sys.fs.conf.read("name");
+        cat  = sys.fs.conf.read("cat");
+        file = findfil;
+        sys.fs.conf.close();
+        
+        # sys conf writes are slooow
+        sys.fs.writeChars("cat_" + i + "=" + cat + "\n");
+        sys.fs.writeChars("file_" + i + "=" + file + "\n");
+        sys.fs.writeChars("name_" + i + "=" + name + "\n");
+ 
+        i++;
       }
     }
+    sys.fs.close();
+    print("cache rebuilt! (" + i + " entries in:" + sys.time.get() - time + "s)");
+    task_reload = 0;
   }
   
-   
+  # load from cache
+  sys.fs.conf.open("task-cache.tmp");
+  i = 0;
+  local l = 0;
+  while(sys.fs.conf.exists("cat_" + i)) {
+    local cat = num(sys.fs.conf.read("cat_" + i));
+    if(cat == num(current_cat) or (num(current_cat) == 0 and cat != 1)) {
+      pFiles[l] = sys.fs.conf.read("file_" + i);
+      pButtons[l] = sys.gui.addButton(0, l, 7, 1, sys.fs.conf.read("name_" + i), sList);
+      l++;
+    }
+    i++;
+  }
+  
+  sys.fs.conf.close();
+  
   set_spacing(sList);
+  
   tasksLen = l;
   
   sys.gui.setValue(scrBar, 0);
   sys.gui.setParam(scrBar, (l - 1)*34 + 6);
   
-  current_group = "";
+  current_task = "";
   
   print("reload total:" + sys.time.get() - time + "s");
 }
 
 
  # loads single task in the list screen
-function load_group { # arg0: group id
+function load_task { # arg0: task name
+  if (not sys.fs.exists(arg0)) {
+    sys.os.error("File " + arg0 + " does not exist!");
+    return;
+  }
   
   sys.gui.destroy(sList);
   sList = sys.gui.addScreen(0, 1, 8, 10, scr);
@@ -441,61 +424,38 @@ function load_group { # arg0: group id
   local b = 0;
   local time = 0;
   
-  sys.fs.db.selectTable("groups");
-  sys.fs.db.selectRowId(arg0);
+  sys.fs.conf.open(arg0);
   
-  if(arg0 != 1) {
-    set_mode(2, sys.fs.db.getEntryStr("name", ""));
-  } else {
-    set_mode(0);
-  }
   
-  sys.fs.db.selectTable("tasks");
-  sys.fs.db.selectRow(0);
-  while(sys.fs.db.selectRowNum("group_id", arg0)) {
-    if(
-      sys.fs.db.getEntryNum("done", 0) == 0
-      or (sys.fs.db.getEntryNum("done", 0) == 1 and sys.gui.getValue(bCompleted) == 1) 
+  while(sys.fs.conf.exists("t_" + i)) {
+    if(sys.fs.conf.read("tv_" + i) == "1"
+       and 
+       (
+         sys.fs.conf.read("tc_" + i) == "0"
+         or (sys.fs.conf.read("tc_" + i) == "1" and sys.gui.getValue(bCompleted) == 1)
+       )
     ) {
-      pButtons[b] = sys.gui.addCheckBox(0, b, 6, 1, sys.fs.db.getEntryStr("name", ""), sList);
+      pButtons[b] = sys.gui.addCheckBox(0, b, 6, 1, sys.fs.conf.read("t_" + i), sList);
       pFiles[b] = sys.gui.addButton(6, b, 1, 1, "...", sList);
-      IDs[b] = sys.fs.db.getEntryNum("id", 0);
-      time += sys.fs.db.getEntryNum("time_spent", 0);
-      if (sys.fs.db.getEntryNum("done", 0)) {
+      IDs[b] = i;
+      time += num(sys.fs.conf.read("tt_" + i));
+      if (sys.fs.conf.read("tc_" + i) == "1") {
         sys.gui.setValue(pButtons[b], 1);
       }
       b++;
     }
     i++;
-    sys.fs.db.nextRow();
   }
   
-  # not daily
-  if (arg0 != 1) {
+  if (arg0 != "daily.tsk") {
+    set_mode(2, sys.fs.conf.read("name"));
+    
     tTaskTime = sys.gui.addText(0, b, 8, 1, "(" + fmt_drop(float(time)/3600.0) + "h tracked total)", sList);
   } else {
-    # pick tasks with in_daily enabled
-    sys.fs.db.selectTable("tasks");
-    sys.fs.db.selectRow(0);
-    while(sys.fs.db.selectRowNum("in_daily", 1)) {
-      if(
-        sys.fs.db.getEntryNum("done", 0) == 0
-        or (sys.fs.db.getEntryNum("done", 0) == 1 and sys.gui.getValue(bCompleted) == 1) 
-      ) {
-        pButtons[b] = sys.gui.addCheckBox(0, b, 6, 1, sys.fs.db.getEntryStr("name", ""), sList);
-        pFiles[b] = sys.gui.addButton(6, b, 1, 1, "...", sList);
-        IDs[b] = sys.fs.db.getEntryNum("id", 0);
-        time += sys.fs.db.getEntryNum("time_spent", 0);
-        if (sys.fs.db.getEntryNum("done", 0)) {
-          sys.gui.setValue(pButtons[b], 1);
-        }
-        b++;
-      }
-      i++;
-      sys.fs.db.nextRow();
-    }
     set_mode(0);
   }
+
+  sys.fs.conf.close();
   
   set_spacing(sList);
   
@@ -504,47 +464,64 @@ function load_group { # arg0: group id
   sys.gui.setValue(scrBar, 0);
   sys.gui.setParam(scrBar, (b - 1)*34 + 6);
   
-  current_group = arg0;
+  current_task = arg0;
 }
 
-
 function new_te {
-  if (current_group == 0) {
+  if (current_task == "") {
     print("new_te: no current task...");
     return;
   }
   
+  sys.fs.conf.open(current_task);
+  
+  local i = 0; 
+  
+  while(sys.fs.conf.exists("t_" + i)) {
+    i++;
+  }
+  
   pButtons[tasksLen] = sys.gui.addCheckBox(0, tasksLen, 6, 1, arg0, sList);
   pFiles[tasksLen] = sys.gui.addButton(6, tasksLen, 1, 1, "...", sList);
-  
+  IDs[tasksLen] = i;
   
   sys.gui.setY1(tTaskTime, tasksLen + 1);
   
-  sys.fs.db.selectTable("tasks");
-  sys.fs.db.newRow();
-  
-  sys.fs.db.setEntryStr("name", arg0);
-  sys.fs.db.setEntryNum("done", 0);
-  sys.fs.db.setEntryNum("time_spent", 0);
-  sys.fs.db.setEntryNum("group_id", current_group);
-  sys.fs.db.setEntryStr("note", "");
-  sys.fs.db.setEntryNum("in_daily", 0);
-  
-  IDs[tasksLen] = sys.fs.db.getEntryNum("id", 0);
+  sys.fs.conf.open(current_task);
+  sys.fs.conf.write("tv_" + i, "1");
+  sys.fs.conf.write("t_" + i, arg0);
+  sys.fs.conf.write("tc_" + i, "0");
+  sys.fs.conf.write("td_" + i, "");
+  sys.fs.conf.write("tt_" + i, "0");
+  sys.fs.conf.close();
   
   tasksLen++;
 }
 
 
 function new_task_g {
-  sys.fs.db.selectTable("groups");
-  sys.fs.db.newRow();
-  sys.fs.db.setEntryStr("name", arg0);
-  sys.fs.db.setEntryNum("cat_id", current_cat);
-  sys.fs.db.setEntryStr("note", "");
-  sys.fs.db.setEntryNum("archived", 0);
+  local fname = "";
+  local i = 1;
   
-  return sys.fs.db.getEntryNum("id", 0);
+  fname = ascii_only(arg0);
+
+  while(sys.fs.exists(fname + ".tsk")) {
+    fname = i;
+  }
+  
+  fname += ".tsk";
+
+  sys.fs.conf.open(fname);
+  
+  sys.fs.conf.write("name", arg0);
+  sys.fs.conf.write("cat", "" + current_cat);
+  sys.fs.conf.write("note", "");
+  sys.fs.conf.write("encrypted", "0"); #todo inclement encryption
+  sys.fs.conf.close();
+  
+  task_reload = 1;
+  
+  return fname;
 }
 
 function fmt_time_lz {
@@ -572,27 +549,17 @@ function set_tracktime {
 
 
 function load_te { # arg0 task_entry_id
+  sys.fs.conf.open(current_task);
+  sNameTE = sys.fs.conf.read("t_" + arg0);
+  sys.gui.setValue(bCheckTE, num(sys.fs.conf.read("tc_" + arg0)));
+  sDescrTE = sys.fs.conf.read("td_" + arg0);
+  tracking_time = num(sys.fs.conf.read("tt_" + idTE));
+  set_tracktime(tracking_time);
+  sys.fs.conf.close();
   
-  sys.fs.db.selectTable("tasks");
-  if (sys.fs.db.selectRowId(arg0)) {
-    sNameTE = sys.fs.db.getEntryStr("name", "");
-    sys.gui.setValue(bCheckTE, sys.fs.db.getEntryNum("done", 0));
-    sDescrTE = sys.fs.db.getEntryStr("note", "");
-    tracking_time = sys.fs.db.getEntryNum("time_spent", 0);
-    set_tracktime(tracking_time);
-    
-    sys.gui.setValue(bInDaily, sys.fs.db.getEntryNum("in_daily", 0));
-    
-    sys.gui.setValue(barTE, 0);
-    
-    if(sys.fs.db.getEntryNum("group_id", 0) == 1) {
-      sys.gui.setVisible(bInDaily, 0);
-    } else {
-      sys.gui.setVisible(bInDaily, 1);
-    }
-    
-    idTE = arg0;
-  }
+  sys.gui.setValue(barTE, 0);
+  
+  idTE = arg0;
 }
 
 
@@ -603,11 +570,10 @@ function upd_te {
   if(com_handle(oDelTE) == 1) {
     #del/hide task...
     print("removing:" + sNameTE);
-    sys.fs.db.selectTable("tasks");
-    sys.fs.db.selectRowId(idTE);
-    sys.fs.db.dropRow();
-    
-    load_group(current_group);
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("tv_" + idTE, "0");
+    sys.fs.conf.close();
+    load_task(current_task);
   }
   
   if (sys.gui.getEventC(bDelTE) == EV_RELEASED) {
@@ -615,13 +581,12 @@ function upd_te {
   }
   
   if (sys.gui.getEventC(bBackTE) == EV_RELEASED) {
-    sys.fs.db.selectTable("tasks");
-    sys.fs.db.selectRowId(idTE);
-    sys.fs.db.setEntryStr("name", sNameTE);
-    sys.fs.db.setEntryNum("done", sys.gui.getValue(bCheckTE));
-    sys.fs.db.setEntryStr("note", sDescrTE);
-    sys.fs.db.setEntryNum("in_daily", sys.gui.getValue(bInDaily));
-    load_group(current_group);
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("t_" + idTE, sNameTE);
+    sys.fs.conf.write("tc_" + idTE, "" + sys.gui.getValue(bCheckTE));
+    sys.fs.conf.write("td_" + idTE, sDescrTE);
+    sys.fs.conf.close();
+    load_task(current_task);
   }
   
   if (sys.gui.getEventC(bTrackTE) == EV_RELEASED) {
@@ -630,9 +595,9 @@ function upd_te {
       sys.gui.setGrayout(bDelTE, 1);
       tracking_timer = sys.time.get() + 60;
       
-      sys.fs.db.selectTable("tasks");
-      sys.fs.db.selectRowId(idTE);
-      tracking_time = sys.fs.db.getEntryNum("time_spent", 0);
+      sys.fs.conf.open(current_task);
+      tracking_time = num(sys.fs.conf.read("tt_" + idTE));
+      sys.fs.conf.close();
       time_o = sys.time.get();
       
       tracking = 1;
@@ -641,9 +606,9 @@ function upd_te {
       sys.gui.setGrayout(bBackTE, 0);
       sys.gui.setGrayout(bDelTE, 0);
       
-      sys.fs.db.selectTable("tasks");
-      sys.fs.db.selectRowId(idTE);
-      sys.fs.db.setEntryNum("time_spent", tracking_time);
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("tt_" + idTE, "" + tracking_time);
+      sys.fs.conf.close();
       tracking = 0;
       sys.gui.setStr(bTrackTE, "Start tracking");
     }
@@ -653,9 +618,9 @@ function upd_te {
   
   if(tracking == 1) {
     if(tracking_timer < sys.time.get()) {
-      sys.fs.db.selectTable("tasks");
-      sys.fs.db.selectRowId(idTE);
-      sys.fs.db.setEntryNum("time_spent", tracking_time);
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("tt_" + idTE, "" + tracking_time);
+      sys.fs.conf.close();
       tracking_timer = sys.time.get() + 60;
       print("autosaving");
     }
@@ -675,7 +640,7 @@ function upd_tasks {
   
   for(i = 0; i < tasksLen; i++;) {
     if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
-      load_group(pFiles[i]);
+      load_task(pFiles[i]);
     }
   }
 }
@@ -685,11 +650,13 @@ function upd_task {
   
   for(i = 0; i < tasksLen; i++;) {
     if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
-      sys.fs.db.selectTable("tasks");
-      sys.fs.db.selectRowId(IDs[i]);
-      sys.fs.db.setEntryNum("done", sys.gui.getValue(pButtons[i]));
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("tc_" + IDs[i], "" + sys.gui.getValue(pButtons[i]));
+      #sys.fs.conf.write("watafak??", "" + sys.gui.getValue(pButtons[i]));
+      sys.fs.conf.close();
+      #print("click!" + sys.gui.getValue(pButtons[i]) + "id:" + IDs[i]);
       
-      load_group(current_group);
+      load_task(current_task);
       
       return;
     }
@@ -722,7 +689,7 @@ function set_mode {
     bottom_vis(0);
     mode = 1;
     
-    load_groups();
+    load_tasks();
     keybBack = 0;
   }
   
@@ -748,17 +715,15 @@ function set_mode {
   
   if(arg0 == 4) { # task notes
     sys.os.gui.setMainScr(sNotes);
-    sys.fs.db.selectTable("groups");
-    sys.fs.db.selectRowId(current_group);
-    tNote_s = sys.fs.db.getEntryStr("note", "");
-    
+    sys.fs.conf.open(current_task);
+    tNote_s = sys.fs.conf.read("note");
+    sys.fs.conf.close();
     sys.gui.setStr(tTitleNo, "Note: " + sys.gui.getStr(tTitle));
     mode = 4;
     
     keybBack = bBackNo;
   }
 }
-
 
 function update {
   if(com_handle(new_te_hndl) == 1) {
@@ -768,18 +733,18 @@ function update {
   
   if(com_handle(new_task) == 1) {
     print("add task group: " + com_str);
-    load_group(new_task_g(com_str));
+    load_task(new_task_g(com_str));
   }
 
   # gui
   if (sys.gui.getEventC(bDaily) == EV_RELEASED) {
     set_mode(0);
-    load_group(1);
+    load_task("daily.tsk");
   }
   
   if (sys.gui.getEventC(bCompleted) == EV_RELEASED) {
-    if (mode == 0) load_group(1);
-    if (mode == 2) load_group(current_group);
+    if (mode == 0) load_task("daily.tsk");
+    if (mode == 2) load_task(current_task);
   }
   
   if (sys.gui.getEventC(bTasks) == EV_RELEASED) {
@@ -826,9 +791,9 @@ function update {
     }
     
     if (sys.gui.getEventC(bSaveNo) == EV_RELEASED) {
-      sys.fs.db.selectTable("groups");
-      sys.fs.db.selectRowId(current_group);
-      sys.fs.db.setEntryStr("note", tNote_s);
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("note", tNote_s);
+      sys.fs.conf.close();
     }
     
     tNotes_s = sys.os.gui.handleText(tNotes, tNotes_s);
@@ -844,7 +809,7 @@ function update {
     ddm_add_btn("Rename cat.");
     ddm_add_btn("Remove cat.");
     
-    if(current_cat == 0) {
+    if(current_cat == 1 or current_cat == 0) {
       sys.gui.setGrayout(ddm_options[2], 1);
       sys.gui.setGrayout(ddm_options[3], 1);
     }
@@ -857,13 +822,11 @@ function update {
   i = ddm_handle(bMenuH);
   if (i > 0) {
     if (i == 1) { # archive
-      show_archive = 1;
+      current_cat = 1;
       task_reload = 1;
-      load_groups();
+      load_tasks();
       ddm_exit();
       sys.gui.setStr(bCategory, "Archived");
-    } else {
-      show_archive = 0;
     }
     
     if (i == 2) { # new
@@ -936,16 +899,15 @@ function update {
   i = ddm_handle(subMenu);
   if (i > 0) {
     if(i == 1) {
-      sys.fs.db.selectTable("groups");
-      sys.fs.db.selectRowId(current_group);
-      sys.fs.db.setEntryNum("cat_id", 0);
-      
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("cat", "0");
+      sys.fs.conf.close();
       task_reload = 1;
       set_mode(1);
     } else {
-      sys.fs.db.selectTable("groups");
-      sys.fs.db.selectRowId(current_group);
-      sys.fs.db.setEntryNum("cat_id", catID[i - 2]);
+      sys.fs.conf.open(current_task);
+      sys.fs.conf.write("cat", "" + catID[i - 2]);
+      sys.fs.conf.close();
       task_reload = 1;
       set_mode(1);
     }
@@ -954,20 +916,20 @@ function update {
   }
   
   if(com_handle(taskArchH) == 1) {
-    sys.fs.db.selectTable("groups");
-    sys.fs.db.selectRowId(current_group);
-    sys.fs.db.setEntryNum("archived", 1 - sys.fs.db.getEntryNum("archived", 0));
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("cat", "1");
+    sys.fs.conf.close();
     task_reload = 1;
     set_mode(1);
   }
   
   if(com_handle(task_rename) == 1) {
     print("renaming: " + com_str);
-    sys.fs.db.selectTable("groups");
-    sys.fs.db.selectRowId(current_group);
-    sys.fs.db.setEntryStr("name", com_str);
+    sys.fs.conf.open(current_task);
+    sys.fs.conf.write("name", com_str);
+    sys.fs.conf.close();
     task_reload = 1;
-    load_group(current_group);
+    load_task(current_task);
   }
   
   # category switching
@@ -976,18 +938,16 @@ function update {
     local i = 0;
     ddm_add_btn("All tasks");
     for(i = 0; i < cat_len; i++;) {
-      ddm_add_btn(cats[i] + "");
+      ddm_add_btn(cats[i]);
     }
   }
   
   i = ddm_handle(catMenuH);
   if (i > 0) {
     if(i == 1) {
-      show_archive = 0;
       set_cat(0);
       ddm_exit();
     } else {
-      show_archive = 0;
       set_cat(catID[i - 2]);
       ddm_exit();
     }
@@ -1000,5 +960,5 @@ function update {
 
 
 function exit {
-  sys.fs.db.close();
+
 }
