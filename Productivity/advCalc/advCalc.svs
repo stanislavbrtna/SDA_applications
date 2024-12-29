@@ -161,6 +161,7 @@ function update {
     sInput = substr(sInput, 1, sys.os.gui.getCPos(tInput) - 1)
            + substr(sInput, sys.os.gui.getCPos(tInput) + 1, len(sInput));
     sInput = sys.os.gui.handleText(tInput, sInput);
+    sys.gui.setTexAct(tInput);
   }
   
   if (sys.gui.getEventC(bNum) == EV_RELEASED) {
@@ -224,6 +225,7 @@ function updNum {
     sInput = "(" + sInput + ")";
     sys.gui.setStr(tInput, sInput);
     sys.os.gui.setCPos(tInput, len(sInput));
+    sys.gui.setTexAct(tInput);
   }
   
   handleKey(bDiv);
@@ -269,6 +271,7 @@ function setMode {
 function handleKey {
   if(sys.gui.getEventC(arg0) == EV_RELEASED) {
     insert(sys.gui.getStr(arg0));
+    sys.gui.setTexAct(tInput);
   }
 }
 
