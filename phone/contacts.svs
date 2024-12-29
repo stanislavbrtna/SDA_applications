@@ -640,7 +640,7 @@ function init_db {
 
 
 function loadCfg {
-  if("" + arg0 == "" or "" + arg0 = "0") {
+  if("" + arg0 == "" or "" + arg0 == "0") {
     return;
   }
   
