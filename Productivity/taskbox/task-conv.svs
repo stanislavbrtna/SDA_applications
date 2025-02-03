@@ -22,10 +22,13 @@ function init {
     sys.os.error("DB not found");
   }
   sys.os.gui.setMainScr(scr);
+  
+  array cat_cfg_id[10];
+  array cat_id[10];
 }
 
 
-function sync {
+function sync_tasks {
   for(findfil = sys.fs.find("tsk", "."); findfil != ""; findfil = sys.fs.findNext();) {
     print("found: " + findfil);
     
@@ -44,7 +47,7 @@ function sync {
     sys.fs.db.selectTable("groups");
     sys.fs.db.newRow();
     sys.fs.db.setEntryStr("name", name);
-    sys.fs.db.setEntryNum("cat_id", 0);
+    sys.fs.db.setEntryNum("cat_id", get_cat_id(cat));
     sys.fs.db.setEntryStr("note", note);
     sys.fs.db.setEntryNum("archived", cat == 1);
     
@@ -71,14 +74,51 @@ function sync {
       i++;
     }
     sys.fs.conf.close();
-    print("Added " + i + "tasks");
+    print("Added " + i + " tasks");
   }
+}
+
+
+function get_cat_id {
+  
+  for(local i = 0; i < len(cat_id); i++;) {
+    if(cat_cfg_id[i] == arg0) {
+      return cat_id[i];
+    }
+  }
+  return 0;
+}
+
+function sync_cats {
+  local i = 0;
+  sys.fs.conf.open("cats.cfg");
+  sys.fs.db.selectTable("cats");
+  
+  while(sys.fs.conf.exists("" + i)) {
+    local cat = sys.fs.conf.read("" + i);
+    print("Adding category: " + cat);
+    sys.fs.db.newRow();
+    sys.fs.db.setEntryStr("name", cat);
+    cat_id[i] = sys.fs.db.getEntryNum("id", 0);
+    cat_cfg_id[i] = num(sys.fs.conf.read("id_" + i));
+    i++;
+    
+    if(i >= 10) {
+      print("Warn: too many categories!");
+      break;
+    }
+  }
+  
+  sys.fs.conf.close();
 }
 
 
 function update {
   if (sys.gui.getEventC(bSync) == EV_RELEASED) {
-    sync();
+    sync_cats();
+    sync_tasks();
+    
+    print("Done.");
   }
   
   if (sys.gui.getEventC(bDrop) == EV_RELEASED) {
