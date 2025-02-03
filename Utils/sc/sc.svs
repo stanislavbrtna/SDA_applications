@@ -77,7 +77,6 @@ function getsize {
   return x;
 }
 
-
 function getUpCount {
   arg4 = 0;
   for(arg2 = len(arg0); arg2 > 0; arg2--;) {
@@ -141,8 +140,8 @@ function dir_list {
 function infoDir {
   dir_n = 0;
   local files = 0;
-  local dirs = 0;
-  local size = 0;
+  local dirs  = 0;
+  local size  = 0;
   dir_list(arg0);
   
   for(local x = 0; x < dir_n; x++;) {
@@ -157,7 +156,14 @@ function infoDir {
   if (dirs) {
     return dirs + " directories\n" + files + " files\n" +  size + " bytes total.";
   } else {
-    return size + " bytes."
+    local mtime = sys.fs.mtime(arg0);
+    local lz = "";
+    if(sys.time.getTsMin(mtime) < 10) lz = "0";
+    return "Modified:\n"
+            + sys.time.getTsHr(mtime) + ":" + lz + sys.time.getTsMin(mtime) + " "
+            + sys.time.getTsDay(mtime) + ". " + sys.time.getTsMonth(mtime)
+            + ". " + sys.time.getTsYear(mtime)
+            + "\n" + size + " bytes."
   }
 }
 
