@@ -16,6 +16,7 @@ function init {
   sys.gui.setBgRedraw(textscreen, 0);
 
   txt = sys.gui.addText(1, 0, 20, 15, "", textscreen);
+  sys.gui.setTxtInvert(txt, 1);
   
   liner = sys.gui.addText(0, 0, 1, 40, "", textscreen);
 
