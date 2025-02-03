@@ -56,6 +56,7 @@ function init {
   tNoteText = sys.gui.addText(0, 0, 9, 40, "text", scr_inote);
   sys.gui.setTxtEd(tNoteText, 1);
   sys.gui.setTxtFit(tNoteText, 1);
+  sys.gui.setTxtInvert(tNoteText, 1);
   
   slNote = sys.gui.addSliderV(9, 4, 1, 16, 1024, 0, scr_note);
   sys.gui.setVisible(slNote, 0);
