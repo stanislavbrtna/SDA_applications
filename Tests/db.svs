@@ -1,7 +1,7 @@
 function init {
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  test_name = "DB test 0.1";
+  test_name = "DB test 1.0";
   sys.gui.addText(1, 0, 10, 1, test_name, scr);
   result = sys.gui.addText(1, 1, 10, 10, "Result:", scr);
   
@@ -64,11 +64,9 @@ function test {
   if (not GLOB_FAIL) test_rw();
   if (not GLOB_FAIL) multi();
   if (not GLOB_FAIL) dropAllRows();
-  #if (not GLOB_FAIL) test_drop();
-  #if (not GLOB_FAIL) test_drop2();
-  
-  #if (not GLOB_FAIL) test_monkey_l();
-  #if (not GLOB_FAIL) test_monkey();
+  if (not GLOB_FAIL) test_drop();
+  if (not GLOB_FAIL) test_drop2();
+  if (not GLOB_FAIL) test_monkey();
 }
 
 function test_open {
@@ -117,7 +115,7 @@ function test_rw {
 
   
   sys.fs.db.newTable("test", 6);
-  
+    
   sys.fs.db.setColumn(0, "id", 0);
   sys.fs.db.setColumn(1, "name", 1);
   sys.fs.db.setColumn(2, "surname", 1);
@@ -191,7 +189,9 @@ function test_rw {
     
     if (data != dataCheck[i]) {
       FAIL = 1;
+      print(dataCheck[i]);
       print("Rows read faled");
+      
     }
     i++;
   }
@@ -312,15 +312,69 @@ function test_rw {
 function test_drop {
   local FAIL;
   FAIL = 0;
+  
+  cleanup();
+  
+  sys.fs.db.new("test.bdb");
+  
+  sys.fs.db.newTable("test", 6);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "surname", 1);
+  sys.fs.db.setColumn(3, "job", 1);
+  sys.fs.db.setColumn(4, "foo", 0);
+  sys.fs.db.setColumn(5, "bar", 1);
+  
+  sys.fs.db.idEnable("id");
+  
+  array dataCheck[10];
+
+  # fill data
+  for (i = 0; i < 10; i++;) {
+    sys.fs.db.newRow();
+    local name = "Joh" + i;
+    local surname = "Doe" + i;
+    local job = "job " + i;
+    local foo = 0;
+    sys.fs.db.setEntryStr("name", name);
+    sys.fs.db.setEntryStr("surname", surname);
+    sys.fs.db.setEntryStr("job", job);
+    
+    if (i < 5 or i > 7) {
+      foo = 400 + i;
+    } else {
+      foo = 66;
+    }
+    
+    sys.fs.db.setEntryNum("foo", foo);
+    
+    if (i == 7) {
+      name = "We like tom very much.";
+      sys.fs.db.setEntryStr("name", name);
+    }
+    
+    if (i == 8) {
+      name = "tom";
+      sys.fs.db.setEntryStr("name", name);
+    }
+    
+    if (i == 9) {
+      name = "Tom";
+      sys.fs.db.setEntryStr("name", name);
+    }
+    
+    dataCheck[i] = i+1 + " " + name + " " + surname + " " + job + " " + foo;
+  }
+  
  
   print("\nDrop:");
-   
   sys.fs.db.selectRow(99);
   if (sys.fs.db.dropRow()) {
     print("fail: drop invalid row did not throw error!");
     FAIL = 1;
   }
  
+  print("row_count" + sys.fs.db.getRowCount());
   sys.fs.db.selectRow(4);
   if (not sys.fs.db.dropRow()) {
     print("row drop failed");
@@ -509,7 +563,7 @@ function dropAllRows {
   sys.fs.db.setColumn(3, "job", 1);
   sys.fs.db.setColumn(4, "foo", 0);
   sys.fs.db.setColumn(5, "bar", 1);
-  #sys.fs.db.idEnable("id");
+  sys.fs.db.idEnable("id");
   
   print("creating table2");
   
@@ -588,7 +642,12 @@ function dropAllRows {
       + " " + sys.fs.db.getEntryStr("job", "") 
       + " " + sys.fs.db.getEntryNum("foo", 0);
      
-    print(data);
+    if(data != "1 karel def  0") {
+      print("Table1 data mismatch.");
+      FAIL = 1;
+      add_result("Drop all rows", FAIL);
+      return;
+    }
     
     if(not sys.fs.db.nextRow()) {
       break;
@@ -605,7 +664,106 @@ function dropAllRows {
       + " " + sys.fs.db.getEntryStr("b", "") 
       + " " + sys.fs.db.getEntryStr("c", "");
      
-    print(data);
+    if (data != "karel2  ") {
+      print("Data:  " + data);
+      print("Check: " + "karel2  ");
+    
+      FAIL = 1;
+      print("Rows read faled");
+    }
+    
+    if(not sys.fs.db.nextRow()) {
+      break;
+    }
+    i++;
+  }
+  
+  add_result("Drop all rows", FAIL);
+}
+
+function multi {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  
+  print("creating table1");
+  
+  sys.fs.db.new("test.bdb");
+  
+  sys.fs.db.newTable("test", 6);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "surname", 1);
+  sys.fs.db.setColumn(3, "job", 1);
+  sys.fs.db.setColumn(4, "foo", 0);
+  sys.fs.db.setColumn(5, "bar", 1);
+  sys.fs.db.idEnable("id");
+  
+  print("creating table2");
+  
+  sys.fs.db.newTable("test2", 3);
+  sys.fs.db.setColumn(0, "a", 1);
+  sys.fs.db.setColumn(1, "b", 1);
+  sys.fs.db.setColumn(2, "c", 1);
+  
+  array dataCheck2[10];
+
+  # add some entry to db1
+  
+  sys.fs.db.selectTable("test");
+  
+  # fill data in table 1
+  for (i = 0; i < 10; i++;) {
+    sys.fs.db.newRow();
+    local name = "Joh" + i;
+    local surname = "Doe" + i;
+    local job = "job " + i;
+    local foo = 0;
+    sys.fs.db.setEntryStr("name", name);
+    sys.fs.db.setEntryStr("surname", surname);
+    sys.fs.db.setEntryStr("job", job);
+    sys.fs.db.setEntryNum("foo", foo);
+    dataCheck[i] = i+1 + " " + name + " " + surname + " " + job + " " + foo;
+  }
+  
+  # add something to db2
+  print("SELECT");
+  if(not sys.fs.db.selectTable("test2")) {
+    FAIL = 1;
+    add_result("Multi table", FAIL);
+    return;
+  }
+  
+  for (i = 0; i < 2; i++;) {
+    sys.fs.db.newRow();
+    local a = "test" + i;
+    local b = "textoid" + i;
+    local c = "goodJob " + i;
+    sys.fs.db.setEntryStr("a", a);
+    sys.fs.db.setEntryStr("b", b);
+    sys.fs.db.setEntryStr("c", c);
+    dataCheck2[i] = a + " " + b + " " + c;
+  }
+
+  sys.fs.db.selectTable("test");
+  print("\ntable1:");
+  i = 0;
+  while(1) {
+    local data = sys.fs.db.getEntryNum("id", 666)
+      + " " + sys.fs.db.getEntryStr("name", "def") 
+      + " " + sys.fs.db.getEntryStr("surname", "def")
+      + " " + sys.fs.db.getEntryStr("job", "") 
+      + " " + sys.fs.db.getEntryNum("foo", 666);
+     
+    if(dataCheck[i] != data) {
+      print("Fail!");
+      print("Data:  " + data);
+      print("Check: " + dataCheck[i]);
+      FAIL = 1;
+      add_result("Multi table", FAIL);
+      return;
+    }
     
     if(not sys.fs.db.nextRow()) {
       break;
@@ -614,10 +772,34 @@ function dropAllRows {
   }
   
   
-  add_result("Drop all rows", FAIL);
+  sys.fs.db.selectTable("test2");
+  print("table2:");
+  i = 0;
+  while(1) {
+    local data = sys.fs.db.getEntryStr("a", "")
+      + " " + sys.fs.db.getEntryStr("b", "") 
+      + " " + sys.fs.db.getEntryStr("c", "");
+     
+    
+    if(dataCheck2[i] != data) {
+      print("Fail!");
+      print("Data:  " + data);
+      print("Check: " + dataCheck2[i]);
+      FAIL = 1;
+      add_result("Multi table", FAIL);
+      return;
+    }
+    
+    if(not sys.fs.db.nextRow()) {
+      break;
+    }
+    i++;
+  }
+  
+  add_result("Multi table", FAIL);
 }
 
-function multi {
+function multi2 {
   local FAIL;
   FAIL = 0;
   
@@ -642,6 +824,14 @@ function multi {
   sys.fs.db.setColumn(0, "a", 1);
   sys.fs.db.setColumn(1, "b", 1);
   sys.fs.db.setColumn(2, "c", 1);
+  
+  print("creating table3");
+  
+  sys.fs.db.newTable("test2", 3);
+  sys.fs.db.setColumn(0, "a", 1);
+  sys.fs.db.setColumn(1, "b", 1);
+  sys.fs.db.setColumn(2, "c", 1);
+  
   
   array dataCheck2[10];
 
@@ -765,90 +955,119 @@ function test_monkey {
   time = sys.time.getUptime();
   
   cleanup();
-  sys.fs.conf.open("test.cfg");
   
-  array keys[100];
-  array values[100];
+  print("Creating table A");
   
-  for (i = 0; i < 100; i++;) {
-    keys[i] = random_str(sys.os.rnd() % 5 + 5);
-    values[i] = random_str(sys.os.rnd() % 5 + 5);
-    sys.fs.conf.write(keys[i], values[i]);
-    
-    progress = i;
-    upd_progress();
-  }
+  sys.fs.db.new("test.bdb");
   
-  for (i = 0; i < 300; i++;) {
-    val = sys.os.rnd() % 100;
-    
-    sys.fs.conf.remove(keys[val]);
-    
-    keys[val] = random_str(10);
-    values[val] = random_str(10);
-    sys.fs.conf.write(keys[val], values[val]);
-    
-    
-    progress = i/3;
-    upd_progress();
-  }
+  sys.fs.db.newTable("A", 6);
+  sys.fs.db.setColumn(0, "id",  0);
+  sys.fs.db.setColumn(1, "key", 1)
+  sys.fs.db.setColumn(2, "val", 1);
+  sys.fs.db.idEnable("id");
   
+  print("creating table B");
   
-  for (i = 0; i < 100; i++;) {
-    if (sys.fs.conf.read(keys[i]) != values[i]) {
-      FAIL = 1;
-    }
-    progress = i;
-    upd_progress();
-  }
+  sys.fs.db.newTable("B", 6);
+  sys.fs.db.setColumn(0, "id",  0);
+  sys.fs.db.setColumn(1, "key", 1)
+  sys.fs.db.setColumn(2, "val", 1);
+  sys.fs.db.idEnable("id");
   
-  sys.fs.conf.close();
-  add_result("Monkeybasher (in: " + (sys.time.getUptime() - time) + "s)", FAIL);
+  print("creating table C");
+  
+  sys.fs.db.newTable("C", 6);
+  sys.fs.db.setColumn(0, "id",  0);
+  sys.fs.db.setColumn(1, "key", 1)
+  sys.fs.db.setColumn(2, "val", 1);
+  sys.fs.db.idEnable("id");
+  
+  array keys[51];
+  array values[51];
+  
+  array keys2[51];
+  array values2[51];
+  
+  array keys3[51];
+  array values3[51];
+  
+  # init data
+  sys.fs.db.selectTable("A");
+  monkey_init(keys, values);
+  
+  sys.fs.db.selectTable("B");
+  monkey_init(keys2, values2);
+  
+  sys.fs.db.selectTable("C");
+  monkey_init(keys3, values3);
+  
+  # smash
+  sys.fs.db.selectTable("A");
+  monkey_perf(keys, values);
+  
+  sys.fs.db.selectTable("B");
+  monkey_perf(keys2, values2);
+  
+  sys.fs.db.selectTable("C");
+  monkey_perf(keys3, values3);
+  
+  # check
+  sys.fs.db.selectTable("A");
+  monkey_check(keys, values);
+  
+  sys.fs.db.selectTable("B");
+  monkey_check(keys2, values2);
+  
+  sys.fs.db.selectTable("C");
+  monkey_check(keys3, values3);
+  
+  add_result("Monke (in: " + (sys.time.getUptime() - time) + "s)", FAIL);
 }
 
-function test_monkey_l {
-  local FAIL;
-  FAIL = 0;
-  
-  cleanup();
-  sys.fs.conf.open("test.cfg");
-  
-  array keys[10];
-  array values[10];
-  
-  for (i = 0; i < 10; i++;) {
-    keys[i] = random_str(10);
-    values[i] = random_str(5+rnd()%16);
-    sys.fs.conf.write(keys[i], values[i]);
+function monkey_init {
+  for (i = 1; i < 51; i++;) {
+    arg0[i] = random_str(sys.os.rnd() % 5 + 15);
+    arg1[i] = random_str(sys.os.rnd() % 5 + 15);
     
-    progress = i;
+    sys.fs.db.newRow();
+    sys.fs.db.setEntryStr("key", arg0[i]);
+    sys.fs.db.setEntryStr("val", arg1[i]);
+    
+    progress = i*2;
     upd_progress();
   }
-  
-  for (i = 0; i < 30; i++;) {
-    val = sys.os.rnd() % 10;
+}
+
+function monkey_perf { # (Keys, values)
+  # do random rewrites
+  for (i = 0; i < 200; i++;) {
+    local id = sys.os.rnd() % 49 + 1;
+    sys.fs.db.selectRowId(id);
     
-    sys.fs.conf.remove(keys[val]);
+    arg0[id] = random_str(sys.os.rnd() % 5 + 15);
+    arg1[id] = random_str(sys.os.rnd() % 5 + 15);
     
-    keys[val] = random_str(5+rnd()%16);
-    values[val] = random_str(5+rnd()%16);
-    sys.fs.conf.write(keys[val], values[val]);
+    sys.fs.db.setEntryStr("key", arg0[id]);
+    sys.fs.db.setEntryStr("val", arg1[id]);
     
-    
-    progress = i/3;
+    progress = i/2;
     upd_progress();
   }
-  
-  
-  for (i = 0; i < 10; i++;) {
-    if (sys.fs.conf.read(keys[i]) != values[i]) {
-      print("Value on position" + i + " was: " + sys.fs.conf.read(keys[i]) + " should be " + values[i]);
+}
+
+function monkey_check {
+  for (i = 1; i < 51; i++;) { 
+    sys.fs.db.selectRowId(i);
+    local key = sys.fs.db.getEntryStr("key", "Err");
+    local val = sys.fs.db.getEntryStr("val", "Err");
+    
+    if ("" + arg0[i] != "" + key and "" + arg1[i] != "" + val) {
+      print("Mismatch: key: " + key + " <- " + arg0[i] + " (" + i + ")");
+      print("Mismatch: val: " + val + " <- " + arg1[i] + " (" + i + ")");
       FAIL = 1;
     }
-    progress = i;
+    
+    progress = i*2;
     upd_progress();
   }
-  
-  sys.fs.conf.close();
-  add_result("Mini_monkey", FAIL);
 }
