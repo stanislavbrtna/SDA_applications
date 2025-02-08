@@ -17,20 +17,31 @@ function sms_send { # number, text -> returns
   
   # detect UTF16 characters
   if (len(arg1) == rlen(arg1)) {
+  
+    if(len(arg1) > 140) {
+      sys.os.error("Message too long!");
+      sms_send_cb(0);
+    }
+    
     if (DEBUG) print("SMS: GSM");
     if (DEBUG) print("AT_COMMAND: " + "AT+CMGS=\"" + nospace(arg0) + "\"\r" + arg1 + "\n(ASCII 26)     \n\n");
     t_sms_send = at_command("AT+CMGS=\"" + nospace(arg0) + "\"\r" + arg1, 2500);
   } else {
     if (DEBUG) print("SMS: UCS2");
+    
+    if(len(arg1) > 70) {
+      sys.os.error("Message too long!");
+      sms_send_cb(0);
+    }
+    
     # switch encoding
-    t_sms_enc  =  at_command("AT+CSCS=\"UCS2\"");
+    t_sms_enc  = at_command("AT+CSCS=\"UCS2\"");
     sms_enc_sw = 1;
     sms_cmd    = "AT+CMGS=\"" + str2u16(nospace(arg0)) + "\"\r" + str2u16(arg1);
     if (DEBUG) print("AT_COMMAND: " + sms_cmd);
     
     return;
   }
-  
   
   sys.com.qClr();
   sys.com.qAdd(26);
@@ -194,7 +205,6 @@ function sms_upd {
     } else {
       t_sms_enc2  =  at_command("AT+CSCS=\"GSM\"");
     }
-    
   }
   
   if(res == 2) {

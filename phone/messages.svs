@@ -474,10 +474,14 @@ function upd_new_msg {
     nMsgLen = l;
   }
   
-  if(sys.gui.getEventC(bNSend) == EV_RELEASED) {
-    #sms_send(currentNumber, sNewMsg);
-    
-    sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, sNewMsg);
+  if(sys.gui.getEventC(bNSend) == EV_RELEASED) {    
+    sendMsgLen = 140;
+    # get encoding
+    if(len(sNewMsg) != rlen(sNewMsg)) {
+      sendMsgLen = 70;
+    }
+    sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, substr(sNewMsg, 1, sendMsgLen));
+    sNewMsg = substr(sNewMsg, sendMsgLen, len(sNewMsg));
     sms_c_conv = "n" + mk_safe_name(cont_numsane(currentNumber)) +  ".dat";
     return;
   }
@@ -494,6 +498,14 @@ function upd_new_msg {
 ## SMS send callback
 function sms_ret {
   if(arg0 + "" == "OK") {
+    # check if all of the message was sent
+    if(len(sNewMsg)) {
+      # send next part
+      sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, substr(sNewMsg, 1, sendMsgLen));
+      sNewMsg = substr(sNewMsg, sendMsgLen + 1, len(sNewMsg));
+      return;
+    }
+    
     if (NewMsgConcept == 1 and sys.fs.exists(currentConv)) {
       sys.fs.conf.open(currentConv);
       sys.fs.conf.write("message_concept", "");

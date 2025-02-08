@@ -65,6 +65,7 @@ function run_inits {
   print("Done!");
 }
 
+
 function set_status {
   print("phone manager: setting status from: " + mngr_status + " to: " + arg0);
   mngr_status = arg0;
@@ -72,3 +73,38 @@ function set_status {
   sys.gui.setStr(tStat, "Status: " + arg0);
 }
 
+
+function draw_signal {
+  if(inOpt == 1) return;
+
+  sys.ds.setArea(200, 64 + 16, 220 + 70, 64+64 + 16);
+  sys.ds.clearArea(sys.gui.getColor(COL_BACKGROUND));
+  
+  if (gsm_signal > 0) {
+    sys.ds.fillRect(1, 48, 16, 64, sys.gui.getColor(COL_ACTIVE));
+  } else {
+    sys.ds.fillRect(1, 48, 16, 64, sys.gui.getColor(COL_FILL));
+  }
+  sys.ds.drawRect(1, 48, 16, 64, sys.gui.getColor(COL_BORDER));
+  
+  if (gsm_signal > 8) {
+    sys.ds.fillRect(1 + 20, 32, 16 + 20, 64, sys.gui.getColor(COL_ACTIVE));
+  } else {
+    sys.ds.fillRect(1 + 20, 32, 16 + 20, 64, sys.gui.getColor(COL_FILL));
+  }
+  sys.ds.drawRect(1 + 20, 32, 16 + 20, 64, sys.gui.getColor(COL_BORDER));
+  
+  if (gsm_signal > 16) {
+    sys.ds.fillRect(1 + 40, 16, 16 + 40, 64, sys.gui.getColor(COL_ACTIVE));
+  } else {
+    sys.ds.fillRect(1 + 40, 16, 16 + 40, 64, sys.gui.getColor(COL_FILL));
+  }
+  sys.ds.drawRect(1 + 40, 16, 16 + 40, 64, sys.gui.getColor(COL_BORDER));
+  
+  if (gsm_signal > 24) {
+    sys.ds.fillRect(1 + 60, 1, 16 + 60, 64, sys.gui.getColor(COL_ACTIVE));
+  } else {
+    sys.ds.fillRect(1 + 60, 1, 16 + 60, 64, sys.gui.getColor(COL_FILL));
+  }
+  sys.ds.drawRect(1 + 60, 1, 16 + 60, 64, sys.gui.getColor(COL_BORDER));
+}

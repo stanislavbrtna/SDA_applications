@@ -99,12 +99,8 @@ function at_command {
   
   at_ticket_n++;
   
-  at_ticket = at_ticket_n;
-  
+  at_ticket = at_ticket_n;  
   at_ustring = "";
-  
-  #printing something breaks the comms
-  
   at_result = "";
   
   if(sys.os.inSim()) {
