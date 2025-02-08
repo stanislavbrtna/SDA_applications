@@ -202,7 +202,7 @@ function get_cell {
 }
 
 function select_cell {
-  if (mf[arg0] == 0){
+  if (mf[arg0] == 0) {
     mf[arg0] = mf[arg0]/100 + 100;
   }
 }
@@ -293,7 +293,17 @@ function update_cell {
 }
 
 function update_field {
-  for(x=0; x<len(mf);x++;){
+  # walk filed up to bottom
+  for(x = 0; x < len(mf); x++;) {
+    if (mf[x]/100) {
+      mf[x] = mf[x]%100;
+      update_cell(x);
+      redraw = 3;
+    }
+  }
+  
+  # walk field bottom up
+  for(x = len(mf) - 1; x >= 0; x--;) {
     if (mf[x]/100) {
       mf[x] = mf[x]%100;
       update_cell(x);
