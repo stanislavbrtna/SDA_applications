@@ -452,6 +452,7 @@ function upd_cont {
           if (not sys.fs.db.nextRow()) {
             break
           }
+          new_add_num();
         }
         ncount = p_i;
         
@@ -556,32 +557,7 @@ function upd_new {
   }
   
   if (sys.gui.getEventC(b_nadd_num) == EV_RELEASED) {
-    local i;
-    for(i = 0; i < 10; i++;) {
-      if (t_nphone[i] == 0) {
-        t_nphone[i] = sys.gui.addText(0, 7 + i, 8, 1, "add", s_nin);
-        sys.gui.setTexEd(t_nphone[i], 1);
-        break;
-      }
-    }
-    
-    if (i == 9) {
-      sys.gui.setGrayout(b_nadd_num, 1);
-    }
-    
-    sys.gui.setRelInit(0);
-    sys.gui.setY1(b_nadd_num, sys.gui.getY1(b_nadd_num) + 1);
-    sys.gui.setY2(b_nadd_num, sys.gui.getY2(b_nadd_num) + 1);
-    
-    sys.gui.setY1(b_npic, sys.gui.getY1(b_npic) + 1);
-    sys.gui.setY2(b_npic, sys.gui.getY2(b_npic) + 1);
-    
-    sys.gui.setY1(t_nnote_t, sys.gui.getY1(t_nnote_t) + 1);
-    sys.gui.setY2(t_nnote_t, sys.gui.getY2(t_nnote_t) + 1);
-    
-    sys.gui.setY1(t_nnote, sys.gui.getY1(t_nnote) + 1);
-    sys.gui.setY2(t_nnote, sys.gui.getY2(t_nnote) + 1);
-    sys.gui.setRelInit(1);
+    new_add_num();
   }
   
   if (sys.gui.getEventC(b_nsave) == EV_RELEASED) {
@@ -600,6 +576,35 @@ function upd_new {
   }
   
   sys.gui.setYscroll(s_nin, sys.gui.getValue(s_nbar));
+}
+
+function new_add_num {
+  local i;
+  for(i = 0; i < 10; i++;) {
+    if (t_nphone[i] == 0) {
+      t_nphone[i] = sys.gui.addText(0, 7 + i, 8, 1, "add", s_nin);
+      sys.gui.setTexEd(t_nphone[i], 1);
+      break;
+    }
+  }
+  
+  if (i == 9) {
+    sys.gui.setGrayout(b_nadd_num, 1);
+  }
+  
+  sys.gui.setRelInit(0);
+  sys.gui.setY1(b_nadd_num, sys.gui.getY1(b_nadd_num) + 1);
+  sys.gui.setY2(b_nadd_num, sys.gui.getY2(b_nadd_num) + 1);
+  
+  sys.gui.setY1(b_npic, sys.gui.getY1(b_npic) + 1);
+  sys.gui.setY2(b_npic, sys.gui.getY2(b_npic) + 1);
+  
+  sys.gui.setY1(t_nnote_t, sys.gui.getY1(t_nnote_t) + 1);
+  sys.gui.setY2(t_nnote_t, sys.gui.getY2(t_nnote_t) + 1);
+  
+  sys.gui.setY1(t_nnote, sys.gui.getY1(t_nnote) + 1);
+  sys.gui.setY2(t_nnote, sys.gui.getY2(t_nnote) + 1);
+  sys.gui.setRelInit(1);
 }
 
 function init_db {
@@ -757,12 +762,11 @@ function handle_save {
   sys.fs.db.selectTable("numbers");
   
   # find and delete all previous numbers
+  sys.fs.db.selectRow(0);
   while(sys.fs.db.selectRowNum("contact_id", id)) {
-      
+    #print("drop:" + sys.fs.db.getEntryStr("number", ""));
     sys.fs.db.dropRow();
-    if (not sys.fs.db.nextRow()) {
-      break
-    }
+    # drop row invalidates current row and select next (in current bdb rev)
   }
   
   # add new ones
@@ -793,9 +797,6 @@ function remove_contact {
   sys.fs.db.selectTable("numbers");
   while(sys.fs.db.selectRowNum("contact_id", id)) {
     sys.fs.db.dropRow();
-    if (not sys.fs.db.nextRow()) {
-      break
-    }
   }
   sys.fs.db.selectTable("contacts");
   load_list();
