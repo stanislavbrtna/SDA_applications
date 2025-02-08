@@ -115,8 +115,8 @@ function set_dir {
 function process_args {
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "OPEN") {
-      if (sys.fs.exists("n" + mk_safe_name(arg1) +  ".dat")) {
-        load_conv("n" + mk_safe_name(arg1) +  ".dat");
+      if (sys.fs.exists("n" + mk_safe_name(cont_numsane(arg1)) +  ".dat")) {
+        load_conv("n" + mk_safe_name(cont_numsane(arg1)) +  ".dat");
       } else {
         currentConv = "";
         ld_new_msg(arg1, scr);
@@ -404,8 +404,8 @@ function ld_new_msg { # number, prev_Screen
     currentNumber = arg0;
     
     # load concept message
-    if(sys.fs.exists("n" + mk_safe_name(arg0) +  ".dat")) {
-      currentConv = "n" + mk_safe_name(arg0) +  ".dat";
+    if(sys.fs.exists("n" + mk_safe_name(cont_numsane(arg0)) +  ".dat")) {
+      currentConv = "n" + mk_safe_name(cont_numsane(arg0)) +  ".dat";
       NewMsgConcept = 1;
       sys.fs.conf.open(currentConv);
       currentName = sys.fs.conf.read("contact_name");
@@ -478,7 +478,7 @@ function upd_new_msg {
     #sms_send(currentNumber, sNewMsg);
     
     sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, sNewMsg);
-    sms_c_conv = "n" + mk_safe_name(currentNumber) +  ".dat";
+    sms_c_conv = "n" + mk_safe_name(cont_numsane(currentNumber)) +  ".dat";
     return;
   }
   

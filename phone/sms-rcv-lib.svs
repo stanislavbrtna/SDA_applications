@@ -79,7 +79,7 @@ function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:
   mk_safe_dir("sms");
   sys.fs.chDir("sms");
   
-  sys.fs.conf.open("n" + mk_safe_name(arg0) +  ".dat");
+  sys.fs.conf.open("n" + mk_safe_name(cont_numsane(arg0)) +  ".dat");
   
   # with emty file, the exists function sometimes borks on the device...
   sys.fs.conf.write("contact_number", "" + arg0);
@@ -94,7 +94,7 @@ function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:
     info = cont_get_info(arg0);
     sys.fs.chDir("phone");
     sys.fs.chDir("sms");
-    sys.fs.conf.open("n" + mk_safe_name(arg0) +  ".dat");
+    sys.fs.conf.open("n" + mk_safe_name(cont_numsane(arg0)) +  ".dat");
     if(info[0] != "Unknown") {
       sys.fs.conf.write("contact_name", "" + info[0] + " " + info[1]);
     } else {
@@ -116,7 +116,7 @@ function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:
     new_sms_flg += 1;
   }
   sys.fs.conf.close();
-  return "n" + mk_safe_name(arg0) +  ".dat";
+  return "n" + mk_safe_name(cont_numsane(arg0)) +  ".dat";
 }
 
 
