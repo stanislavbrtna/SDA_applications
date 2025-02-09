@@ -13,6 +13,7 @@ function init {
   
   sys.gui.setXscroll(scr, 16);
   sys.gui.setYscroll(scr, 16);
+  sys.os.gui.setRoot(0, "/");
   
   sys.gui.addText(1, 1, 5, 1, "Contacts", scr);
   
@@ -110,7 +111,7 @@ function init {
   # contact screen
   
   cont_scr = sys.gui.addScreen();
-  i_cimage = sys.gui.addImage(3, 1 , 4, 4, "phone/empty.p16", cont_scr);
+  i_cimage = sys.gui.addImage(3, 1 , 4, 4, "appdata/phone/empty.p16", cont_scr);
   i_bcall  = sys.gui.addButton(1, 10, 4, 1, "Call", cont_scr);
   i_bmsg   = sys.gui.addButton(5, 10, 4, 1, "Message", cont_scr);
   
@@ -359,6 +360,8 @@ function open_cont {
   sys.gui.setStr(i_tname, sys.fs.db.getEntryStr("name", ""));
   sys.gui.setStr(i_tsurname, sys.fs.db.getEntryStr("surname", ""));
   sys.gui.setStr(i_tcompany, sys.fs.db.getEntryStr("company", ""));
+  sys.gui.setStr(i_cimage, sys.fs.db.getEntryStr("picture", "appdata/phone/empty.p16"));
+  print(sys.fs.db.getEntryStr("picture", "appdata/phone/empty.p16"));
   
   sys.fs.db.selectTable("numbers");
   sys.fs.db.selectRowNum("contact_id", id);
@@ -537,7 +540,7 @@ function picRet {
 function upd_new {
   if (sys.gui.getEventC(b_nback) == EV_RELEASED) {
     sys.os.hideKbd();
-    sys.os.gui.setMainScr(scr);
+    open_cont(currentContId);
   }
   
   nname = sys.os.gui.handleText(t_nname, nname);
@@ -552,7 +555,7 @@ function upd_new {
   }
   
   if (sys.gui.getEventC(b_npic) == EV_RELEASED) {
-    sys.os.subProcess("lib/fsl.svs", &picRet, 0, 0, 0);
+    sys.os.subProcess("lib/fsl2.svs", &picRet, 0, 0, 0);
     return;
   }
   
@@ -564,7 +567,7 @@ function upd_new {
     handle_save();
     load_list();
     sys.os.hideKbd();  
-    sys.os.gui.setMainScr(scr);
+    open_cont(currentContId);
   }
   
   if(sys.os.kbdGetState() == 1) {
@@ -705,7 +708,7 @@ function loadCfg {
     }
     
     sys.fs.db.setEntryStr("note", sys.fs.conf.read("note_" + n));
-    sys.fs.db.setEntryStr("picture", "phone/empty.p16"); # pic field is missing in the cfg...
+    sys.fs.db.setEntryStr("picture", sys.fs.conf.read("pic_" + n));
     
     print("... " + n);
       
