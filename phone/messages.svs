@@ -85,6 +85,8 @@ function init {
   t_msg = 0;
   t_del = 0;
   cur_msg = 1;
+  
+  rdText = 0;
 
   page = 0;
   scrollMax = 0;
@@ -169,7 +171,7 @@ function load_convs {
         icon_fl = 1;
       }
     
-      pButtons[i] = sys.gui.addButton(0, i, 7, 1, new + sys.fs.conf.read("contact_name"), sConvs);
+      pButtons[i] = sys.gui.addButton(0, i, 8, 1, new + sys.fs.conf.read("contact_name"), sConvs);
       pFiles[i] = findfil;
       i++;
     }
@@ -177,8 +179,8 @@ function load_convs {
   }
   
   sys.gui.setYscroll(sConvs, -6);
-  sys.gui.setXscroll(sConvs, -16);
-  sys.gui.setXscroll(sConvs, -16);
+  sys.gui.setXscroll(sConvs, -8);
+  sys.gui.setXscroll(sConvs, -8);
   
   pSelect = -1;
   pCount = i;
@@ -233,11 +235,17 @@ function load_conv {
   # load last 25 messages
   local i;
   
+  for(i = 0; i < len(ctext); i++;) {
+    ctext[i] = 0;
+  }
+  
   local yAdd = 1;
   
   local incomming;
   
   local cmax = max;
+  
+  rdText = 0;
   
   cmax -= page*24;
   
@@ -376,6 +384,35 @@ function upd_conv {
   
   if(sys.gui.getEventC(bScrUp) == EV_RELEASED and sys.gui.getValue(cScroll) >= 16) {
     sys.gui.setValue(cScroll, sys.gui.getValue(cScroll) - 16);
+  }
+  
+  
+  for(i = 0; i < len(ctext); i++;) {
+    if (ctext[i] != 0 and sys.gui.getEvent(ctext[i]) == EV_RELEASED and ctext[i] != rdText) {
+      if(rdText) {
+        # Clean/Deactivate
+        sys.gui.setTxtEd(rdText, 0);
+        sys.gui.setEvent(rdText, EV_NONE);
+        sys.gui.setEvent(ctext[i], EV_NONE);
+        sys.gui.txtDeact();
+        rdText = 0;
+      } else {
+        # Activate to allow selection
+        sys.gui.setTxtEd(ctext[i], 1);
+        sys.gui.setTxtAct(ctext[i]);
+        rdText = ctext[i];
+      }
+    }
+  }
+  
+  if(rdText) {
+    if(not sys.gui.getTexAct(rdText)) {
+      print("deactivate");
+      sys.gui.setTxtEd(rdText, 0);
+      rdText = 0;
+    } else {
+      sys.os.gui.handleText(rdText);
+    }
   }
 
   scrScroller(sMsgList, cScroll, 0, scrollMax);
