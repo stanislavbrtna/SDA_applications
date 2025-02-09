@@ -602,16 +602,48 @@ function resolve_ring {
 }
 
 
-function bp2 {
-  sys.snd.beepC(440, 250, &bp3);
-}
+function bp_proc {
+  local f = 2794; #2794 - f7 1397 - f6
+  
+  if(bp_proc == 0) {
+    sys.snd.beepC(f, 180, &bp_proc);
+  }
 
-
-function bp3 {
-  sys.snd.beepC(880, 250, "");
-  sys.hw.wakeLcd();
-  sys.os.subProcess("phone/messages.svs", "", "RCV_NEW", "", 0);
-  sms_rcv_fl = 0;
+  if(bp_proc == 1) {
+    sys.snd.beepC(0, 100, &bp_proc);
+  }
+  
+  if(bp_proc == 2) {
+    sys.snd.beepC(f, 180, &bp_proc);
+  }
+  
+  if(bp_proc == 3) {
+    sys.snd.beepC(0, 600, &bp_proc);
+  } 
+  
+  if(bp_proc == 4) {
+    sys.snd.beepC(f, 180, &bp_proc);
+  }
+  
+  if(bp_proc == 5) {
+    sys.snd.beepC(0, 100, &bp_proc);
+  }
+  
+  if(bp_proc == 6) {
+    sys.snd.beepC(f, 180, &bp_proc);
+  }
+  
+  if(bp_proc == 7) {
+    sys.snd.beepC(0, 200, &bp_proc);
+  }
+  
+  if(bp_proc == 8) {
+    sys.hw.wakeLcd();
+    sys.os.subProcess("phone/messages.svs", "", "RCV_NEW", "", 0);
+    sms_rcv_fl = 0;
+  }
+  
+  bp_proc++;
 }
 
 
@@ -625,7 +657,8 @@ function sms_fin_cb {
   
   if(new_sms_flg) {
     new_sms_flg = 0;
-    sys.snd.beepC(880, 250, &bp2);
+    bp_proc = 0;
+    bp_proc();
   } else {
     sms_rcv_fl = 0;
   }
