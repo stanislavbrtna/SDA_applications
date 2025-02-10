@@ -783,9 +783,12 @@ function handle_save {
   }
   
   list_size++;
+  sys.fs.db.sync();
   sys.fs.db.selectTable("contacts");
   
   sys.gui.setParam(s_bar, list_size - 10);
+  
+  currentContId = id;
 
 }
 
@@ -798,9 +801,10 @@ function remove_contact {
   sys.fs.db.dropRow();
   
   sys.fs.db.selectTable("numbers");
-  while(sys.fs.db.selectRowNum("contact_id", id)) {
+  while(sys.fs.db.selectRowNum("contact_id", arg0)) {
     sys.fs.db.dropRow();
   }
+  
   sys.fs.db.selectTable("contacts");
   load_list();
 }

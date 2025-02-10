@@ -34,7 +34,14 @@ function cont_get_info {
     }
     
     sys.fs.db.selectTable("contacts");
-    sys.fs.db.selectRowId(contact_id);
+    
+    if(not sys.fs.db.selectRowId(contact_id)) {
+      print("CONTACT BORKED select failed, clearing number");
+      sys.fs.db.selectTable("numbers");
+      sys.fs.db.selectRowStr("number_sane", sane, 0, 1);
+      sys.fs.db.dropRow();
+      continue;
+    }
     
     info[0] = sys.fs.db.getEntryStr("name", "");
     info[1] = sys.fs.db.getEntryStr("surname", "");
@@ -63,16 +70,27 @@ function cont_get_id {
   while(sys.fs.db.selectRowStr("number_sane", sane, 0, 1)) {
     local contact_id = sys.fs.db.getEntryNum("contact_id", 0);
     
+    sys.fs.db.selectTable("contacts");
+    
+    if(not sys.fs.db.selectRowId(contact_id)) {
+      print("CONTACT BORKED select failed, clearing number");
+      sys.fs.db.selectTable("numbers");
+      sys.fs.db.selectRowStr("number_sane", sane, 0, 1);
+      sys.fs.db.dropRow();
+      continue;
+    }
+    
     sys.fs.db.close();
     
     if(contact_id == 0) {
       return -1;
     }
+    
     return contact_id;
   }
   
-  return -1;
   sys.fs.db.close();
+  return -1;
 }
 
 
