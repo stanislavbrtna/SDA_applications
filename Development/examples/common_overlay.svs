@@ -33,7 +33,7 @@ function update {
   }
   
   if(sys.gui.getEventC(bMsg2) == EV_RELEASED) {
-    com2 = com_new("New name:", 1);
+    com2 = com_new("New name:", 1, "Default name");
   }
   
   if(sys.gui.getEventC(bMsg3) == EV_RELEASED) {

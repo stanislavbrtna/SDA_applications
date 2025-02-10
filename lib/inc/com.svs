@@ -12,7 +12,7 @@ function com_init {
   com_ov_id = 0;
 }
 
-function com_new { # title, mode
+function com_new { # title, mode, def_inp_text
   com_screen = sys.gui.addScreen();
   com_title  = sys.gui.addText(0, 0, 8, 1, arg0, com_screen);
   
@@ -24,13 +24,22 @@ function com_new { # title, mode
   if(arg1 == 1) {
     com_text = sys.gui.addText(0, 1, 6, 1, "", com_screen);
     sys.gui.setTexEd(com_text, 1);
-    com_str = "";
     com_str_val = 1;
     com_ok = sys.gui.addButton(4, 2, 2, 1, "Ok", com_screen);
     com_cancel = sys.gui.addButton(0, 2, 3, 1, "Cancel", com_screen);
     sys.os.showKbd();
     sys.gui.setTexAct(com_text);
     com_informal = 0;
+    
+    if(typeof(arg2) == TYPE_STR) {
+      com_str = arg2;
+      sys.gui.setStr(com_text, arg2);
+      sys.gui.setBlk(com_text, 1, len(com_str));
+      print("setting");
+    } else {
+      com_str = "";
+    }
+    
   } else {
     com_ok = sys.gui.addButton(4, 1, 2, 1, "Ok", com_screen);
     if(arg1 == 0) {
