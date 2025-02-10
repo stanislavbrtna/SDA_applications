@@ -138,8 +138,7 @@ function update_list {
 
 function handle_main {
   if(sys.gui.getEventC(bNew) == EV_RELEASED) {
-    c_new = com_new("New note:", 1);
-    com_str = "";
+    c_new = com_new("New note:", 1, "New note");
   }
   
   if(sys.gui.getEventC(bOpt) == EV_RELEASED) {
