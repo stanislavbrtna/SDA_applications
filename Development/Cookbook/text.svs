@@ -11,9 +11,11 @@ function init {
     al_left = sys.gui.addCheckBox(5, 12, 9, 13,"Left", screen);
     al_right = sys.gui.addCheckBox(5, 13, 9, 14,"Right", screen);
 
-    editable = sys.gui.addCheckBox(1, 10, 9, 11,"editable", screen);
+    invert = sys.gui.addCheckBox(5, 8, 9, 9,"Inv. edit", screen);
+
+    editable = sys.gui.addCheckBox(1, 10, 5, 11,"editable", screen);
     fit = sys.gui.addCheckBox(1, 9, 9, 10,"fit", screen);
-    pwd = sys.gui.addCheckBox(1, 8, 9, 9,"pwd", screen);
+    pwd = sys.gui.addCheckBox(1, 8, 5, 9,"pwd", screen);
 
     # DUT
     element = sys.gui.addText(1, 2, 9, 3, "Text field", screen);
@@ -48,7 +50,7 @@ function update {
     }
 
     if (sys.gui.getEventC(fit)) {
-        sys.gui.setTexFit(element, sys.gui.getValue(fit));
+        sys.gui.setTxtFit(element, sys.gui.getValue(fit));
         if (sys.gui.getValue(fit)) {
             sys.gui.setStr(element,
 "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
@@ -64,6 +66,10 @@ Phasellus rhoncus. Praesent dapibus."
         } else {
             sys.gui.setXYXY(element, 1, 2, 9, 3);
         }
+    }
+    
+    if (sys.gui.getEventC(invert)) {
+        sys.gui.setTxtInvert(element, sys.gui.getValue(invert));
     }
     
     if (sys.gui.getEventC(al_left) == EV_RELEASED) {

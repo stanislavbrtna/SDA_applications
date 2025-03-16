@@ -219,7 +219,7 @@ function init {
   sys.gui.setIcon(btn_r, "rotate.sic");
   sys.gui.setParam(btn_r, 1);
   
-  sys.gui.setTexFit(fnameText, 1);
+  sys.gui.setTxtFit(fnameText, 1);
   sys.gui.setSelect(fnameText, 1);
   
   sys.os.gui.setMainScr(scr);

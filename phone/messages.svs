@@ -68,7 +68,7 @@ function init {
   bNBack  = sys.gui.addButton(0, 7, 3, 1, "Back", newScr);
   bNSend  = sys.gui.addButton(5, 7, 3, 1, "Send", newScr);
   tNCount = sys.gui.addText  (4, 6, 4, 1, "0/140", newScr);
-  sys.gui.setTexAlign(tNCount, ALIGN_RIGHT);
+  sys.gui.setTxtAlign(tNCount, ALIGN_RIGHT);
   
   sys.gui.addText(0, 0, 2, 1, "To:", newScr);
   bNCont = sys.gui.addButton(2, 0, 6, 1, "Contact", newScr);
@@ -76,8 +76,9 @@ function init {
   newTxScr = sys.gui.addScreen(0, 1, 8, 5, newScr);
   sys.gui.setBgRedraw(newTxScr, 0);
   tNewMsg = sys.gui.addText(0, 0, 9, 14, "", newTxScr);
-  sys.gui.setTexEd(tNewMsg,  1);
-  sys.gui.setTexFit(tNewMsg, 1);
+  sys.gui.setTxtEd(tNewMsg,  1);
+  sys.gui.setTxtFit(tNewMsg, 1);
+  sys.gui.setTxtInvert(tNewMsg, 1);
   sNewMsg = "";
   
   newSlider = sys.gui.addSliderV(8, 1, 1, 5, 256 - 16, 0, newScr);
@@ -278,7 +279,7 @@ function load_conv {
     local text = sys.fs.conf.read("msg_"+i);    
     ctext[b] = sys.gui.addText(0, b*5 + 1 + yAdd, 8, 2, text, sMsgList);
     sys.gui.setSelect(ctext[b], 1);
-    sys.gui.setTexFit(ctext[b], 1);
+    sys.gui.setTxtFit(ctext[b], 1);
     
     local textH = (sys.gui.getTxtHeight(ctext[b], 0) + 8) / 32;
     sys.gui.setY2(ctext[b], textH + 1);
@@ -289,7 +290,7 @@ function load_conv {
     sys.gui.setTxtSize(ctime[b], 12);
     
     if (not incomming) {
-      sys.gui.setTexAlign(ctime[b], ALIGN_RIGHT);
+      sys.gui.setTxtAlign(ctime[b], ALIGN_RIGHT);
     }
     
     b++;
@@ -399,6 +400,7 @@ function upd_conv {
       } else {
         # Activate to allow selection
         sys.gui.setTxtEd(ctext[i], 1);
+        sys.gui.setTxtInvert(ctext[i], 1);
         sys.gui.setTxtAct(ctext[i]);
         rdText = ctext[i];
       }
@@ -406,7 +408,7 @@ function upd_conv {
   }
   
   if(rdText) {
-    if(not sys.gui.getTexAct(rdText)) {
+    if(not sys.gui.getTxtAct(rdText)) {
       print("deactivate");
       sys.gui.setTxtEd(rdText, 0);
       rdText = 0;
@@ -421,7 +423,7 @@ function upd_conv {
 ## Load new message screen
 function ld_new_msg { # number, prev_Screen
   sys.os.gui.setMainScr(newScr);
-  sys.gui.setTexAct(tNewMsg);
+  sys.gui.setTxtAct(tNewMsg);
   sys.os.showKbd();
   
   newPrevScr = arg1;
@@ -487,7 +489,7 @@ function upd_count #* rl, l*# {
 function upd_new_msg {
   sNewMsg = sys.os.gui.handleText(tNewMsg, sNewMsg);
     
-  if((sys.gui.getEventC(bNBack) == EV_RELEASED or sys.gui.getTexAct(tNewMsg) == 0) and newMsgLoaded) {
+  if((sys.gui.getEventC(bNBack) == EV_RELEASED or sys.gui.getTxtAct(tNewMsg) == 0) and newMsgLoaded) {
     sys.os.gui.setMainScr(newPrevScr);
     if(newPrevScr == scr) {
       kbd_back_btn = 0;
@@ -565,7 +567,7 @@ function sms_ret {
 
 function contRet {
   if (typeof(arg0) != TYPE_STR or typeof(arg1) != TYPE_STR) {
-    sys.gui.setTexAct(tNewMsg);
+    sys.gui.setTxtAct(tNewMsg);
     currentName   = "";
     currentNumber = "";
     sys.gui.setStr(bNCont, "Select");
@@ -584,7 +586,7 @@ function contRet {
     sys.gui.setGrayout(bNSend, 0);
   }
   
-  sys.gui.setTexAct(tNewMsg);
+  sys.gui.setTxtAct(tNewMsg);
   sys.os.showKbd();
 }
 

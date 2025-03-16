@@ -201,7 +201,7 @@ function read {
   #sel_id - id knihy
   sys.os.gui.setMainScr(scr2);
   mode = 2;
-  sys.gui.setTexFit(txt, 1);
+  sys.gui.setTxtFit(txt, 1);
   
   print("load:sel_id=" + sel_id);
   
