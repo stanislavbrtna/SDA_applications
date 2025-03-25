@@ -136,6 +136,7 @@ function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
   sys.gui.setYscroll(arg0, num((float(arg3 - arg2)/1024.0)*float(sys.gui.getValue(arg1))) + arg2);
 }
 
+
 function update {
   sInput = sys.os.gui.handleText(tInput, sInput);
   sAns = sys.os.gui.handleText(tAns, sAns);
@@ -148,6 +149,7 @@ function update {
     set_ans(sAns);
     
     addHist(sInput);
+    storeHist();
   } 
   
   if (sys.gui.getEventC(bClr) == EV_RELEASED) {
@@ -158,10 +160,8 @@ function update {
   }
   
   if (sys.gui.getEventC(bBsp) == EV_RELEASED) {
-    sInput = substr(sInput, 1, sys.os.gui.getCPos(tInput) - 1)
-           + substr(sInput, sys.os.gui.getCPos(tInput) + 1, len(sInput));
-    sInput = sys.os.gui.handleText(tInput, sInput);
     sys.gui.setTexAct(tInput);
+    insert("\b");
   }
   
   if (sys.gui.getEventC(bNum) == EV_RELEASED) {
@@ -213,6 +213,7 @@ function update {
   sys.os.gui.btnCtrl(scr, 0);
 }
 
+
 function updNum {
   for(i = 0; i < 10, i++;) {
     handleKey(bNumpad[i]);
@@ -235,6 +236,7 @@ function updNum {
   handleKey(bComma);
 }
 
+
 function updFn {
   handleKey(bPow);
   handleKey(bSqrt);
@@ -249,6 +251,7 @@ function updFn {
   handleKey(bPi);
   handleKey(bAns);
 }
+
 
 function setMode {
   if (arg0 == 0) {
@@ -268,6 +271,7 @@ function setMode {
   sys.gui.setSelect(bHistory, arg0 == 2);
 }
 
+
 function handleKey {
   if(sys.gui.getEventC(arg0) == EV_RELEASED) {
     insert(sys.gui.getStr(arg0));
@@ -277,14 +281,10 @@ function handleKey {
 
 
 function insert {
-  sInput = substr(sInput, 1, sys.os.gui.getCPos(tInput))
-           + arg0
-           + substr(sInput, sys.os.gui.getCPos(tInput) + 1, len(sInput));
-  
+  sys.os.gui.setKbdStr(arg0);
   sInput = sys.os.gui.handleText(tInput, sInput);
-  
-  sys.os.gui.setCPos(tInput, sys.os.gui.getCPos(tInput) + len(arg0));
 }
+
 
 function updHist {
   local i = 0;
@@ -343,7 +343,7 @@ function addHist {
 }
 
 
-function exit {
+function storeHist {
   # store history
   sys.fs.conf.open("appdata/advcalc.dat");
   local i;
@@ -351,4 +351,9 @@ function exit {
     sys.fs.conf.write("" + i, history[i] + "");
   }
   sys.fs.conf.close();
+}
+
+
+function exit {
+  storeHist();
 }
