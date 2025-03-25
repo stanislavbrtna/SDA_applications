@@ -4,7 +4,8 @@ function init {
   test_name = "Dummy API caller";
   sys.gui.addText(1, 1, 8, 1, test_name, scr);
   
-  txt = sys.gui.addText(1, 2, 8, 1, "Testing....", scr);
+  txt = sys.gui.addText(1, 2, 8, 8, "Testing....", scr);
+  sys.gui.setTxtFit(txt, 1);
   tested = 0;
   result = "Passed";
   
@@ -12,6 +13,8 @@ function init {
   
   if (arg0 == 1) {
     autoreturn = 1;
+  } else {
+    autoreturn = 0;
   }
   
 }
@@ -21,6 +24,7 @@ function update {
     test();
     tested = 1;
     sys.gui.setStr(txt, "Result: " + result);
+    print("Result: " + result);
   }
   
   if (autoreturn) {
@@ -190,7 +194,7 @@ function test {
     return;
   }
 
-  if (sys.hw.getLock(USB_PORT) != 1) {
+  if (sys.hw.getLock(USB_PORT) != 0) {
     result = "sys.hw.getLock(); wrong result!";
     return;
   }
