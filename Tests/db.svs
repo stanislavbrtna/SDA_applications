@@ -60,8 +60,10 @@ function init_test {
 
 function test {
   init_test();
+  
   if (not GLOB_FAIL) test_open();
   if (not GLOB_FAIL) test_rw();
+  if (not GLOB_FAIL) test_index();
   if (not GLOB_FAIL) multi();
   if (not GLOB_FAIL) dropAllRows();
   if (not GLOB_FAIL) test_drop();
@@ -307,6 +309,112 @@ function test_rw {
   }
   
   add_result("Read, Write", FAIL);
+}
+
+function test_index {
+  local FAIL;
+  FAIL = 0;
+  
+  cleanup();
+  
+  print("\nIndexing test");
+  
+  sys.fs.db.new("test.bdb");
+
+  sys.fs.db.newTable("test", 6);
+    
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "surname", 1);
+  sys.fs.db.setColumn(3, "job", 1);
+  sys.fs.db.setColumn(4, "foo", 0);
+  sys.fs.db.setColumn(5, "bar", 1);
+  
+  sys.fs.db.idEnable("id");
+  
+  sys.fs.db.setIndex("id", 1);
+  sys.fs.db.setIndex("foo", 1);
+  sys.fs.db.setRowIndex(1);
+  print("indexing done");
+  
+  array dataCheck[10];
+
+  # fill data
+  for (i = 0; i < 10; i++;) {
+    sys.fs.db.newRow();
+    local name = "Joh" + i;
+    local surname = "Doe" + i;
+    local job = "job " + i;
+    local foo = 0;
+    sys.fs.db.setEntryStr("name", name);
+    sys.fs.db.setEntryStr("surname", surname);
+    sys.fs.db.setEntryStr("job", job);
+    
+    if (i < 5 or i > 7) {
+      foo = 400 + i;
+    } else {
+      foo = 66;
+    }
+    
+    sys.fs.db.setEntryNum("foo", foo);
+    
+    if (i == 7) {
+      name = "We like tom very much.";
+      sys.fs.db.setEntryStr("name", name);
+    }
+    
+    if (i == 8) {
+      name = "tom";
+      sys.fs.db.setEntryStr("name", name);
+    }
+    
+    if (i == 9) {
+      name = "Tom";
+      sys.fs.db.setEntryStr("name", name);
+    }
+    
+    dataCheck[i] = i+1 + " " + name + " " + surname + " " + job + " " + foo;
+  }
+  
+  print("filled data");
+  
+  sys.fs.db.buildIndex("id");
+  sys.fs.db.buildIndex("foo");
+  sys.fs.db.buildRowIndex();
+  
+  print("built index");
+  
+  sys.fs.db.selectRowId(3);
+  local data = sys.fs.db.getEntryNum("id", 0)
+    + " " + sys.fs.db.getEntryStr("name", "def") 
+    + " " + sys.fs.db.getEntryStr("surname", "def")
+    + " " + sys.fs.db.getEntryStr("job", "") 
+    + " " + sys.fs.db.getEntryNum("foo", 0);
+    
+  print("Match: " + data);
+  
+  if (data != dataCheck[2]) {
+    FAIL = 1;
+    print("Select Row id failed");
+  }
+  
+  sys.fs.db.selectRow(4);
+  local data = sys.fs.db.getEntryNum("id", 0)
+    + " " + sys.fs.db.getEntryStr("name", "def") 
+    + " " + sys.fs.db.getEntryStr("surname", "def")
+    + " " + sys.fs.db.getEntryStr("job", "") 
+    + " " + sys.fs.db.getEntryNum("foo", 0);
+    
+  print("Match: " + data);
+  
+  if (data != dataCheck[4]) {
+    FAIL = 1;
+    print("Select Row num failed");
+  }
+  
+  
+  
+  add_result("Indexing", FAIL);
 }
 
 function test_drop {
@@ -758,8 +866,8 @@ function multi {
      
     if(dataCheck[i] != data) {
       print("Fail!");
-      print("Data:  " + data);
-      print("Check: " + dataCheck[i]);
+      print("Data from db: " + data);
+      print("Check:        " + dataCheck[i]);
       FAIL = 1;
       add_result("Multi table", FAIL);
       return;
