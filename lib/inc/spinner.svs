@@ -1,0 +1,33 @@
+## Default Spinner
+## Call spin function in a long loops, so it is visible,
+## that the PDA does something.
+
+function spinnerInit {
+  local siz = 32;
+  sys.ds.setArea(160 - siz, 220 - siz, 160 + siz, 220 + siz);
+  
+  sys.ds.fillRect(0, 0, siz * 2, siz * 2, sys.gui.getColor(COL_BACKGROUND));
+  sys.ds.drawRect(1, 1, siz * 2 - 1, siz * 2 - 1, sys.gui.getColor(COL_BORDER));
+  sys.ds.drawRect(0, 0, siz * 2, siz * 2, sys.gui.getColor(COL_BORDER));
+  sys.ds.fillCircle(siz, siz, siz - 5, sys.gui.getColor(COL_FILL));
+}
+
+function spinner {
+  local siz = 32;
+  local spin = (sys.time.getAppUptime() % 1000) / 250;
+  local spinOld = spin - 1;
+  
+  if (spinOld == -1) spinOld = 2;
+  
+  if(spin == 3) {
+    spin = 2;
+    spinOld = 3;
+  } else if (spin == 2) {
+    spin = 3;
+    spinOld = 1;
+  }
+  
+  sys.ds.fillCPart(siz, siz, siz - 5, spinOld, sys.gui.getColor(COL_FILL));
+  sys.ds.fillCPart(siz, siz, siz - 5, spin, sys.gui.getColor(COL_ACTIVE));
+  
+}

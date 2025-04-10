@@ -145,6 +145,7 @@ function convertDb {
   sys.fs.db.setColumn(2, "len", 0);
   
   sys.fs.db.idEnable("id");
+  sys.fs.db.setIndex("id", 1);
   
   convDbWork = 1;
   convDbN = 0;
@@ -176,6 +177,8 @@ function convDbWork {
     sys.fs.db.sync();
     
     if(not sys.fs.conf.exists(convDbN + "")) {
+      print("done, building index");
+      sys.fs.db.buildIndex("id");
       print("done");
       sys.fs.db.sync();
       convDbWork = 0;

@@ -1,6 +1,7 @@
 import "~cont-tools.svs"
 import "lib/inc/ddm.svs"
 import "lib/inc/com.svs"
+import "lib/inc/spinner.svs"
 
 function init {
 
@@ -632,7 +633,9 @@ function init_db {
   sys.fs.db.setColumn(4, "note", 1);
   sys.fs.db.setColumn(5, "picture", 1);
   sys.fs.db.idEnable("id");
-     
+  sys.fs.db.setIndex("id", 1);
+  sys.fs.db.setRowIndex(1);
+  
   #Table numbers
   #Str number
   #Num contact_id
@@ -641,8 +644,11 @@ function init_db {
   sys.fs.db.setColumn(0, "number_sane", 1);
   sys.fs.db.setColumn(1, "number", 1);
   sys.fs.db.setColumn(2, "contact_id", 0);
+  sys.fs.db.setIndex("contact_id", 1);
+  sys.fs.db.setRowIndex(1);
   
   sys.fs.db.selectTable("contacts");
+  sys.fs.db.sync();
   
 }
 
@@ -652,6 +658,8 @@ function loadCfg {
     return;
   }
   
+  spinnerInit();
+  
   # Drop all previous data
   init_db();
   
@@ -660,10 +668,10 @@ function loadCfg {
   
   local n = 0;
   
-  sys.fs.db.selectTable("contacts");
-  sys.fs.db.dropAllRows();
-  sys.fs.db.selectTable("numbers");
-  sys.fs.db.dropAllRows();
+  #sys.fs.db.selectTable("contacts");
+  #sys.fs.db.dropAllRows();
+  #sys.fs.db.selectTable("numbers");
+  #sys.fs.db.dropAllRows();
   
   sys.fs.db.selectTable("contacts");
   
@@ -713,6 +721,7 @@ function loadCfg {
     print("... " + n);
       
     n++;
+    spinner();
   }
   
   if(numCnt > 0) {
@@ -725,11 +734,19 @@ function loadCfg {
       sys.fs.db.setEntryStr("number_sane", cont_numsane(nums[b]));
       sys.fs.db.setEntryNum("contact_id", ids[b]);
     }
+    #sys.fs.db.buildRowIndex();
     sys.fs.db.selectTable("contacts");
     numCnt = 0;
   }
   
+  print("building index:");
+  sys.fs.db.buildRowIndex();
+  sys.fs.db.buildIndex("contact_id");  
   sys.fs.db.selectTable("contacts");
+  sys.fs.db.buildRowIndex();
+  sys.fs.db.buildIndex("id");
+  print("Done");
+  
   list_size = sys.fs.db.getRowCount();
   
   sys.fs.db.sync();
@@ -785,6 +802,8 @@ function handle_save {
   list_size++;
   sys.fs.db.sync();
   sys.fs.db.selectTable("contacts");
+  print("rebuilding index");
+  sys.fs.db.buildRowIndex();
   
   sys.gui.setParam(s_bar, list_size - 10);
   
@@ -808,5 +827,6 @@ function remove_contact {
   sys.fs.db.selectTable("contacts");
   load_list();
 }
+
 
 function exit {}
