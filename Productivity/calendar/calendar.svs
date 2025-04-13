@@ -73,8 +73,8 @@ function dbDump {
   sys.fs.db.selectRow(0);
   while(1) {
     entry = (
-      sys.fs.db.getEntryStr("name", "") 
-      + "|" + sys.fs.db.getEntryStr("descr", "") 
+      escape(sys.fs.db.getEntryStr("name", ""))
+      + "|" + escape(sys.fs.db.getEntryStr("descr", ""))
       + "|" + sys.fs.db.getEntryNum("start", 0)
       + "|" + sys.fs.db.getEntryNum("end", 0)
       + "|" + sys.fs.db.getEntryNum("valid", 0) + "|"
@@ -86,7 +86,26 @@ function dbDump {
       break;
     }
   }
+  sys.fs.close();
   print("Done");
+}
+
+function escape {
+  local c = "";
+  local i = 0;
+  if(instr(arg0, "\n")) {
+    local l = len(arg0);
+    while(i <= l) {
+      if(getcp(arg0, i) == "\n") {
+        c += "#";
+      } else {
+        c += getcp(arg0, i);
+      }
+      i++;
+    }
+    return c;
+  }
+  return arg0;
 }
 
 function callRet {
@@ -610,7 +629,7 @@ function edit_existing {
 }
 
 
-function edit_update{
+function edit_update {
 
   EdTxName = sys.os.gui.handleText(edit_name, EdTxName);
   EdTxDescr = sys.os.gui.handleText(edit_descr, EdTxDescr);
