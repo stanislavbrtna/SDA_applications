@@ -39,7 +39,7 @@ function getConfStr {
   }
   
   if(sys.gui.getValue(bFilter)) {
-    str += " -filter svs";
+    str += " -filter svs -filter2 p16";
   }
   
   return str;

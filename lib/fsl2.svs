@@ -2,7 +2,7 @@
  # arg0 - [str]default path
  # arg1 - [num] 1 - APPS 0 - DATA
  # arg3: argument string
- # string: -filter extenstion
+ # string: -filter extenstion [-filter2 extension2]
  #         -new filename
  #         -folder
  #         -lock
@@ -17,6 +17,12 @@
 
 function init {
   scr = sys.gui.addScreen();
+  sys.gui.setXcell(scr, 31);
+  sys.gui.setYcell(scr, 32);
+  sys.gui.setXscroll(scr, -4);
+  sys.gui.setYscroll(scr, 1);
+  sys.gui.setSpacing(scr, 1, 1, 0, 1);
+  
   escr = sys.gui.addScreen();
   sys.os.gui.setMainScr(0);
   sys.gui.setRelInit(1);
@@ -32,7 +38,8 @@ function init {
   
   newS = "";
   
-  filter = "";
+  filter  = "";
+  filter2 = "";
   
   pickNew = 0;
   
@@ -49,6 +56,10 @@ function init {
   
   if (getArg(arg2, "-filter") != "") {
     filter = getArg(arg2, "-filter");
+  }
+  
+  if (getArg(arg2, "-filter2") != "") {
+    filter2 = getArg(arg2, "-filter2");
   }
 
   if(pickNew == 1) {
@@ -90,6 +101,14 @@ function init {
   bData = sys.gui.addButton(4, 1, 2, 1, "Data", scr);
   bApps = sys.gui.addButton(6, 1, 2, 1, "Apps", scr);
   bNewF = sys.gui.addButton(3, 1, 1, 1, "+", scr);
+  
+  sys.gui.setTxtAlign(bUp, ALIGN_CENTER);
+  sys.gui.setTxtAlign(bData, ALIGN_CENTER);
+  sys.gui.setTxtAlign(bApps, ALIGN_CENTER);
+  sys.gui.setTxtAlign(bNewF, ALIGN_CENTER);
+  
+  sys.gui.setTxtAlign(btnCancel, ALIGN_CENTER);
+  sys.gui.setTxtAlign(btnOk, ALIGN_CENTER);
    
   sys.gui.setGhost(bData, 0);
   sys.gui.setGhost(bApps, 1);
@@ -329,12 +348,15 @@ function init_oscr {
 function rldFiles {
   sys.gui.setVisible(tReplace, 0);
   sys.gui.destroy(file_scr);
-  print("removing: " + file_scr);
+  
   for (x = 0; x < 200; x++;) {
     fScrBtns[x] = 0;
   }
 
   file_scr = sys.gui.addScreen();
+  sys.gui.setXcell(file_scr, 30);
+  sys.gui.setXscroll(file_scr, -6);
+  sys.gui.setXscroll(file_scr, -6);
   sys.gui.setScreen(file_scr, scr);
   sys.gui.setXYXY(file_scr, 0, 2 + pickNew, 8, 10 - sys.os.gui.getLandscape()*5 - pickNew);
 
@@ -346,7 +368,7 @@ function rldFiles {
       fScrBtns[i] = findfil;
       i++;
     } else {
-      if(sys.fs.isDir(findfil) or instr(findfil, "."+filter)) {
+      if(sys.fs.isDir(findfil) or instr(findfil, "."+filter) or instr(findfil, "."+filter2)) {
         fScrBtns[i] = findfil;
         i++;
       }
@@ -367,10 +389,6 @@ function rldFiles {
 
       lastdir++;
     }
-  }
-  
-  if (pickFolder) {
-    numOfFiles = lastdir;
   }
 
   sortstring = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -420,12 +438,15 @@ function rldFiles {
   #load sorted buttons
   for(i = 0; i < numOfFiles; i++;) {
     findfil =  fScrBtns[i];
-    fScrBtns[i] = sys.gui.addButton(0, i, 5, 1, findfil, file_scr);
+    fScrBtns[i] = sys.gui.addButton(0, i, 6, 1, findfil, file_scr);
 
     if (sys.fs.isDir(findfil)) {
       sys.gui.addText(6, i, 2, 1, "(Dir)", file_scr);
     } else {
-      sys.gui.addText(6, i, 4, 1, "" + getsize(findfil) + "B", file_scr);
+      if(pickFolder) {
+        sys.gui.setGrayout(fScrBtns[i], 1);
+      }
+      sys.gui.addText(6, i, 4, 1, "" + humanSize(getsize(findfil)) + "B", file_scr);
     }
   }
 
@@ -440,6 +461,19 @@ function rldFiles {
 
   selected = -1;
   sys.os.gui.btnClear(scr);
+}
+
+
+function humanSize {
+  if (arg0 > 1000000) {
+    return arg0/1000000 + "M";
+  }
+  
+  if (arg0 > 1000) {
+    return arg0/1000 + "K";
+  }
+  
+  return arg0 + "";
 }
 
 
