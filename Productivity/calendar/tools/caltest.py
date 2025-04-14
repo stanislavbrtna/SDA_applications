@@ -44,6 +44,6 @@ for event in sorted_events:
       td -= 60*60
       
     # Print  
-    print(event.name + "|" + descr + loc + "|" + str(int(event.begin.timestamp() - td)) + "|" + str(int(event.end.timestamp() - td)) + "|1|")
+    print(event.name + "|" + descr + loc + "|" + str(int(event.begin.timestamp() - td)) + "|" + str(int(event.end.timestamp() - td)) + "|1|" + event.uid[:16])
     events += 1;
 

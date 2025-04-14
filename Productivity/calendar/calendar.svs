@@ -1,5 +1,7 @@
 #*
- * 
+ * Calendar v.3.6
+ *  - enhanced imports
+ *
  * Calendar v.3.5 
  *  - SDA BDB us now used to store data
  * 
@@ -20,12 +22,14 @@
 import "lib/inc/ddm.svs"
 
 function init {
-  print("init: cal v.3.5");
-  sys.os.checkVer(1000);
+  print("init: cal v.3.6");
+  sys.os.checkVer(1500);
   sys.os.setSingular();
   HS_init();
   day_init();
   edit_init();
+
+  fresh_db = 0;
 
   sys.os.gui.setMainScr(hs_scr);
   mode = 1;
@@ -40,16 +44,19 @@ function init {
     sys.fs.db.selectTable("events");
   } else {
     sys.fs.db.new("appdata/cal.db");
-    sys.fs.db.newTable("events", 6);
+    sys.fs.db.newTable("events", 7);
     
     sys.fs.db.setColumn(0, "id", 0);
     sys.fs.db.setColumn(1, "name", 1);
     sys.fs.db.setColumn(2, "descr", 1);
     sys.fs.db.setColumn(3, "start", 0);
     sys.fs.db.setColumn(4, "end", 0);
-    sys.fs.db.setColumn(5, "valid", 0);
+    sys.fs.db.setColumn(5, "uid", 1);
+    sys.fs.db.setColumn(6, "valid", 0);
     
     sys.fs.db.idEnable("id");
+    
+    fresh_db = 1;
   }
  
   ddm_init();
@@ -77,7 +84,8 @@ function dbDump {
       + "|" + escape(sys.fs.db.getEntryStr("descr", ""))
       + "|" + sys.fs.db.getEntryNum("start", 0)
       + "|" + sys.fs.db.getEntryNum("end", 0)
-      + "|" + sys.fs.db.getEntryNum("valid", 0) + "|"
+      + "|" + sys.fs.db.getEntryNum("valid", 0)
+      + "|" + sys.fs.db.getEntryStr("uid", "") + "|"
     );
     
     sys.fs.writeChars(entry + "\n");
@@ -108,7 +116,22 @@ function escape {
   return arg0;
 }
 
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+
+  return new_str;
+}
+
 function callRet {
+  if(arg0 + "" == "0" or arg0 == "") return;
+  
   print("load: " + arg0);
   dbRead(arg0);
 }
@@ -116,41 +139,35 @@ function callRet {
 
 function dbRead {
 
-  if (sys.fs.exists("appdata/cal.db")) {
-    sys.fs.delete("appdata/cal.db");
-  }
-  
-  sys.fs.db.new("appdata/cal.db");
-  sys.fs.db.newTable("events", 6);
-  
-  sys.fs.db.setColumn(0, "id", 0);
-  sys.fs.db.setColumn(1, "name", 1);
-  sys.fs.db.setColumn(2, "descr", 1);
-  sys.fs.db.setColumn(3, "start", 0);
-  sys.fs.db.setColumn(4, "end", 0);
-  sys.fs.db.setColumn(5, "valid", 0);
-  
-  sys.fs.db.idEnable("id");
-
   sys.fs.csv.open(arg0);
   sys.fs.csv.rewind();
   
   while(1) {
   
     print(sys.fs.csv.getCell(0, ""));
-    sys.fs.db.newRow();
+    local uid = sys.fs.csv.getCell(5, "");
+    if(uid == "") {
+      uid = random_str(8);
+    }
     
-    sys.fs.db.setEntryStr("name", sys.fs.csv.getCell(0, ""));
-    sys.fs.db.setEntryStr("descr", sys.fs.csv.getCell(1, ""));
-    sys.fs.db.setEntryNum("start", num(sys.fs.csv.getCell(2, "")));
-    sys.fs.db.setEntryNum("end", num(sys.fs.csv.getCell(3, "")));
-    sys.fs.db.setEntryNum("valid", num(sys.fs.csv.getCell(4, "")));
+    if(fresh_db or not sys.fs.db.selectRowStr("uid", uid, 1, 1)) {
+      sys.fs.db.newRow();
+      sys.fs.db.setEntryStr("name", sys.fs.csv.getCell(0, ""));
+      sys.fs.db.setEntryStr("descr", sys.fs.csv.getCell(1, ""));
+      sys.fs.db.setEntryNum("start", num(sys.fs.csv.getCell(2, "")));
+      sys.fs.db.setEntryNum("end", num(sys.fs.csv.getCell(3, "")));
+      sys.fs.db.setEntryStr("uid", uid);
+      sys.fs.db.setEntryNum("valid", num(sys.fs.csv.getCell(4, "")));
+    } else {
+      print("Duplicit event...");
+    }
     
     if(not sys.fs.csv.lineFeed()) {
       break;
     }
   }
   
+  fresh_db = 0;
   hs_reload = 1;
 }
 
@@ -554,7 +571,7 @@ function edit_init{
   sys.gui.setTexEd(edit_descr, 1);
 }
 
-function edit_new{
+function edit_new {
 
   sys.gui.setYscroll(edit_scr,0);
 
@@ -580,6 +597,7 @@ function edit_new{
 
   EdTxName="";
   EdTxDescr="";
+  txUid = random_str(8);
 
   file_store_id=-1;
 }
@@ -626,6 +644,7 @@ function edit_existing {
 
   EdTxName = sys.fs.db.getEntryStr("name", "");
   EdTxDescr = sys.fs.db.getEntryStr("descr", "");
+  txUid = sys.fs.db.getEntryStr("uid", "");
 }
 
 
@@ -718,6 +737,7 @@ function edit_update {
 
     sys.fs.db.setEntryStr("name", EdTxName);
     sys.fs.db.setEntryStr("descr", EdTxDescr);
+    sys.fs.db.setEntryStr("uid", txUid);
 
     hs_timestamp = sys.time.setTs(hs_year, hs_month, hs_day, hs_hrStart, hs_minStart, 0);
 
