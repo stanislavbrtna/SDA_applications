@@ -262,8 +262,8 @@ function test_rw {
   
   print("SelectRowStr2:");
   i = 0;
-  sys.fs.db.selectRow(0); #       partial 1 case sensitive 0
-  while(sys.fs.db.selectRowStr("name", "tom", 1, 0)) {
+  sys.fs.db.selectRow(0); #       full string 0 case sensitive 0
+  while(sys.fs.db.selectRowStr("name", "tom", 0, 0)) {
     local data = sys.fs.db.getEntryNum("id", 0)
     + " " + sys.fs.db.getEntryStr("name", "def") 
     + " " + sys.fs.db.getEntryStr("surname", "def")
@@ -287,7 +287,7 @@ function test_rw {
   print("SelectRowStr3:");
   i = 0;
   sys.fs.db.selectRow(0);
-  while(sys.fs.db.selectRowStr("name", "tom", 0, 0)) {
+  while(sys.fs.db.selectRowStr("name", "tom", 1, 0)) {
     local data = sys.fs.db.getEntryNum("id", 0)
     + " " + sys.fs.db.getEntryStr("name", "def") 
     + " " + sys.fs.db.getEntryStr("surname", "def")

@@ -228,7 +228,7 @@ function load_list {
     # search surname
     while(b < 10) {
     
-      if (not sys.fs.db.selectRowStr("surname", listFilter, 1, 0)) {
+      if (not sys.fs.db.selectRowStr("surname", listFilter, 0, 0)) {
         break;
       }
     
@@ -245,7 +245,7 @@ function load_list {
     # search surname
     while(b < 10) {
     
-      if (not sys.fs.db.selectRowStr("name", listFilter, 1, 0)) {
+      if (not sys.fs.db.selectRowStr("name", listFilter, 0, 0)) {
         break;
       }
     

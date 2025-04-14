@@ -25,7 +25,7 @@ function cont_get_info {
   sys.fs.db.selectTable("numbers");
   
   # find and delete all previous numbers
-  while(sys.fs.db.selectRowStr("number_sane", sane, 0, 1)) {
+  while(sys.fs.db.selectRowStr("number_sane", sane, 1, 1)) {
     local contact_id = sys.fs.db.getEntryNum("contact_id", 0);
     
     if(contact_id == 0) {
@@ -38,7 +38,7 @@ function cont_get_info {
     if(not sys.fs.db.selectRowId(contact_id)) {
       print("CONTACT BORKED select failed, clearing number");
       sys.fs.db.selectTable("numbers");
-      sys.fs.db.selectRowStr("number_sane", sane, 0, 1);
+      sys.fs.db.selectRowStr("number_sane", sane, 1, 1);
       sys.fs.db.dropRow();
       continue;
     }
@@ -67,7 +67,7 @@ function cont_get_id {
   
   sys.fs.db.selectTable("numbers");
   
-  while(sys.fs.db.selectRowStr("number_sane", sane, 0, 1)) {
+  while(sys.fs.db.selectRowStr("number_sane", sane, 1, 1)) {
     local contact_id = sys.fs.db.getEntryNum("contact_id", 0);
     
     sys.fs.db.selectTable("contacts");
@@ -75,7 +75,7 @@ function cont_get_id {
     if(not sys.fs.db.selectRowId(contact_id)) {
       print("CONTACT BORKED select failed, clearing number");
       sys.fs.db.selectTable("numbers");
-      sys.fs.db.selectRowStr("number_sane", sane, 0, 1);
+      sys.fs.db.selectRowStr("number_sane", sane, 1, 1);
       sys.fs.db.dropRow();
       continue;
     }

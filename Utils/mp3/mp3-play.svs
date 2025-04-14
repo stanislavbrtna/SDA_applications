@@ -728,7 +728,7 @@ function reload_list {
     for(b = 0; b < len(btnList); b++;) {
       local text;
       
-      if (not sys.fs.db.selectRowStr("name", list_filter, 1, 0)) {
+      if (not sys.fs.db.selectRowStr("name", list_filter, 0, 0)) {
         break;
       }
 
