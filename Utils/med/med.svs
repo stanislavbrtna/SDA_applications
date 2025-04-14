@@ -408,7 +408,13 @@ function update_ed {
   }
   
   if(clicked(eFileB)) {
-    sys.os.subProcess("lib/fsl2.svs", &fileRet, currentFile, 1, "-lock -filter svs");
+    sys.os.subProcess(
+      "lib/fsl2.svs",
+      &fileRet,
+      currentFile,
+      1,
+      "-lock -filter svs -filter2 mnu"
+    );
   }
   
   if(clicked(eIconI)) {
