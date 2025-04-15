@@ -45,25 +45,29 @@ function refresh_convs {
   local i = 0; 
   local findfil;
   
-  for(findfil = sys.fs.find("dat", "."); findfil != ""; findfil = sys.fs.findNext();) {
-    if (DEBUG) print("load_convs: found: " + findfil);
-    sys.fs.conf.open(findfil);
-    if (sys.fs.conf.exists("contact_name")) {
-      local number = sys.fs.conf.read("contact_number");
-      sys.fs.conf.close();
+  sys.fs.db.selectTable("convs");
+  
+  while(1) {
+    local row_id = sys.fs.db.getEntryNum("id", -1);
+    local number = sys.fs.db.getEntryStr("number", "");
+    sys.fs.db.close();
     
-      local nfo = cont_get_info(number);
-      
-      sys.fs.chDir("phone");
-      sys.fs.chDir("sms");
-      
-      sys.fs.conf.open(findfil);
-      if (sys.fs.conf.read("contact_number") != "" + nfo[0] + " " + nfo[1]) {
-        sys.fs.conf.write("contact_name", "" + nfo[0] + " " + nfo[1]);
-        print("Renaming contact: " + nfo[0] + " " + nfo[1]);
-      }
-
-      sys.fs.conf.close(); 
+    local nfo = cont_get_info(number);
+    
+    sys.fs.chDir();
+    sys.fs.chDir("appdata");
+    sys.fs.chDir("phone");
+    
+    sys.fs.db.open("messages.db");
+    
+    sys.fs.db.selectTable("convs");
+    sys.fs.db.selectRowId(row_id);
+    
+    sys.fs.db.setEntryStr("name", "" + nfo[0] + " " + nfo[1]);
+    print("Updating contact: " + nfo[0] + " " + nfo[1]);
+    
+    if(not sys.fs.db.nextRow()) {
+      break;
     }
   }
 }

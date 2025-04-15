@@ -6,6 +6,8 @@ function sms_init {
   t_sms_enc2 = 0;
   sms_enc_sw = 0;
   sms_cmd    = "";
+  
+  sms_db_init();
 }
 
 
@@ -80,54 +82,122 @@ function nospace {
 }
 
 
-## sms history file handling
-function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:text, arg3:timestamp
-  local id = 0;
+function sms_db_init {
   sys.fs.chDir();
   sys.fs.chDir("appdata");
   mk_safe_dir("phone");
-  sys.fs.chDir("phone");
-  mk_safe_dir("sms");
-  sys.fs.chDir("sms");
   
-  sys.fs.conf.open("n" + mk_safe_name(cont_numsane(arg0)) +  ".dat");
-  
-  # with emty file, the exists function sometimes borks on the device...
-  sys.fs.conf.write("contact_number", "" + arg0);
-  #* use this after the bug gets fixed...
-  if(not sys.fs.conf.exists("contact_number")) {
-    sys.fs.conf.write("contact_number", "" + arg0);
+  if(sys.fs.exists("messages.db")) {
+    return;
   }
-  *#
   
-  if(not sys.fs.conf.exists("contact_name")) {
-    local info;
-    info = cont_get_info(arg0);
-    sys.fs.chDir("phone");
-    sys.fs.chDir("sms");
-    sys.fs.conf.open("n" + mk_safe_name(cont_numsane(arg0)) +  ".dat");
+  sys.fs.db.new("messages.db");
+  
+  #Table convs
+  #Num id*
+  #Str name
+  #Str number
+  
+  sys.fs.db.newTable("convs", 6);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "number", 1);
+  sys.fs.db.setColumn(3, "concept", 1);
+  sys.fs.db.setColumn(4, "tabname", 1);
+  sys.fs.db.setColumn(5, "new", 0);
+  sys.fs.db.idEnable("id");
+  
+  sys.fs.db.sync();
+  sys.fs.db.close();
+}
+
+
+function sms_add_conv {
+  #Table messages
+  #Num id*
+  #Str message
+  #Str number
+  #str direction
+  #Num Timestamp
+  sys.fs.db.newTable(arg0, 5);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "message", 1);
+  sys.fs.db.setColumn(2, "number", 1);
+  sys.fs.db.setColumn(3, "direction", 1);
+  sys.fs.db.setColumn(4, "timestamp", 0);
+  sys.fs.db.idEnable("id");
+  sys.fs.db.setIndex("id", 1);
+  sys.fs.db.setRowIndex(1);
+}
+
+
+## sms history file handling
+function sms_h_add { # arg0:contact number, arg1:way(INCOMMING, OUTGOING), arg2:text, arg3:timestamp
+  local id = 0;
+  
+  # get contact info
+  local info = cont_get_info(arg0);
+  
+  # init and open messages DB
+  sms_db_init();
+  
+  if(not sys.fs.db.open("messages.db")) {
+    sys.error("Messages db borked!");
+  }
+  
+  # find or create conversation
+  sys.fs.db.selectTable("convs");
+  
+  local sane = cont_numsane(arg0);
+  local conv_id = 0;
+  
+  if(sys.fs.db.selectRowStr("number", sane, 1, 1)) {
+    conv_id = sys.fs.db.getEntryNum("id", -1);
+  } else {
+    sys.fs.db.newRow();
+    conv_id = sys.fs.db.getEntryNum("id", -1);
+    
+    # create new table
+    print("adding table: conv_" + conv_id);
+    sms_add_conv("conv_" + conv_id);
+    
+    # select back
+    sys.fs.db.selectTable("convs");
+    sys.fs.db.selectRowId(conv_id);
+    
+    sys.fs.db.setEntryStr("number", sane);
+    sys.fs.db.setEntryStr("concept", "");
+    sys.fs.db.setEntryStr("tabname", "conv_" + conv_id);
+    
     if(info[0] != "Unknown") {
-      sys.fs.conf.write("contact_name", "" + info[0] + " " + info[1]);
+      sys.fs.db.setEntryStr("name", "" + info[0] + " " + info[1]);
     } else {
-      sys.fs.conf.write("contact_name", "" + arg0);
+      sys.fs.db.setEntryStr("name", "" + arg0);
     }
   }
   
-  while(sys.fs.conf.exists("msg_" + id)) {
-    id++;
-  }
-  
-  sys.fs.conf.write("ts_" + id, "" + arg3);
-  sys.fs.conf.write("msg_" + id, arg2);
-  sys.fs.conf.write("omsg_" + id, arg4 + "");
-  sys.fs.conf.write("dir_" + id, arg1);
-  
   if(arg1 == "INCOMMING") {
-    sys.fs.conf.write("new_message", "1");
+    sys.fs.db.setEntryNum("new", 1);
     new_sms_flg += 1;
   }
-  sys.fs.conf.close();
-  return "n" + mk_safe_name(cont_numsane(arg0)) +  ".dat";
+  
+  # store message in db
+  sys.fs.db.selectTable("conv_" + conv_id);
+  sys.fs.db.newRow();
+  sys.fs.db.setEntryStr("message", "" + arg2);
+  sys.fs.db.setEntryStr("number", "" + arg0);
+  sys.fs.db.setEntryStr("direction", "" + arg1);
+  sys.fs.db.setEntryNum("timestamp", num(arg3));
+  sys.fs.db.close();
+  
+  # log plaintext
+  sys.fs.open("messages.log");
+  sys.fs.seek(sys.fs.size());
+  local entry = "MSG|" + arg0 + "|" + arg2 + "|" + arg1 + "|" + arg4 + "|";
+  sys.fs.writeChars(entry + "\n");
+  sys.fs.close();
+  
+  return conv_id;
 }
 
 
@@ -435,14 +505,14 @@ function u16toStr {
 }
 
 function sms_get_ts {
- # example: 23/12/09,16:50:53+04
- # timezone is ignored for now...
- return sys.time.setTs(
-          2000+num(substr(arg0, 1, 2)),
-          num(substr(arg0, 4, 5)),
-          num(substr(arg0, 7, 8)),
-          num(substr(arg0, 10, 11)),
-          num(substr(arg0, 13, 14)),
-          num(substr(arg0, 16, 17))
-        );
+  # example: 23/12/09,16:50:53+04
+  # timezone is ignored for now...
+  return sys.time.setTs(
+    2000+num(substr(arg0, 1, 2)),
+    num(substr(arg0, 4, 5)),
+    num(substr(arg0, 7, 8)),
+    num(substr(arg0, 10, 11)),
+    num(substr(arg0, 13, 14)),
+    num(substr(arg0, 16, 17))
+  );
 }

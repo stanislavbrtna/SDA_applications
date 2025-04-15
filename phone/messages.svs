@@ -34,6 +34,10 @@ function init {
   array pFiles[32];
   
   set_dir();
+  
+  if (not sys.fs.db.open("messages.db")) {
+    sys.error("messages db borked");
+  }
 
   pCount = 0;
   
@@ -92,7 +96,7 @@ function init {
   page = 0;
   scrollMax = 0;
   
-  currentConv   = "";
+  currentConv   = -1;
   newMsgLoaded  = 0;
   NewMsgConcept = 0;
   currentNumber = "";
@@ -111,17 +115,17 @@ function set_dir {
   sys.fs.chDir();
   sys.fs.chDir("appdata");
   mk_safe_dir("phone");
-  mk_safe_dir("sms");
 }
 
 
 function process_args {
   if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "OPEN") {
-      if (sys.fs.exists("n" + mk_safe_name(cont_numsane(arg1)) +  ".dat")) {
-        load_conv("n" + mk_safe_name(cont_numsane(arg1)) +  ".dat");
+      sys.fs.db.selectTable("convs");
+      if(sys.fs.db.selectRowStr("number", cont_numsane(arg1), 1, 1)) {
+        load_conv(sys.fs.db.getEntryNum("id", -1));
       } else {
-        currentConv = "";
+        currentConv = 0;
         ld_new_msg(arg1, scr);
       }
     }
@@ -159,24 +163,28 @@ function load_convs {
   local icon_fl = 0;
   sys.gui.destroy(sConvs);
   sConvs = sys.gui.addScreen(0, 1, 8, 10, scr);
-  local i = 0; 
-  local findfil;
+  local i = 0;
+  local new = "";
   
-  for(findfil = sys.fs.find("dat", "."); findfil != ""; findfil = sys.fs.findNext();) {
-    if (DEBUG) print("load_convs: found: " + findfil);
-    sys.fs.conf.open(findfil);
-    if (sys.fs.conf.exists("contact_name")) {
-      local new = "";
-      if (sys.fs.conf.read("new_message") == "1") {
-        new = "*";
-        icon_fl = 1;
-      }
-    
-      pButtons[i] = sys.gui.addButton(0, i, 8, 1, new + sys.fs.conf.read("contact_name"), sConvs);
-      pFiles[i] = findfil;
-      i++;
+  sys.fs.db.selectTable("convs");
+  
+  if (not sys.fs.db.selectRow(0)) {
+    return;
+  }
+  
+  while(1) {
+    if (sys.fs.db.getEntryNum("new", 0) == 1) {
+      new = "*";
+      icon_fl = 1;
     }
-    sys.fs.conf.close();
+    
+    pButtons[i] = sys.gui.addButton(0, i, 8, 1, new + sys.fs.db.getEntryStr("name", "<error>"), sConvs);
+    pFiles[i] = sys.fs.db.getEntryNum("id", -1);
+    i++;
+    
+    if(not sys.fs.db.nextRow()) {
+      break;
+    }
   }
   
   sys.gui.setYscroll(sConvs, -6);
@@ -210,30 +218,46 @@ function upd_convs {
 function load_conv {
   print("Loading conv:" + arg0);
   currentConv = arg0;
+  page = 0;
+  
   sys.os.gui.setMainScr(cscr);
   sys.gui.destroy(sMsgList);
   
   sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
   sys.gui.setXscroll(sMsgList, -6);
   
-  sys.fs.conf.open(arg0);
-   
-  sys.fs.conf.write("new_message", "0");
+  # unset new flag
+  sys.fs.db.selectTable("convs");
+  
+  if (not sys.fs.db.selectRowId(currentConv)) {
+    sys.error("Current conv not valid!");
+    return;
+  }
+  
+  sys.fs.db.setEntryNum("new", 0);
+  
   clr_icon();
   
-  local name  = sys.fs.conf.read("contact_name");
-  currentName   = sys.fs.conf.read("contact_name");
-  currentNumber = sys.fs.conf.read("contact_number");
+  # load conv info
+  local name    = sys.fs.db.getEntryStr("name", "<error>");
+  currentName   = name;
+  currentNumber = sys.fs.db.getEntryStr("number", "<error>");
   sys.gui.setStr(tTitle, name);
   
-  # count messages
-  max = 0;
-  local min = 0;
-  while(sys.fs.conf.exists("msg_" + max)) {
-    max++;
+  local conv_tab = sys.fs.db.getEntryStr("tabname", "<error>");
+  
+  if (not sys.fs.db.selectTable(conv_tab)) {
+    sys.error("Conversation table is missing from DB");
   }
-
-  # load last 25 messages
+  
+  # count messages
+  local max = 0;
+  local min = 0;
+  
+  max = sys.fs.db.getRowCount();
+  
+  print("got " + max + " messages!");
+  
   local i;
   
   for(i = 0; i < len(ctext); i++;) {
@@ -244,26 +268,33 @@ function load_conv {
   
   local incomming;
   
-  local cmax = max;
-  
   rdText = 0;
   
-  cmax -= page*24;
+  max -= page*24;
   
-  if (cmax > 24) {
-    min = cmax - 24;
+  if (max > 24) {
+    min = max - 24;
   }
+  
+  # find min id
+  sys.fs.db.selectRow(min);
+  
+  i = 0;
+  
   
   bCUp = sys.gui.addButton(0, 0, 1, 1, "/\\", sMsgList);
   
-  if (cmax < 24) {
+  if (max < 24) {
     sys.gui.setVisible(bCUp, 0);
   }
   
+  sys.fs.db.selectRow(min);
+
+  i = 0;
   local b = 0;
   local in = 2;
-  for (i = min; i < cmax; i++;) {
-    incomming = sys.fs.conf.read("dir_" + i) == "INCOMMING";
+  for (i = min; i < max; i++;) {
+    incomming = sys.fs.db.getEntryStr("direction", "") == "INCOMMING";
     if (incomming != in) {
       if (incomming) {
         ctitle[b] = sys.gui.addText(0, b*5 + yAdd, 8, 1, name + ":", sMsgList);
@@ -276,7 +307,7 @@ function load_conv {
       yAdd -= 2;
     }
     
-    local text = sys.fs.conf.read("msg_"+i);    
+    local text = sys.fs.db.getEntryStr("message", "<error>");    
     ctext[b] = sys.gui.addText(0, b*5 + 1 + yAdd, 8, 2, text, sMsgList);
     sys.gui.setSelect(ctext[b], 1);
     sys.gui.setTxtFit(ctext[b], 1);
@@ -286,7 +317,7 @@ function load_conv {
     
     yAdd += textH - 1;
     
-    ctime[b] = sys.gui.addText(0, b*5 + 3 + yAdd, 8, 1, parse_ts(num(sys.fs.conf.read("ts_"+i))), sMsgList);
+    ctime[b] = sys.gui.addText(0, b*5 + 3 + yAdd, 8, 1, parse_ts(num(sys.fs.db.getEntryNum("timestamp", 0))), sMsgList);
     sys.gui.setTxtSize(ctime[b], 12);
     
     if (not incomming) {
@@ -294,6 +325,10 @@ function load_conv {
     }
     
     b++;
+    
+    if (not sys.fs.db.nextRow()) {
+      break;
+    }
   }
   
   scrollMax = (b*5 + yAdd - 11)*32;
@@ -304,7 +339,6 @@ function load_conv {
   } else {
     scrollMax += 32;
   }
-  sys.fs.conf.close();
   
   kbd_back_btn = bBack;
 }
@@ -312,7 +346,7 @@ function load_conv {
 
 ## Update  conversation screen
 function upd_conv {
-  if (currentConv == "") {
+  if (currentConv == -1) {
     return;
   }
 
@@ -320,7 +354,7 @@ function upd_conv {
     load_convs();
     sys.os.gui.setMainScr(scr);
     kbd_back_btn = 0;
-    currentConv = "";
+    currentConv = -1;
   }
   
   if (sys.gui.getEventC(bCUp) == EV_RELEASED) {
@@ -372,7 +406,7 @@ function upd_conv {
     load_convs();
     sys.os.gui.setMainScr(scr);
     kbd_back_btn = 0;
-    currentConv = "";
+    currentConv = -1;
   }
     
   if(sys.gui.getEventC(bCNew) == EV_RELEASED) {
@@ -443,22 +477,18 @@ function ld_new_msg { # number, prev_Screen
     currentNumber = arg0;
     
     # load concept message
-    if(sys.fs.exists("n" + mk_safe_name(cont_numsane(arg0)) +  ".dat")) {
-      currentConv = "n" + mk_safe_name(cont_numsane(arg0)) +  ".dat";
+    sys.fs.db.selectTable("convs");
+    
+    if(sys.fs.db.selectRowStr("number", cont_numsane(arg0), 1, 1)) {
+      currentConv = sys.fs.db.getEntryNum("id", -1);
       NewMsgConcept = 1;
-      sys.fs.conf.open(currentConv);
-      currentName = sys.fs.conf.read("contact_name");
+      currentName = sys.fs.db.getEntryStr("name", "<error>");
+      
       sys.gui.setStr(bNCont, currentName);
       sys.gui.setGrayout(bNCont, 1);
       sys.gui.setGrayout(bNSend, 0);
       
-      if (sys.fs.conf.exists("message_concept")) {
-        sNewMsg = sys.fs.conf.read("message_concept");
-      } else {
-        sNewMsg = "";
-      }
-      sys.fs.conf.close();
-      
+      sNewMsg = sys.fs.db.getEntryStr("concept", "<error>");
       upd_count(rlen(sNewMsg), len(sNewMsg));
     } else {
       sys.gui.setStr(bNCont, arg0);
@@ -501,9 +531,10 @@ function upd_new_msg {
     newMsgLoaded = 0;
     
     if (NewMsgConcept == 1) {
-      sys.fs.conf.open(currentConv);
-      sys.fs.conf.write("message_concept", sNewMsg);
-      sys.fs.conf.close();
+      sys.fs.db.selectTable("convs");
+      sys.fs.db.selectRowId(currentConv);
+      sys.fs.db.setEntryStr("concept", sNewMsg);
+      sys.fs.db.sync();
     }
   }
   
@@ -519,9 +550,10 @@ function upd_new_msg {
     if(len(sNewMsg) != rlen(sNewMsg)) {
       sendMsgLen = 70;
     }
-    sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, substr(sNewMsg, 1, sendMsgLen));
+    msg_gc_guard = substr(sNewMsg, 1, sendMsgLen);
+    sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, msg_gc_guard);
     sNewMsg = substr(sNewMsg, sendMsgLen, len(sNewMsg));
-    sms_c_conv = "n" + mk_safe_name(cont_numsane(currentNumber)) +  ".dat";
+    sms_c_conv = currentConv;
     return;
   }
   
@@ -545,16 +577,30 @@ function sms_ret {
       return;
     }
     
-    if (NewMsgConcept == 1 and sys.fs.exists(currentConv)) {
-      sys.fs.conf.open(currentConv);
-      sys.fs.conf.write("message_concept", "");
-      sys.fs.conf.close();
+    if (NewMsgConcept == 1) {
+      sys.fs.db.selectTable("convs");
+      if(sys.fs.db.selectRowId(currentConv)) {
+        sys.fs.db.setEntryNum("new", 0);
+        sys.fs.db.setEntryStr("concept", "");
+        sys.fs.db.sync();
+      }
+      
+      NewMsgConcept = 0;
     }
     
     sNewMsg = "";
     page = 0;
     load_convs();
-    load_conv(sms_c_conv);
+    if(sms_c_conv != -1) {
+      load_conv(sms_c_conv);
+    } else {
+      sys.fs.db.selectTable("convs");
+      if(sys.fs.db.selectRowStr("number", cont_numsane(currentNumber), 1, 1)) {
+        local conv = sys.fs.db.getEntryNum("id", -1);
+        print("Return, got conv: " + conv);
+        load_conv(conv);
+      }
+    }
     sys.os.hideKbd();
     newMsgLoaded = 0;
 
@@ -644,7 +690,7 @@ function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
 
 function wakeup {
   load_convs();
-  if(currentConv != "") {
+  if(currentConv != -1) {
     load_conv(currentConv);
   }
 
