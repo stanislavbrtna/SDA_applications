@@ -533,7 +533,7 @@ function update {
 }
 
 function picRet {
-  print("argument0: " + arg0);
+  if(arg0 == "") return;
   sys.gui.setStr(b_npic, arg0);
   npic = arg0;
 }
