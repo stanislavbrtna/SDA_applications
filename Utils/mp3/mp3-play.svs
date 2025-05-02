@@ -145,7 +145,7 @@ function convertDb {
   sys.fs.db.setColumn(2, "len", 0);
   
   sys.fs.db.idEnable("id");
-  sys.fs.db.setIndex("id", 1);
+  sys.fs.db.setIndex("id");
   
   convDbWork = 1;
   convDbN = 0;
@@ -736,8 +736,8 @@ function reload_list {
       n = sys.fs.db.getEntryNum("id", 0);
       
       btnList[b] = sys.gui.addButton(0, b, 7 + 6*landscape, 1, text, big_list_in);
-      btnListSng[b] = n + 1;
-      if (n + 1 == currentSong) {
+      btnListSng[b] = n;
+      if (n == currentSong) {
         sys.gui.setSelect(btnList[b], 1);
       }
       sys.fs.db.nextRow();
