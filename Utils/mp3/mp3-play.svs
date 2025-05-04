@@ -21,9 +21,9 @@ function scr_adjust {
 
     sys.gui.setXYXY(t_name, 1, 1, 8, 4);
 
-    sys.gui.setXYXY(btn,    4, 19, 2, 6);
-    sys.gui.setXYXY(btn_n,  7, 19, 2, 6);
-    sys.gui.setXYXY(btn_p,  1, 19, 2, 6);
+    sys.gui.setXYXY(btn,    4, 19, 2, 4);
+    sys.gui.setXYXY(btn_n,  7, 19, 2, 4);
+    sys.gui.setXYXY(btn_p,  1, 19, 2, 4);
     
     sys.gui.setXYXY(btn_rnd,   1, 16, 4, 2);
     sys.gui.setXYXY(btn_r,     1, 24, 1, 2);
@@ -51,9 +51,9 @@ function scr_adjust {
     
     sys.gui.setXYXY(t_name, 1, 0, 6, 2);
     
-    sys.gui.setXYXY(btn,      3, 6, 2, 3);
-    sys.gui.setXYXY(btn_n,    5, 6, 2, 3);
-    sys.gui.setXYXY(btn_p,    1, 6, 2, 3);
+    sys.gui.setXYXY(btn,      3, 6, 2, 2);
+    sys.gui.setXYXY(btn_n,    5, 6, 2, 2);
+    sys.gui.setXYXY(btn_p,    1, 6, 2, 2);
     sys.gui.setXYXY(btn_rnd, 10, 7, 4, 1);
     
     sys.gui.setXYXY(btn_r,     9, 7, 1, 1);
