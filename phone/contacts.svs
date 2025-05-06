@@ -633,7 +633,7 @@ function init_db {
   sys.fs.db.setColumn(4, "note", 1);
   sys.fs.db.setColumn(5, "picture", 1);
   sys.fs.db.idEnable("id");
-  sys.fs.db.setIndex("id", 1);
+  sys.fs.db.setIndex("id");
   sys.fs.db.setRowIndex(1);
   
   #Table numbers
@@ -644,7 +644,8 @@ function init_db {
   sys.fs.db.setColumn(0, "number_sane", 1);
   sys.fs.db.setColumn(1, "number", 1);
   sys.fs.db.setColumn(2, "contact_id", 0);
-  sys.fs.db.setIndex("contact_id", 1);
+  sys.fs.db.setIndex("contact_id");
+  sys.fs.db.setIndex("number_sane");
   sys.fs.db.setRowIndex(1);
   
   sys.fs.db.selectTable("contacts");
@@ -741,7 +742,8 @@ function loadCfg {
   
   print("building index:");
   sys.fs.db.buildRowIndex();
-  sys.fs.db.buildIndex("contact_id");  
+  sys.fs.db.buildIndex("contact_id");
+  sys.fs.db.buildIndex("number_sane");  
   sys.fs.db.selectTable("contacts");
   sys.fs.db.buildRowIndex();
   sys.fs.db.buildIndex("id");
@@ -801,6 +803,8 @@ function handle_save {
   
   list_size++;
   sys.fs.db.sync();
+  sys.fs.db.buildIndex("contact_id");
+  sys.fs.db.buildIndex("number_sane");
   sys.fs.db.selectTable("contacts");
   print("rebuilding index");
   sys.fs.db.buildRowIndex();

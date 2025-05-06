@@ -126,7 +126,7 @@ function sms_add_conv {
   sys.fs.db.setColumn(3, "direction", 1);
   sys.fs.db.setColumn(4, "timestamp", 0);
   sys.fs.db.idEnable("id");
-  sys.fs.db.setIndex("id", 1);
+  sys.fs.db.setIndex("id");
   sys.fs.db.setRowIndex(1);
 }
 
