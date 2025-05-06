@@ -332,8 +332,8 @@ function test_index {
   
   sys.fs.db.idEnable("id");
   
-  sys.fs.db.setIndex("id", 1);
-  sys.fs.db.setIndex("foo", 1);
+  sys.fs.db.setIndex("id");
+  sys.fs.db.setIndex("foo");
   sys.fs.db.setRowIndex(1);
   print("indexing done");
   
