@@ -12,72 +12,6 @@ find . -maxdepth 1 -name '*.mp3' | awk 'BEGIN{ a=0 }{ printf "mp3info -p \"%d=%%
 import "lib/inc/fs_misc.svs"
 import "~ds_lib.svs"
 
-
-function scr_adjust {
-  if (landscape == 0) {
-    sys.gui.setYcell(scr, 16);
-    sys.gui.setXcell(big_list, 16);
-    sys.gui.setYscroll(big_list, 16);
-
-    sys.gui.setXYXY(t_name, 1, 1, 8, 4);
-
-    sys.gui.setXYXY(btn,    4, 19, 2, 4);
-    sys.gui.setXYXY(btn_n,  7, 19, 2, 4);
-    sys.gui.setXYXY(btn_p,  1, 19, 2, 4);
-    
-    sys.gui.setXYXY(btn_rnd,   1, 16, 4, 2);
-    sys.gui.setXYXY(btn_r,     1, 24, 1, 2);
-    sys.gui.setXYXY(t_curr,    1,  4, 4, 2);
-    sys.gui.setXYXY(fnameText, 1,  6, 8, 4);
-    sys.gui.setXYXY(t_vol,     1, 11, 3, 2);
-    sys.gui.setXYXY(vol_sld,   4, 11, 5, 2);
-    sys.gui.setXYXY(timeBar,   1, 14, 8, 2);
-    sys.gui.setXYXY(current,   5, 24, 4, 2);
-    
-    sys.gui.setXYXY(big_list_in, 1,  1, 14, 9);
-    sys.gui.setXYXY(bl_back,     1, 13,  4, 1);
-    sys.gui.setXYXY(bl_slider,  15,  1,  2, 9);
-    sys.gui.setXYXY(bl_up,      17,  1,  2, 3);
-    sys.gui.setXYXY(bl_dn,      17,  4,  2, 3);
-    
-    sys.gui.setXYXY(bl_current,   1, 11, 8, 1);
-    sys.gui.setXYXY(bl_search_b, 12, 11, 7, 1);
-    
-    sys.gui.setGrayout(bl_search_b, 0);
-  } else {
-    sys.gui.setYcell(scr, 32);
-    sys.gui.setXcell(big_list, 32);
-    sys.gui.setYscroll(big_list, 0);
-    
-    sys.gui.setXYXY(t_name, 1, 0, 6, 2);
-    
-    sys.gui.setXYXY(btn,      3, 6, 2, 2);
-    sys.gui.setXYXY(btn_n,    5, 6, 2, 2);
-    sys.gui.setXYXY(btn_p,    1, 6, 2, 2);
-    sys.gui.setXYXY(btn_rnd, 10, 7, 4, 1);
-    
-    sys.gui.setXYXY(btn_r,     9, 7, 1, 1);
-    sys.gui.setXYXY(t_curr,    1, 2, 4, 1);
-    sys.gui.setXYXY(fnameText, 1, 3, 8, 1);
-    sys.gui.setXYXY(t_vol,     9, 3, 3, 1);
-    sys.gui.setXYXY(vol_sld,   9, 4, 5, 1);
-    sys.gui.setXYXY(timeBar,   1, 4, 6, 1);
-    sys.gui.setXYXY(current,   9, 6, 4, 1);
-    
-    sys.gui.setXYXY(big_list_in, 1, 2, 12, 6);
-    sys.gui.setXYXY(bl_current,  1, 1,  4, 1);
-    sys.gui.setXYXY(bl_back,     1, 8,  2, 1);
-    sys.gui.setXYXY(bl_slider,  13, 2,  1, 6);
-    sys.gui.setXYXY(bl_up,      14, 2,  1, 3);
-    sys.gui.setXYXY(bl_dn,      14, 5,  1, 3);
-    sys.gui.setXYXY(bl_search_b, 6, 8,  3, 1);
-    
-    sys.gui.setGrayout(bl_search_b, 1);
-  }
-  reload_list();
-}
-
-
 function set_icon {
   if(icon_id != 0) {
     sys.os.gui.freeNotif(icon_id);
@@ -134,7 +68,6 @@ function convertDb {
     sys.fs.db.selectTable("songs");  
   
     return;
-    #sys.fs.delete("appdata/mp3-list.db")
   }
   
   sys.fs.db.new("appdata/mp3-list.db");
@@ -199,18 +132,22 @@ function init {
   sys.os.setSingular();
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
+  sys.gui.setYcell(scr, 16);
   
-  t_name    = sys.gui.addText(1 , 1, 7, 2, "SDA Player", scr);
-  btn       = sys.gui.addIcon(4, 11, 2, 3, "", "play.p16", scr);
-  btn_n     = sys.gui.addIcon(7, 11, 2, 3, "", "next.p16", scr);
-  btn_p     = sys.gui.addIcon(1, 11, 2, 3, "", "prev.p16", scr);
-  btn_rnd   = sys.gui.addCheckBox(2, 8, 4, 1, "Random", scr);
-  btn_r     = sys.gui.addButton(1, 8, 1, 1, "", scr);
-  t_curr    = sys.gui.addText(1, 3, 4, 1, "Current:", scr);
-  fnameText = sys.gui.addText(1, 4, 7, 2, "None", scr);
-  t_vol     = sys.gui.addText(1, 9, 3, 1, "Vol:", scr);
-  vol_sld   = sys.gui.addSliderH(4, 9, 5, 1, 30, 15, scr);
-  timeBar   = sys.gui.addBar(1, 7, 8, 1, 0, 10, scr);
+  t_name    = sys.gui.addText(1 , 2, 7, 4, "SDA Player", scr);
+  
+  bRnd      = sys.gui.addCheckBox(1, 16, 4, 2, "Random", scr);
+  bSongList = sys.gui.addButton(5, 16, 4, 2, "All songs", scr);
+
+  t_curr    = sys.gui.addText(1, 6, 4, 2, "Current:", scr);
+  fnameText = sys.gui.addText(1, 8, 8, 4, "None", scr);
+  
+  t_vol     = sys.gui.addText(1, 13, 3, 2, "Vol:", scr);
+  vol_sld   = sys.gui.addSliderH(4, 13, 5, 2, 30, 15, scr);
+  
+  btn       = sys.gui.addIcon(4, 20, 2, 6, "", "play.p16", scr);
+  bNext     = sys.gui.addIcon(7, 20, 2, 6, "", "next.p16", scr);
+  bPrev     = sys.gui.addIcon(1, 20, 2, 6, "", "prev.p16", scr);
   
   #Debug
   if(sys.os.inSim()) {
@@ -219,9 +156,8 @@ function init {
   
   sys.gui.setTxtSize(t_name, 32);
   sys.gui.setTxtAlign(t_name, ALIGN_CENTER);
-  sys.gui.setIcon(btn_r, "rotate.sic");
-  sys.gui.setParam(btn_r, 1);
-  
+  sys.gui.setTxtAlign(bSongList, ALIGN_CENTER);
+   
   sys.gui.setTxtFit(fnameText, 1);
   sys.gui.setSelect(fnameText, 1);
   
@@ -242,7 +178,7 @@ function init {
     setInitVolFlag = 40;
   }
   if (sys.fs.conf.exists("random")) {
-    sys.gui.setValue(btn_rnd, num(sys.fs.conf.read("random")));
+    sys.gui.setValue(bRnd, num(sys.fs.conf.read("random")));
   }
   sys.fs.conf.close();
   
@@ -265,15 +201,12 @@ function init {
   ar_set(btnListSng, 0);
   ar_set(prevSongs, 0);
   
-  current = sys.gui.addButton(5, 3, 4, 1, "All songs", scr);
-
   prevSong = 0;
   currentSong = 0;
 
   MoveList = 1;
   
   play = 0;
-  landscape = 0;
   
   jackStatO = 1;
   
@@ -283,7 +216,6 @@ function init {
   
   add_big_list();
   upd_sleep();
-  scr_adjust();
   
   fs_pop = 1;
   
@@ -336,26 +268,35 @@ function add_big_list {
   big_list_in = sys.gui.addScreen();
   
   sys.gui.setScreen(big_list_in, big_list);
-  sys.gui.setXYXY(big_list_in, 1, 2, 7, 9);
+  sys.gui.setXYXY(big_list_in, 0, 1, 16, 22);
   
-  #scrollbar, searchfield,
+  sys.gui.setYcell(big_list, 16);
+  sys.gui.setXcell(big_list, 17);
+  sys.gui.setXscroll(big_list, -6);
   
-  bl_current = sys.gui.addButton(1, 1, 4, 1, "To current", big_list);
+  sys.gui.setSpacing(big_list, 1, 1, 1, 1);
   
-  bl_back = sys.gui.addButton(1, 12, 2, 1, "", big_list);
+  bl_back = sys.gui.addButton(0, 24, 4, 2, "", big_list);
+  bl_search_b = sys.gui.addButton(5, 24, 2, 2, "", big_list);
+  bl_current = sys.gui.addButton(8, 24, 8, 2, "To current", big_list);
+  
+  sys.gui.setIcon(bl_search_b, "search.sic");
+  sys.gui.setParam(bl_search_b, 0);
+  
   sys.os.gui.setIcon(bl_back, ICON_BACK);
   sys.gui.setParam(bl_back, 32);
-  bl_slider = sys.gui.addSliderV(8, 2, 1, 9, (numOfSongs - 9)*32 + 15, 0, big_list);
   
-  bl_up = sys.gui.addButton(9, 2, 1, 3, "/\\", big_list);
-  bl_dn = sys.gui.addButton(9, 5, 1, 3, "\n\n\n\\/", big_list);
+  bl_slider = sys.gui.addSliderV(16, 4, 2, 16, (numOfSongs - 9)*32 + 15, 0, big_list);
   
-  bl_search_b = sys.gui.addButton(6, 12, 4, 1, "Search", big_list);
-  sys.gui.setIcon(bl_search_b, "search.sic");
+  bl_up = sys.gui.addButton(16, 1, 2, 3, "/\\", big_list);
+  bl_dn = sys.gui.addButton(16, 20, 2, 3, "\n\\/", big_list);
   
   bl_search = sys.gui.addText(1, 20, 7, 1, "", big_list);
   bl_cancel = sys.gui.addButton(14, 20, 3, 1, "X", big_list);
   sys.gui.setTexEd(bl_search, 1);
+  
+  sys.gui.setVisible(bl_search, 0);
+  sys.gui.setVisible(bl_cancel, 0);
   
   bl_pre_active = 0;
   bl_search_str = "";
@@ -375,9 +316,11 @@ function countSongs {
   return sys.fs.db.getRowCount();
 }
 
+
 function upd_sleep {
   sleep_timer = sys.time.get();
 }
+
 
 function play_no {
   play = 1;
@@ -417,7 +360,7 @@ function play_next {
     return;
   }
 
-  if (sys.gui.getValue(btn_rnd)) {
+  if (sys.gui.getValue(bRnd)) {
     local rndSong = sys.os.rnd() % numOfSongs;
     while (rndSong == currentSong) {
       rndSong = sys.os.rnd() % numOfSongs;
@@ -469,13 +412,13 @@ function update {
     }
   }
 
-  if (sys.gui.getEventC(btn_n) == EV_RELEASED) {
+  if (sys.gui.getEventC(bNext) == EV_RELEASED) {
     upd_sleep();
     ds_vol(sys.gui.getValue(vol_sld));
     play_next();
   }
   
-  if (sys.gui.getEventC(current) == EV_RELEASED) {
+  if (sys.gui.getEventC(bSongList) == EV_RELEASED) {
     upd_sleep();
     sys.os.gui.setMainScr(big_list);
   }
@@ -483,13 +426,13 @@ function update {
   if (sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
     upd_sleep();
     sys.os.wake();
-    sys.gui.setEvent(btn_n, EV_RELEASED);
+    sys.gui.setEvent(bNext, EV_RELEASED);
   }
 
   if (sys.hw.btn.getEvent(BTN_LEFT) == EV_PRESSED) {
     upd_sleep();
     sys.os.wake();
-    sys.gui.setEvent(btn_p, EV_RELEASED);
+    sys.gui.setEvent(bPrev, EV_RELEASED);
   }
   
   if (sys.hw.btn.getEvent(BTN_A) == EV_PRESSED and sys.hw.getLcdState() == 1) {
@@ -503,14 +446,8 @@ function update {
     sys.gui.setEvent(btn, EV_RELEASED);
     sys.hw.btn.clrEvent(BTN_B);
   }
-  
-  if (sys.gui.getEventC(btn_r) == EV_RELEASED) {
-    sys.os.gui.setLandscape(1 - sys.os.gui.getLandscape());
-    landscape = sys.os.gui.getLandscape();
-    scr_adjust();
-  }
 
-  if (sys.gui.getEventC(btn_p) == EV_RELEASED) {
+  if (sys.gui.getEventC(bPrev) == EV_RELEASED) {
     upd_sleep();
     ds_vol(sys.gui.getValue(vol_sld));
     if (sys.time.get() - startTime > 10) {
@@ -573,11 +510,16 @@ function upd_list_scr {
 
   if (sys.gui.getEventC(bl_search_b) == EV_RELEASED) {
     upd_sleep();
+    sys.gui.setVisible(bl_search, 1);
+    sys.gui.setVisible(bl_cancel, 1);
     sys.gui.setTexAct(bl_search);
-    sys.gui.setXYXY(bl_search, 1, 8, 14, 1);
-    sys.gui.setXYXY(bl_cancel, 16, 8, 3, 1);
-    sys.gui.setXYXY(big_list_in, 1, 1, 14, 6);
-    sys.gui.setXYXY(bl_slider, 15, 1, 2, 6);
+    
+    sys.gui.setXYXY(bl_search, 0, 15, 13, 2);
+    sys.gui.setXYXY(bl_cancel, 13, 15, 2, 2);
+    
+    sys.gui.setXYXY(big_list_in, 0, 1, 16, 13);
+    sys.gui.setXYXY(bl_slider, 16, 4, 2, 10);
+    sys.gui.setXYXY(bl_dn, 16, 14, 2, 3);
     sys.gui.setGrayout(bl_current, 1);
     sys.os.showKbd();
     
@@ -597,10 +539,11 @@ function upd_list_scr {
   if ((bl_pre_active == 1 and sys.gui.getTexAct(bl_search) == 0) or sys.gui.getEventC(bl_cancel)==EV_PRESSED) {
     #hide stuff
     sys.os.hideKbd();
-    sys.gui.setXYXY(bl_search, 1, 20, 14, 1);
-    sys.gui.setXYXY(bl_cancel, 15, 20, 1, 1);
-    sys.gui.setXYXY(big_list_in, 1, 1, 14, 9);
-    sys.gui.setXYXY(bl_slider, 15, 1, 2, 9);
+    sys.gui.setVisible(bl_search, 0);
+    sys.gui.setVisible(bl_cancel, 0);
+    sys.gui.setXYXY(big_list_in, 0, 1, 16, 22);
+    sys.gui.setXYXY(bl_slider, 16, 4, 2, 16);
+    sys.gui.setXYXY(bl_dn, 16, 20, 2, 3);
     sys.gui.setGrayout(bl_current, 0);
     
     sys.gui.setValue(bl_slider, slider_val_pre);
@@ -621,6 +564,7 @@ function upd_list_scr {
   }
   
   if (sys.gui.getEventC(bl_dn) == EV_RELEASED) {
+    if (sys.gui.getValue(bl_slider)/32 < numOfSongs - 12)
     sys.gui.setValue(bl_slider, sys.gui.getValue(bl_slider) + 5*32);
   }
  
@@ -633,17 +577,20 @@ function upd_list_scr {
       } else {
         listBegin = 0;
       }
-      #print("reload1: "+listBegin);
+      print("load1");
       reload_list();
     }
     
-    if (sys.gui.getValue(bl_slider)/32 > listEnd - 9) {
+    # listEnd - x: x is the number of displayed items
+    if (sys.gui.getValue(bl_slider)/32 > listEnd - 12 and listBegin < numOfSongs - len(btnList)) {
+      
       if (sys.gui.getValue(bl_slider)/32 > 5) {
-        listBegin = sys.gui.getValue(bl_slider)/32 - 5;
+        listBegin = sys.gui.getValue(bl_slider)/32 - 12;
       } else {
         listBegin = 0;
       }
-      #print("reload2: "+listBegin);
+
+      print("load2 " + listBegin + " num" + numOfSongs);
       reload_list();
     }
   } else {
@@ -705,6 +652,8 @@ function reload_list {
   b = 0;
   a = 0;
   
+  print("loading list");
+  
   sys.fs.db.selectRow(0);
   
   if (list_search == 0) {
@@ -716,7 +665,7 @@ function reload_list {
 
       text = sys.fs.db.getEntryStr("name", "");
       
-      btnList[b] = sys.gui.addButton(0, listBegin + b, 7 + 6*landscape, 1, text, big_list_in);
+      btnList[b] = sys.gui.addButton(0, listBegin + b, 9, 1, text, big_list_in);
       btnListSng[b] = listBegin + b + 1;
       if (listBegin + b + 1 == currentSong) {
         sys.gui.setSelect(btnList[b], 1);
@@ -735,7 +684,7 @@ function reload_list {
       text = sys.fs.db.getEntryStr("name", "");
       n = sys.fs.db.getEntryNum("id", 0);
       
-      btnList[b] = sys.gui.addButton(0, b, 7 + 6*landscape, 1, text, big_list_in);
+      btnList[b] = sys.gui.addButton(0, b, 9, 1, text, big_list_in);
       btnListSng[b] = n;
       if (n == currentSong) {
         sys.gui.setSelect(btnList[b], 1);
@@ -753,7 +702,7 @@ function exit {
   sys.fs.chDir();
   sys.fs.conf.open("settings/mp3-play.cfg");
   sys.fs.conf.write("volume", "" + sys.gui.getValue(vol_sld) + " ");
-  sys.fs.conf.write("random", "" + sys.gui.getValue(btn_rnd) + " ");
+  sys.fs.conf.write("random", "" + sys.gui.getValue(bRnd) + " ");
   sys.fs.conf.write("fixforbrokenConf", "" + sys.gui.getValue(vol_sld) + " ");
   sys.fs.conf.close();
   sys.fs.db.close();
