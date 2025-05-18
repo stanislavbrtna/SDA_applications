@@ -1,0 +1,929 @@
+function setIcon {
+  if(iconId != 0) {
+    sys.os.gui.freeNotif(iconId);
+  }
+  
+  sys.fs.chDir(1);
+  sys.fs.chDir(getFolder(sys.os.getAppPath()));
+  iconId = sys.os.gui.setNotif("timer.sic", &icoCallback);
+  sys.fs.chDir(0);
+}
+
+
+function freeIcon {
+  if(iconId != 0) {
+    sys.os.gui.freeNotif(iconId);
+  }
+}
+
+function icoCallback {
+  sys.os.arise();
+}
+
+function getFolder {
+  for(i = len(arg0); i > 0; i--;) {
+    if (getcp(arg0, i) == "/") {
+      arg0 = substr(arg0, 0, i);
+      break;
+    }
+  }
+  
+  return arg0;
+}
+
+function wakeup {
+  if (sys.alarm.getFlag()) {
+    local param = sys.alarm.getPar();
+    sys.hw.wakeLcd();
+    sys.alarm.clrFlag();
+    sys.os.gui.setMainScr(sAlRing);
+    sys.fs.db.selectRow(0);
+    if(not sys.fs.db.selectRowId(param)) {
+      print("param: " + param);
+    }
+    
+    sys.gui.setStr(tAlRing, sys.fs.db.getEntryStr("name", "No name"));
+    sys.gui.setStr(tAlRingTime, lz(sys.time.getHr()) + ":" + lz(sys.time.getMin()));
+    alarmFlag = 1;
+    sys.snd.beepC(1000, 250, &boop);
+  }
+}
+
+function beep {
+  if(alarmFlag or timerFlag) {
+    sys.snd.beepC(1000, 250, &boop);
+  } 
+}
+
+function boop {
+  sys.snd.beepC(0, 1700, &beep);
+}
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.os.setSingular();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  sys.gui.setSpacing(scr, 1, 1, 1, 1);
+  sys.gui.setXcell(scr, 34);
+  sys.gui.setYcell(scr, 34);
+  sys.gui.setXscroll(scr, -6);
+  sys.gui.setYscroll(scr, -6);
+  
+  if(sys.fs.exists("appdata/clock.db")) {
+    sys.fs.db.open("appdata/clock.db");
+    sys.fs.db.selectTable("alarms");
+  } else {
+    sys.fs.db.new("appdata/clock.db");
+    sys.fs.db.newTable("alarms", 9);
+   
+    sys.fs.db.setColumn(0, "id", TYPE_NUM);
+    sys.fs.db.setColumn(1, "name", TYPE_STR);
+    sys.fs.db.setColumn(2, "repeat", TYPE_NUM);
+    sys.fs.db.setColumn(3, "alarmId", TYPE_NUM);
+    sys.fs.db.setColumn(4, "hour", TYPE_NUM);
+    sys.fs.db.setColumn(5, "min", TYPE_NUM);
+    sys.fs.db.setColumn(6, "active", TYPE_NUM);
+    sys.fs.db.setColumn(7, "snoozed", TYPE_NUM);
+    sys.fs.db.setColumn(8, "snoozedId", TYPE_NUM);
+    sys.fs.db.idEnable("id");
+  }
+  
+  bAlarm = sys.gui.addButton(0, 0, 3, 1, "Alarm", scr);
+  bStopwatch = sys.gui.addButton(3, 0, 4, 1, "Stopwatch", scr);
+  bTimer = sys.gui.addButton(7, 0, 2, 1, "Timer", scr);
+  sys.gui.setTexAlign(bAlarm, ALIGN_CENTER);
+  sys.gui.setTxtAlign(bStopwatch, ALIGN_CENTER);
+  sys.gui.setTexAlign(bTimer, ALIGN_CENTER);
+  
+  sys.gui.setGhost(bStopwatch, 1);
+  sys.gui.setGhost(bTimer, 1);
+  
+  sAlarm = sys.gui.addScreen();
+  initAlarm();
+  
+  sStopwatch = sys.gui.addScreen();
+  initStopwatch();
+  
+  sTimer = sys.gui.addScreen();
+  initTimer();
+  
+  frame = sys.gui.addFrame(-1, 1, 11, 12, sAlarm, scr);
+   
+  # overlay init
+  ov_id = 0;
+  
+  array ovDays[7];
+  ovHr  = 0;
+  ovMin = 0;
+  
+  sAlRing = sys.gui.addScreen();
+  sys.gui.setSpacing(sAlRing, 0, 4, 0, 4);
+  
+  tAlRing = sys.gui.addText(1, 3, 5, 1, "Alarm note", sAlRing);
+  tAlRingTime = sys.gui.addText(1, 4, 5, 3, "17:50", sAlRing);
+  sys.gui.setTxtSize(tAlRingTime, FONT_70);
+  
+  bAlRingOk = sys.gui.addButton(5, 7, 4, 2, "Ok", sAlRing);
+  bAlRingSnooze = sys.gui.addButton(1, 7, 4, 2, "Snooze", sAlRing);
+  
+  alarmFlag = 0;
+  timerFlag = 0;
+  
+  iconId = 0;
+  
+  wakeup();
+}
+
+
+function initStopwatch {
+  sys.gui.setXscroll(sStopwatch, -10);
+  tStTime = sys.gui.addText(2, 2, 7, 3, "00:00:00", sStopwatch);
+  sys.gui.setTxtSize(tStTime, FONT_70);
+  sys.gui.setTxtAlign(tStTime, ALIGN_CENTER);
+  
+  bStStart = sys.gui.addButton(6, 5, 3, 1, "Start", sStopwatch);
+  bStReset = sys.gui.addButton(2, 5, 3, 1, "Reset", sStopwatch);
+  
+  sys.gui.setTxtAlign(bStStart, ALIGN_CENTER);
+  sys.gui.setTxtAlign(bStReset, ALIGN_CENTER);
+  
+  sys.gui.setVisible(bStReset, 0);
+
+  stopStartTim = 0;
+  stopRunning  = 0;
+  stopRuntime  = 0;
+}
+
+
+function updStopwatch {
+  if (sys.gui.getEventC(bStStart) == EV_RELEASED) {
+    if(stopRunning == 0) {
+      stopStartTime = sys.time.get() - stopRuntime;
+      sys.gui.setStr(bStStart, "Stop");
+      stopRunning = 1;
+      sys.gui.setVisible(bStReset, 1);
+    } else {
+      sys.gui.setStr(bStStart, "Start");
+      stopRunning = 0;
+    }
+  }
+  
+  if (sys.gui.getEventC(bStReset) == EV_RELEASED) {
+    sys.gui.setStr(tStTime, "00:00:00");
+    stopStartTim = 0;
+    stopRunning  = 0;
+    stopRuntime  = 0;
+    sys.gui.setStr(bStStart, "Start");
+    sys.gui.setVisible(bStReset, 0);
+  }
+  
+  if (stopRunning and sys.time.getUpd()) {
+    stopRuntime = sys.time.get() - stopStartTime;
+    local sec = stopRuntime % 60;
+    local min = (stopRuntime / 60) % 60;
+    local hr  = (stopRuntime / (60*60)) % (60*60);
+    sys.gui.setStr(tStTime, lz(hr) + ":" + lz(min) + ":" + lz(sec));
+  }
+}
+
+
+function initTimer {
+  sys.gui.setXscroll(sTimer, 6);
+  sys.gui.setYscroll(sTimer, 16);
+  sys.gui.setXcell(sTimer, 38);
+  sys.gui.setYcell(sTimer, 38);
+  sys.gui.setSpacing(sTimer, 2, 2, 4, 0);
+  local l = 1;
+  
+  bTph = sys.gui.addButton(3, l, 1, 1, "+", sTimer);
+  
+  bTpm1 = sys.gui.addButton(4, l, 1, 1, "+", sTimer);
+  bTpm2 = sys.gui.addButton(5, l, 1, 1, "+", sTimer);
+  
+  bTps1 = sys.gui.addButton(6, l, 1, 1, "+", sTimer);
+  bTps2 = sys.gui.addButton(7, l, 1, 1, "+", sTimer); 
+  
+  l++;
+  
+  tTimTime = sys.gui.addText(2, l, 7, 2, "00:00:00", sTimer);
+  sys.gui.setTxtSize(tTimTime, FONT_70);
+  #sys.gui.setTxtAlign(tTimTime, ALIGN_CENTER);
+  
+  l += 2;
+  
+  bTmh = sys.gui.addButton(3, l, 1, 1, "-", sTimer);
+  
+  bTmm1 = sys.gui.addButton(4, l, 1, 1, "-", sTimer);
+  bTmm2 = sys.gui.addButton(5, l, 1, 1, "-", sTimer);
+  
+  bTms1 = sys.gui.addButton(6, l, 1, 1, "-", sTimer);
+  bTms2 = sys.gui.addButton(7, l, 1, 1, "-", sTimer);
+  
+  l += 2;
+  
+  bTpStart = sys.gui.addButton(5, l, 3, 1, "Start", sTimer);
+  bTpReset = sys.gui.addButton(2, l, 3, 1, "Reset", sTimer);
+  sys.gui.setTxtAlign(bTpStart, ALIGN_CENTER);
+  sys.gui.setTxtAlign(bTpReset, ALIGN_CENTER);
+  
+  sys.gui.setVisible(bTpReset, 0);
+  
+  l++;
+  
+  tTpMsg = sys.gui.addText(3, l, 4, 1, "Time is up!", sTimer);
+  l++;
+  bTpBtn = sys.gui.addButton(3, l, 4, 2, "Ok", sTimer);
+  sys.gui.setTxtSize(bTpBtn, FONT_70);
+  sys.gui.setTxtAlign(tTpMsg, ALIGN_CENTER);
+  sys.gui.setTxtAlign(bTpBtn, ALIGN_CENTER);
+  
+  sys.gui.setVisible(tTpMsg, 0);
+  sys.gui.setVisible(bTpBtn, 0);
+  
+  timerHour = 0;
+  timerMin = 0;
+  timerSec = 0;
+  timerStopTime = 0;
+  timerRestTime = 0;
+  timerRunning = 0;
+}
+
+
+function updateTimer {
+  if(sys.gui.getEventC(bTmh) == EV_RELEASED and timerHour >= 1) {
+    timerHour -= 1;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTmm1) == EV_RELEASED and timerMin >= 10) {
+    timerMin -= 10;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTmm2) == EV_RELEASED and timerMin >= 1) {
+    timerMin -= 1;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTms1) == EV_RELEASED and timerSec >= 10) {
+    timerSec -= 10;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTms2) == EV_RELEASED and timerSec >= 1) {
+    timerSec -= 1;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTph) == EV_RELEASED) {
+    timerHour += 1;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTpm1) == EV_RELEASED and timerMin < 50) {
+    timerMin += 10;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTpm2) == EV_RELEASED and timerMin < 59) {
+    timerMin += 1;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTps1) == EV_RELEASED and timerSec < 50) {
+    timerSec += 10;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTps2) == EV_RELEASED and timerSec < 59) {
+    timerSec += 1;
+    timerUpStr();
+  }
+  
+  if(sys.gui.getEventC(bTpStart) == EV_RELEASED) {
+    if (not timerRunning) {
+      if(timerHour == 0 and timerMin == 0 and timerSec == 0) {
+        return;
+      }
+      timerStopTime = sys.time.get() + 60*60*timerHour + 60*timerMin + timerSec;
+      sys.time.setTimer((60*60*timerHour + 60*timerMin + timerSec) * 1000, &timerClb);
+      timerRunning = 1;
+      sys.gui.setStr(bTpStart, "Pause");
+      timerHideBtns(0);
+      sys.gui.setVisible(bTpReset, 1);
+      setIcon();
+    } else {
+      timerRunning = 0;
+      sys.gui.setStr(bTpStart, "Start");
+      local tim = timerStopTime - sys.time.get();
+      
+      timerSec = tim % 60;
+      timerMin = (tim % (60*60)) / 60;
+      timerHour = tim / (60*60);
+      timerHideBtns(1);
+    }
+  }
+  
+  if(timerRunning and sys.time.getUpd()) {
+    local tim = timerStopTime - sys.time.get();
+    if(tim >= 0) {
+      timerUpdStr2(tim);
+    }
+  }
+  
+  if(sys.gui.getEventC(bTpReset) == EV_RELEASED) {
+    timerReset();
+  }
+  
+  if(sys.gui.getEventC(bTpBtn) == EV_RELEASED) {
+    timerFlag = 0;
+    timerReset();
+  }
+}
+
+
+function timerClb {
+  sys.os.arise();
+  sys.hw.wakeLcd();
+  timerFlag = 1;
+  sys.snd.beepC(1000, 250, &boop);
+  sys.gui.setVisible(tTpMsg, 1);
+  sys.gui.setVisible(bTpBtn, 1);
+  sys.gui.setGrayout(bTpStart, 1);
+  sys.gui.setStr(tTimTime, "00:00:00");
+  sys.gui.setEvent(bTimer, EV_RELEASED);
+  freeIcon();
+}
+
+
+function timerReset {
+  timerRunning = 0;
+  timerFlag = 0;
+  sys.gui.setVisible(bTpReset, 0);
+  sys.gui.setStr(bTpStart, "Start");
+  timerHour = 0;
+  timerMin = 0;
+  timerSec = 0;
+  timerStopTime = 0;
+  timerRestTime = 0;
+  timerRunning = 0;
+  timerHideBtns(1);
+  timerUpStr();
+  sys.gui.setVisible(tTpMsg, 0);
+  sys.gui.setVisible(bTpBtn, 0);
+  sys.gui.setGrayout(bTpStart, 0);
+}
+
+
+function timerUpStr {
+  sys.gui.setStr(
+    tTimTime,
+    lz(timerHour) + ":" + lz(timerMin) + ":" + lz(timerSec)
+  );
+}
+
+function timerUpdStr2 {
+  sys.gui.setStr(
+    tTimTime,
+    lz(sys.time.getTsHr(arg0))
+    + ":" 
+    + lz(sys.time.getTsMin(arg0)) 
+    + ":" 
+    + lz(sys.time.getTsSec(arg0))
+  );
+}
+
+
+
+function timerHideBtns {
+  sys.gui.setVisible(bTph, arg0);
+  sys.gui.setVisible(bTmh, arg0);
+  
+  sys.gui.setVisible(bTpm1, arg0);
+  sys.gui.setVisible(bTpm2, arg0);
+  
+  sys.gui.setVisible(bTmm1, arg0);
+  sys.gui.setVisible(bTmm2, arg0);
+  
+  sys.gui.setVisible(bTps1, arg0);
+  sys.gui.setVisible(bTps2, arg0);
+  
+  sys.gui.setVisible(bTms1, arg0);
+  sys.gui.setVisible(bTms2, arg0);
+}
+
+
+function reloadAlarmScr {
+  
+  if(sAlList) {
+    sys.gui.destroy(sAlList);
+  }
+
+  sAlList = sys.gui.addScreen(0, 0, 9, 11, sAlarm);
+  sys.gui.setSpacing(sAlList, 0, 0, 0, 2);
+  alListMax = 0;
+  
+  if(sys.fs.db.selectRow(0)) {
+    local l = 0;
+    local x = 0;
+    while(1) {
+      
+      bAlChecks[x] = sys.gui.addCheckBox(0, l, 8, 1, sys.fs.db.getEntryStr("name", "") , sAlList);
+      bAlOpts[x] = sys.gui.addButton(8, l, 1, 1, "...", sAlList);
+      sys.gui.setValue(bAlChecks[x], sys.fs.db.getEntryNum("active", 0));
+      l++;
+      
+      local rep = sys.fs.db.getEntryNum("repeat", 0);
+      local repStr = "";
+      if(rep) {
+        if(rep % 2) repStr += getDayName(0);
+        rep -= rep%2;
+        
+        if(rep % 4 == 2) repStr += "," + getDayName(1);
+        rep -= rep%4;
+        
+        if(rep % 8 == 4) repStr += "," + getDayName(2);
+        rep -= rep%8;
+        
+        if(rep % 16 == 8) repStr += "," + getDayName(3);
+        rep -= rep%16;
+        
+        if(rep % 32 == 16) repStr += "," + getDayName(4);
+        rep -= rep%32;
+        
+        if(rep % 64 == 32) repStr += "," + getDayName(5);
+        
+        rep -= rep%64;
+        if(rep % 128 == 64) repStr += "," + getDayName(6);
+      }
+      
+      tAlText[x] = sys.gui.addText(
+        0, l, 9, 1,
+        lz(sys.fs.db.getEntryNum("hour", 0)) + ":" + lz(sys.fs.db.getEntryNum("min", 0)) + " " + repStr, 
+        sAlList
+      );
+      
+      l++;
+      
+      bAlSnooze[x] = sys.gui.addButton(6, l, 3, 1, "Clear", sAlList);
+      
+      if(not sys.fs.db.getEntryNum("snoozed", 0)) {
+        sys.gui.setVisible(bAlSnooze[x], 0);
+        l--;
+      } else {
+        sys.gui.addText(0, l, 4, 1, "Snoozed", sAlList);
+      }
+      
+      tAlId[x] = sys.fs.db.getEntryNum("id", 0);
+      x++;
+      l++;
+      if(not sys.fs.db.nextRow()) {
+        break;
+      }
+    }
+    alListMax = x;
+    print("list max" + alListMax);
+  } else {
+    sys.gui.addText(0, 0, 8, 1, "No alarms.", sAlList);
+  }
+  
+}
+
+
+function initAlarm {
+  sys.gui.setXscroll(sAlarm, -42);
+  sys.gui.setYscroll(sAlarm, -6);
+  bAlNew = sys.gui.addButton(8, 11, 1, 1, "+", sAlarm);
+  
+  array bAlChecks[20];
+  array bAlOpts[20];
+  array tAlText[20];
+  array tAlId[20];
+  array tAlSnooze[20];
+  array bAlSnooze[20];
+  
+  alListMax = 0;
+  
+  reloadAlarmScr();
+  
+}
+
+ # call return for FSL
+function callRet {
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+}
+
+
+function getDayName {
+  if (arg0 == 0) return "Mo";
+  if (arg0 == 1) return "Tu";
+  if (arg0 == 2) return "We";
+  if (arg0 == 3) return "Th";
+  if (arg0 == 4) return "Fr";
+  if (arg0 == 5) return "Sa";
+  if (arg0 == 6) return "Su";
+  
+  return "";   
+}
+
+function showDays {
+  for(local x = 0; x < len(ovDays); x++;) {
+    sys.gui.setVisible(ovDays[x], arg0);
+  }
+}
+
+function lz {
+  if (arg0 < 10) return "0" + arg0;
+  return "" + arg0;
+}
+
+
+ # overlay functions
+function init_overlay {
+  ovHr  = 0;
+  ovMin = 0;
+  ovAlId = arg0;
+  
+  ov_screen = sys.gui.addScreen();
+  sys.gui.setSpacing(ov_screen, 1, 1, 1, 1);
+  sys.gui.setXcell(ov_screen, 36);
+  sys.gui.setYcell(ov_screen, 34);
+  sys.gui.setXscroll(ov_screen, -2);
+  sys.gui.setYscroll(ov_screen, -6);
+  sys.gui.addText(0, 0, 5, 1, "Alarm setup", ov_screen);
+  tName = sys.gui.addText(0, 1, 7, 1, "New Alarm", ov_screen);
+  bDel = sys.gui.addButton(5, 0, 2, 1, "Rem.", ov_screen);
+  
+  if(arg0 == 0) {
+    sys.gui.setVisible(bDel, 0);
+  }
+  
+  sys.gui.setTexEd(tName, 1);
+  
+  local l = 2;
+  
+  bph1 = sys.gui.addButton(1, l, 1, 1, "+", ov_screen);
+  bph2 = sys.gui.addButton(2, l, 1, 1, "+", ov_screen);
+  
+  bpm1 = sys.gui.addButton(4, l, 1, 1, "+", ov_screen);
+  bpm2 = sys.gui.addButton(5, l, 1, 1, "+", ov_screen);
+  
+  l += 1;
+  
+  toTim = sys.gui.addText(0, l, 7, 2, "?:?", ov_screen);
+  sys.gui.setTxtSize(toTim, FONT_70);
+  sys.gui.setTexAlign(toTim, ALIGN_CENTER);
+  
+  l += 2;
+  
+  bmh1 = sys.gui.addButton(1, l, 1, 1, "-", ov_screen);
+  bmh2 = sys.gui.addButton(2, l, 1, 1, "-", ov_screen);
+  
+  bmm1 = sys.gui.addButton(4, l, 1, 1, "-", ov_screen);
+  bmm2 = sys.gui.addButton(5, l, 1, 1, "-", ov_screen);
+  
+  l++;
+  
+  bRepeat = sys.gui.addCheckBox(0, l, 5, 1, "Repeating", ov_screen);
+  
+  l++;
+  
+  for(local x = 0; x < len(ovDays); x++;) {
+    ovDays[x] = sys.gui.addButton(x, l, 1, 1, getDayName(x), ov_screen);
+    sys.gui.setTexAlign(ovDays[x], ALIGN_CENTER);
+    sys.gui.setGhost(ovDays[x], 1);
+  }
+  
+  showDays(0);
+  
+  l += 1;
+  
+  ov_ok = sys.gui.addButton(4, l, 3, 1, "Ok", ov_screen);
+  ov_cancel = sys.gui.addButton(0, l, 3, 1, "Back", ov_screen);
+  
+  if(arg0 != 0) {
+    if (not sys.fs.db.selectRowId(arg0)) {
+      sys.os.error("DB Borked!");
+    }
+    sys.gui.setStr(tName, sys.fs.db.getEntryStr("name", sys.gui.getStr(tName)));
+    ovHr = sys.fs.db.getEntryNum("hour", ovHr);
+    ovMin = sys.fs.db.getEntryNum("min", ovMin);
+    local rep = sys.fs.db.getEntryNum("repeat", rep);
+    
+    if(rep) {
+      sys.gui.setValue(bRepeat, 1);
+      showDays(1);
+    }
+    
+    sys.gui.setGhost(ovDays[0], not (rep % 2));
+    rep -= rep%2;
+    
+    sys.gui.setGhost(ovDays[1], not (rep % 4 == 2));
+    rep -= rep%4;
+    
+    sys.gui.setGhost(ovDays[2], not (rep % 8 == 4));
+    rep -= rep%8;
+    
+    sys.gui.setGhost(ovDays[3], not (rep % 16 == 8));
+    rep -= rep%16;
+    
+    sys.gui.setGhost(ovDays[4], not (rep % 32 == 16));
+    rep -= rep%32;
+    
+    sys.gui.setGhost(ovDays[5], not (rep % 64 == 32));
+    rep -= rep%64;
+    
+    sys.gui.setGhost(ovDays[6], not (rep % 128 == 64));
+  }
+  
+  ovUpdateTime();
+}
+
+
+function ovUpdateTime {
+  sys.gui.setStr(toTim, lz(ovHr) + ":" + lz(ovMin));
+}
+
+function activateAlarm {
+  sys.fs.db.selectRow(0);
+  if(not sys.fs.db.selectRowId(arg0)) {
+    return 0;
+  }
+
+  local rep = sys.fs.db.getEntryNum("repeat", 0);
+  if (rep) {  
+    return sys.alarm.setRep(
+      sys.fs.db.getEntryNum("hour", 0),
+      sys.fs.db.getEntryNum("min", 0),
+      rep,
+      0,
+      0,
+      arg0
+    );
+  } else {
+    local time = sys.time.setTs(
+      sys.time.getYear(), 
+      sys.time.getMonth(), 
+      sys.time.getDay(), 
+      sys.fs.db.getEntryNum("hour", 0), 
+      sys.fs.db.getEntryNum("min", 0), 
+      0
+    );
+    
+    if (time < sys.time.get()) {
+      time += 24*60*60;
+    }
+    
+    return sys.alarm.setFixed(time, arg0);
+  }
+}
+
+
+function handle_overlay {
+  sys.os.gui.handleText(tName);
+
+  for(local x = 0; x < len(ovDays); x++;) {
+    if (sys.gui.getEventC(ovDays[x]) == EV_RELEASED) {
+      sys.gui.setGhost(ovDays[x], 1 - sys.gui.getGhost(ovDays[x]));
+    }
+  }
+
+  if (sys.gui.getEventC(bRepeat) == EV_RELEASED) {
+    showDays(sys.gui.getValue(bRepeat));
+  }
+  
+  if(sys.gui.getEventC(bph1) == EV_RELEASED and ovHr < 14) {
+    ovHr += 10;
+    ovUpdateTime();
+  }
+  
+  if(sys.gui.getEventC(bph2) == EV_RELEASED and ovHr < 23) {
+    ovHr += 1;
+    ovUpdateTime();
+  }
+  
+  if(sys.gui.getEventC(bpm1) == EV_RELEASED and ovMin < 50) {
+    ovMin += 10;
+    ovUpdateTime();
+  }
+  
+  if(sys.gui.getEventC(bpm2) == EV_RELEASED and ovMin < 59) {
+    ovMin += 1;
+    ovUpdateTime();
+  }
+  
+  if(sys.gui.getEventC(bmh1) == EV_RELEASED and ovHr >= 10) {
+    ovHr -= 10;
+    ovUpdateTime();
+  }
+  
+  if(sys.gui.getEventC(bmh2) == EV_RELEASED and ovHr >= 1) {
+    ovHr -= 1;
+    ovUpdateTime();
+  }
+  
+  if(sys.gui.getEventC(bmm1) == EV_RELEASED and ovMin >= 10) {
+    ovMin -= 10;
+    ovUpdateTime();
+  }
+  
+  if(sys.gui.getEventC(bmm2) == EV_RELEASED and ovMin >= 1) {
+    ovMin -= 1;
+    ovUpdateTime();
+  }
+  
+  if (sys.gui.getEventC(bDel) == EV_RELEASED) {
+    
+    if (not sys.fs.db.selectRowId(ovAlId)) {
+      sys.os.error("DB Borked!");
+      return;
+    }
+    
+    if(sys.fs.db.getEntryNum("active", 0)) {
+      sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+    }
+    
+    sys.fs.db.dropRow();
+    sys.fs.db.sync();
+    reloadAlarmScr();
+    sys.o.destroy();
+    return;
+  }
+  
+  if (sys.gui.getEventC(ov_ok) == EV_RELEASED) {
+    local alarmId = 0;
+    local rep = 0;
+    
+    if (ovAlId == 0) {
+      sys.fs.db.newRow();
+      ovAlId = sys.fs.db.getEntryNum("id", 0);
+    } else {
+      if (not sys.fs.db.selectRowId(ovAlId)) {
+        sys.os.error("DB Borked!");
+        return;
+      }
+      sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+    }
+    
+    if(sys.gui.getValue(bRepeat)) {  
+      for(local x = 0; x < len(ovDays); x++;) {
+        if(not sys.gui.getGhost(ovDays[x])) {
+          rep += num(pow(2.0, float(x)));
+        }
+      }
+    } 
+    
+    sys.fs.db.setEntryStr("name", sys.gui.getStr(tName));
+    sys.fs.db.setEntryNum("hour", ovHr);
+    sys.fs.db.setEntryNum("min", ovMin);
+    sys.fs.db.setEntryNum("repeat", rep);
+    
+    alarmId = activateAlarm(ovAlId);
+    
+    sys.fs.db.setEntryNum("alarmId", alarmId);
+    sys.fs.db.setEntryNum("active", 1);
+    sys.fs.db.setEntryNum("snoozed", 0);
+    
+    sys.fs.db.sync();
+    
+    reloadAlarmScr();
+    
+    sys.o.destroy();
+    return;
+  }
+    
+  if (sys.gui.getEventC(ov_cancel) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+  
+  # keypad handling for the overlay
+  sys.os.gui.btnCtrl(ov_screen, ov_cancel);
+}
+
+function updateAlarm {
+  # overlay
+  if (sys.gui.getEventC(bAlNew) == EV_RELEASED) {
+    init_overlay(0);
+    ov_id = sys.o.setScr(ov_screen);
+    sys.o.setY(400);
+  }
+  
+  for(local x = 0; x < alListMax; x++;) {
+    if (sys.gui.getEventC(bAlOpts[x]) == EV_RELEASED) {
+      init_overlay(tAlId[x]);
+      ov_id = sys.o.setScr(ov_screen);
+      sys.o.setY(400);
+    }
+    
+    if (sys.gui.getEventC(bAlChecks[x]) == EV_RELEASED) {
+      sys.fs.db.selectRow(0);
+      sys.fs.db.selectRowId(tAlId[x]);
+      sys.fs.db.setEntryNum("active", sys.gui.getValue(bAlChecks[x]));
+      
+      print("alarm id:" + tAlId[x]);
+      
+      if (sys.gui.getValue(bAlChecks[x])) {
+        sys.fs.db.setEntryNum("alarmId", activateAlarm(tAlId[x]));
+        sys.fs.db.sync();
+      } else {
+        print("deleting alarm: " + sys.fs.db.getEntryNum("alarmId", 0));
+        sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+      }
+    }
+    
+    if(sys.gui.getEventC(bAlSnooze[x]) == EV_RELEASED) {
+      sys.fs.db.selectRow(0);
+      sys.fs.db.selectRowId(tAlId[x]);
+      sys.fs.db.setEntryNum("snoozed", 0);
+      sys.alarm.destroy(sys.fs.db.getEntryNum("snoozedId", 0));
+      
+      if(sys.fs.db.getEntryNum("repeat", 0) == 0) {
+        sys.fs.db.setEntryNum("active", 0);
+      }
+      
+      sys.fs.db.sync();
+      reloadAlarmScr();
+    }
+  }
+}
+
+
+function update {
+
+  if (not sys.gui.getGhost(bAlarm)) {
+    updateAlarm();
+  }
+  
+  if (not sys.gui.getGhost(bStopwatch)) {
+    updStopwatch();
+  }
+  
+  if (not sys.gui.getGhost(bTimer)) {
+    updateTimer();
+  }
+  
+  if (sys.gui.getEventC(bAlarm) == EV_RELEASED) {
+    sys.gui.setGhost(bTimer, 1);
+    sys.gui.setGhost(bAlarm, 0);
+    sys.gui.setGhost(bStopwatch, 1);
+    sys.gui.setValue(frame, sAlarm);
+  }
+  
+  if (sys.gui.getEventC(bStopwatch) == EV_RELEASED) {
+    sys.gui.setGhost(bTimer, 1);
+    sys.gui.setGhost(bAlarm, 1);
+    sys.gui.setGhost(bStopwatch, 0);
+    sys.gui.setValue(frame, sStopwatch);
+  }
+  
+  if (sys.gui.getEventC(bTimer) == EV_RELEASED) {
+    sys.gui.setGhost(bTimer, 0);
+    sys.gui.setGhost(bAlarm, 1);
+    sys.gui.setGhost(bStopwatch, 1);
+    sys.gui.setValue(frame, sTimer);
+  }
+  
+  if (sys.o.getId() == ov_id and sys.o.getId() != 0) {
+    handle_overlay();
+  }
+  
+  if (alarmFlag) {
+    if (sys.gui.getEventC(bAlRingOk) == EV_RELEASED) {
+      if(sys.fs.db.getEntryNum("repeat", 0) == 0) {
+        sys.fs.db.setEntryNum("active", 0);
+      }
+    
+      sys.os.gui.setMainScr(scr);
+      alarmFlag = 0;
+      
+      reloadAlarmScr();
+    }
+    
+    if (sys.gui.getEventC(bAlRingSnooze) == EV_RELEASED) {
+      sys.os.gui.setMainScr(scr);
+      alarmFlag = 0;
+      sys.fs.db.setEntryNum("snoozed", 1);
+      sys.fs.db.setEntryNum(
+        "snoozedId", 
+        sys.alarm.setFixed(
+          sys.time.get() + 10*60,
+          sys.fs.db.getEntryNum("id", 0)
+        )
+      );
+      
+      reloadAlarmScr();
+    }
+  }
+ 
+  # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
+}
+
+
+function exit {
+
+}
