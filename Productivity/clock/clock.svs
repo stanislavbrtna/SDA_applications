@@ -268,7 +268,9 @@ function resetAlarm { # alarm_id, active
   
   if (arg1 == 1) {
     local id;
-    id = sys.alarm.setRep(bud_hour, bud_min, arg0 + 1, 0, 0, 0);
+    local rep = num(pow(2.0, float(arg0)));
+    print("setting: " + rep);
+    id = sys.alarm.setRep(bud_hour, bud_min, rep, 0, 0, 0);
     sys.fs.conf.write("id_" + arg0 + 1 , "" + id);
   }
   
