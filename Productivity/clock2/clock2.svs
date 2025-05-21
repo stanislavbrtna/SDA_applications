@@ -9,7 +9,6 @@ function setIcon {
   sys.fs.chDir(0);
 }
 
-
 function freeIcon {
   if(iconId != 0) {
     sys.os.gui.freeNotif(iconId);
@@ -18,6 +17,7 @@ function freeIcon {
 
 function icoCallback {
   sys.os.arise();
+  sys.gui.setEvent(bTimer, EV_RELEASED);
 }
 
 function getFolder {
@@ -39,7 +39,7 @@ function wakeup {
     sys.os.gui.setMainScr(sAlRing);
     sys.fs.db.selectRow(0);
     if(not sys.fs.db.selectRowId(param)) {
-      print("param: " + param);
+      print("missing id: " + param);
     }
     
     sys.gui.setStr(tAlRing, sys.fs.db.getEntryStr("name", "No name"));
@@ -88,6 +88,7 @@ function init {
     sys.fs.db.setColumn(7, "snoozed", TYPE_NUM);
     sys.fs.db.setColumn(8, "snoozedId", TYPE_NUM);
     sys.fs.db.idEnable("id");
+    sys.fs.db.sync();
   }
   
   bAlarm = sys.gui.addButton(0, 0, 3, 1, "Alarm", scr);
@@ -209,7 +210,6 @@ function initTimer {
   
   tTimTime = sys.gui.addText(2, l, 7, 2, "00:00:00", sTimer);
   sys.gui.setTxtSize(tTimTime, FONT_70);
-  #sys.gui.setTxtAlign(tTimTime, ALIGN_CENTER);
   
   l += 2;
   
@@ -334,11 +334,14 @@ function updateTimer {
   }
   
   if(sys.gui.getEventC(bTpReset) == EV_RELEASED) {
+    timerHour = 0;
+    timerMin = 0;
+    timerSec = 0;
+    sys.gui.setVisible(bTpReset, 0);
     timerReset();
   }
   
-  if(sys.gui.getEventC(bTpBtn) == EV_RELEASED) {
-    timerFlag = 0;
+  if(sys.gui.getEventC(bTpBtn) == EV_RELEASED) {    
     timerReset();
   }
 }
@@ -361,11 +364,7 @@ function timerClb {
 function timerReset {
   timerRunning = 0;
   timerFlag = 0;
-  sys.gui.setVisible(bTpReset, 0);
   sys.gui.setStr(bTpStart, "Start");
-  timerHour = 0;
-  timerMin = 0;
-  timerSec = 0;
   timerStopTime = 0;
   timerRestTime = 0;
   timerRunning = 0;
@@ -374,6 +373,7 @@ function timerReset {
   sys.gui.setVisible(tTpMsg, 0);
   sys.gui.setVisible(bTpBtn, 0);
   sys.gui.setGrayout(bTpStart, 0);
+  freeIcon();
 }
 
 
@@ -420,43 +420,113 @@ function reloadAlarmScr {
   if(sAlList) {
     sys.gui.destroy(sAlList);
   }
-
-  sAlList = sys.gui.addScreen(0, 0, 9, 11, sAlarm);
-  sys.gui.setSpacing(sAlList, 0, 0, 0, 2);
+  
+  local count = sys.fs.db.getRowCount();
+  
+  if(count < 5) {
+    sAlList = sys.gui.addScreen(0, 0, 9, 10, sAlarm);
+    sys.gui.setX1(bAlNew, 8);
+    sys.gui.setVisible(slScroll, 0);
+    sys.gui.setValue(slScroll, 0);
+  } else {
+    sAlList = sys.gui.addScreen(0, 0, 8, 10, sAlarm);
+    sys.gui.setX1(bAlNew, 7);
+    sys.gui.setVisible(slScroll, 1);
+  }
+  
+  sys.gui.setSpacing(sAlList, 0, 2, 0, 2);
+  sys.gui.setXscroll(sAlList, 2);
+  sys.gui.setYscroll(sAlList, -2);
+  
   alListMax = 0;
   
   if(sys.fs.db.selectRow(0)) {
     local l = 0;
     local x = 0;
-    while(1) {
+    while(x < len(bAlChecks)) {
       
       bAlChecks[x] = sys.gui.addCheckBox(0, l, 8, 1, sys.fs.db.getEntryStr("name", "") , sAlList);
       bAlOpts[x] = sys.gui.addButton(8, l, 1, 1, "...", sAlList);
+      if (count >= 5) {
+        sys.gui.setX1(bAlOpts[x], 7);
+        sys.gui.setX2(bAlChecks[x], 7);
+      } 
       sys.gui.setValue(bAlChecks[x], sys.fs.db.getEntryNum("active", 0));
       l++;
       
       local rep = sys.fs.db.getEntryNum("repeat", 0);
       local repStr = "";
       if(rep) {
-        if(rep % 2) repStr += getDayName(0);
+        local array days[7];
+        
+        for(local x = 0; x < len(days); x++;) {
+          days[x] = 0;
+        }
+        
+        if(rep % 2) days[0] = 1;
         rep -= rep%2;
         
-        if(rep % 4 == 2) repStr += "," + getDayName(1);
+        if(rep % 4 == 2) days[1] = 1;
         rep -= rep%4;
         
-        if(rep % 8 == 4) repStr += "," + getDayName(2);
+        if(rep % 8 == 4) days[2] = 1;
         rep -= rep%8;
         
-        if(rep % 16 == 8) repStr += "," + getDayName(3);
+        if(rep % 16 == 8) days[3] = 1;
         rep -= rep%16;
         
-        if(rep % 32 == 16) repStr += "," + getDayName(4);
+        if(rep % 32 == 16) days[4] = 1;
         rep -= rep%32;
         
-        if(rep % 64 == 32) repStr += "," + getDayName(5);
+        if(rep % 64 == 32) days[5] = 1;
         
         rep -= rep%64;
-        if(rep % 128 == 64) repStr += "," + getDayName(6);
+        if(rep % 128 == 64) days[6] = 1;
+        
+        if (
+          days[0] 
+          and days[1] 
+          and days[2] 
+          and days[3] 
+          and days[4] 
+          and days[5] 
+          and days[6]
+        ) {
+          repStr = "All week";
+        } else if ( 
+          days[0] 
+          and days[1] 
+          and days[2] 
+          and days[3] 
+          and days[4] 
+          and (not days[5]) 
+          and (not days[6])
+        ) {
+          repStr = "Monday - Friday";
+        } else if ( 
+          days[5] 
+          and days[6] 
+          and not days[0] 
+          and not days[1] 
+          and not days[2] 
+          and not days[3] 
+          and not days[4]
+        ) {
+          repStr = "Weekends";
+        } else {
+          local count = 0;
+          for(local x = 0; x < len(days); x++;) {
+            count += days[x];
+          }
+        
+          for(local x = 0; x < len(days); x++;) {
+            if(days[x]) {
+              repStr += getDayName(x, count < 3) + ",";
+            }
+          }
+        }
+      } else {
+        repStr = "Once";
       }
       
       tAlText[x] = sys.gui.addText(
@@ -468,6 +538,10 @@ function reloadAlarmScr {
       l++;
       
       bAlSnooze[x] = sys.gui.addButton(6, l, 3, 1, "Clear", sAlList);
+      
+      if (count >= 5) {
+        sys.gui.setX1(bAlSnooze[x], 5);
+      }
       
       if(not sys.fs.db.getEntryNum("snoozed", 0)) {
         sys.gui.setVisible(bAlSnooze[x], 0);
@@ -483,8 +557,9 @@ function reloadAlarmScr {
         break;
       }
     }
+    
+    sys.gui.setParam(slScroll, (l - 2)*32 - 2);
     alListMax = x;
-    print("list max" + alListMax);
   } else {
     sys.gui.addText(0, 0, 8, 1, "No alarms.", sAlList);
   }
@@ -495,7 +570,21 @@ function reloadAlarmScr {
 function initAlarm {
   sys.gui.setXscroll(sAlarm, -42);
   sys.gui.setYscroll(sAlarm, -6);
-  bAlNew = sys.gui.addButton(8, 11, 1, 1, "+", sAlarm);
+  
+  sys.gui.setSpacing(sAlarm, 1, 1, 1, 1);
+  sys.gui.setXcell(sAlarm, 32);
+  sys.gui.setYcell(sAlarm, 34);
+  
+  bAlNew = sys.gui.addButton(8, 10, 1, 1, "+", sAlarm);
+  slScroll = sys.gui.addSliderV(8, 0, 1, 8, 100, 0, sAlarm);
+  
+  sys.gui.setVisible(slScroll, 0);
+  
+  local count = sys.fs.db.getRowCount();
+  
+  if(count >= 5) {
+    
+  }
   
   array bAlChecks[20];
   array bAlOpts[20];
@@ -510,21 +599,25 @@ function initAlarm {
   
 }
 
- # call return for FSL
-function callRet {
-  print("argument0: " + arg0);
-  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
-}
-
 
 function getDayName {
-  if (arg0 == 0) return "Mo";
-  if (arg0 == 1) return "Tu";
-  if (arg0 == 2) return "We";
-  if (arg0 == 3) return "Th";
-  if (arg0 == 4) return "Fr";
-  if (arg0 == 5) return "Sa";
-  if (arg0 == 6) return "Su";
+  if(arg1 == 0) {
+    if (arg0 == 0) return "Mo";
+    if (arg0 == 1) return "Tu";
+    if (arg0 == 2) return "We";
+    if (arg0 == 3) return "Th";
+    if (arg0 == 4) return "Fr";
+    if (arg0 == 5) return "Sa";
+    if (arg0 == 6) return "Su";
+  } else {
+    if (arg0 == 0) return "Monday";
+    if (arg0 == 1) return "Tuesday";
+    if (arg0 == 2) return "Wednesday";
+    if (arg0 == 3) return "Thursday";
+    if (arg0 == 4) return "Friday";
+    if (arg0 == 5) return "Saturday";
+    if (arg0 == 6) return "Sunday";
+  }
   
   return "";   
 }
@@ -543,7 +636,7 @@ function lz {
 
  # overlay functions
 function init_overlay {
-  ovHr  = 0;
+  ovHr  = 7;
   ovMin = 0;
   ovAlId = arg0;
   
@@ -684,7 +777,7 @@ function activateAlarm {
 
 function handle_overlay {
   sys.os.gui.handleText(tName);
-
+  
   for(local x = 0; x < len(ovDays); x++;) {
     if (sys.gui.getEventC(ovDays[x]) == EV_RELEASED) {
       sys.gui.setGhost(ovDays[x], 1 - sys.gui.getGhost(ovDays[x]));
@@ -765,7 +858,9 @@ function handle_overlay {
         sys.os.error("DB Borked!");
         return;
       }
-      sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+      if(sys.fs.db.getEntryNum("active", 0)) {
+        sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+      }
     }
     
     if(sys.gui.getValue(bRepeat)) {  
@@ -804,9 +899,15 @@ function handle_overlay {
   sys.os.gui.btnCtrl(ov_screen, ov_cancel);
 }
 
+
 function updateAlarm {
   # overlay
   if (sys.gui.getEventC(bAlNew) == EV_RELEASED) {
+    if (sys.fs.db.getRowCount() >= 20) {
+      sys.os.error("Too many alarms!");
+      return;
+    }
+    
     init_overlay(0);
     ov_id = sys.o.setScr(ov_screen);
     sys.o.setY(400);
@@ -824,15 +925,12 @@ function updateAlarm {
       sys.fs.db.selectRowId(tAlId[x]);
       sys.fs.db.setEntryNum("active", sys.gui.getValue(bAlChecks[x]));
       
-      print("alarm id:" + tAlId[x]);
-      
       if (sys.gui.getValue(bAlChecks[x])) {
-        sys.fs.db.setEntryNum("alarmId", activateAlarm(tAlId[x]));
-        sys.fs.db.sync();
+        sys.fs.db.setEntryNum("alarmId", activateAlarm(tAlId[x])); 
       } else {
-        print("deleting alarm: " + sys.fs.db.getEntryNum("alarmId", 0));
         sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
       }
+      sys.fs.db.sync();
     }
     
     if(sys.gui.getEventC(bAlSnooze[x]) == EV_RELEASED) {
@@ -849,6 +947,8 @@ function updateAlarm {
       reloadAlarmScr();
     }
   }
+  
+  sys.gui.setYscroll(sAlList, sys.gui.getValue(slScroll) - 2);
 }
 
 
@@ -895,6 +995,7 @@ function update {
     if (sys.gui.getEventC(bAlRingOk) == EV_RELEASED) {
       if(sys.fs.db.getEntryNum("repeat", 0) == 0) {
         sys.fs.db.setEntryNum("active", 0);
+        sys.fs.db.sync();
       }
     
       sys.os.gui.setMainScr(scr);
@@ -914,6 +1015,7 @@ function update {
           sys.fs.db.getEntryNum("id", 0)
         )
       );
+      sys.fs.db.sync();
       
       reloadAlarmScr();
     }
@@ -925,5 +1027,5 @@ function update {
 
 
 function exit {
-
+  sys.fs.db.close();
 }
