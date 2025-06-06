@@ -59,6 +59,14 @@ function boop {
   sys.snd.beepC(0, 1700, &beep);
 }
 
+function lp {
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    return arg1;
+  } else {
+    return arg0;
+  }
+}
+
 function init {
   scr = sys.gui.addScreen();
   sys.os.setSingular();
@@ -91,12 +99,18 @@ function init {
     sys.fs.db.sync();
   }
   
-  bAlarm = sys.gui.addButton(0, 0, 3, 1, "Alarm", scr);
-  bStopwatch = sys.gui.addButton(3, 0, 4, 1, "Stopwatch", scr);
-  bTimer = sys.gui.addButton(7, 0, 2, 1, "Timer", scr);
+  bAlarm = sys.gui.addButton(0, 0, 3, 1, lp("Alarm", "Budík"), scr);
+  bStopwatch = sys.gui.addButton(3, 0, 4, 1, lp("Stopwatch", "Stopky"), scr);
+  bTimer = sys.gui.addButton(7, 0, 2, 1, lp("Timer", "Minutka"), scr);
   sys.gui.setTexAlign(bAlarm, ALIGN_CENTER);
   sys.gui.setTxtAlign(bStopwatch, ALIGN_CENTER);
   sys.gui.setTexAlign(bTimer, ALIGN_CENTER);
+  
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    sys.gui.setX2(bStopwatch, 3);
+    sys.gui.setX1(bTimer, 6);
+    sys.gui.setX2(bTimer, 3);
+  }
   
   sys.gui.setGhost(bStopwatch, 1);
   sys.gui.setGhost(bTimer, 1);
@@ -122,12 +136,12 @@ function init {
   sAlRing = sys.gui.addScreen();
   sys.gui.setSpacing(sAlRing, 0, 4, 0, 4);
   
-  tAlRing = sys.gui.addText(1, 3, 5, 1, "Alarm note", sAlRing);
+  tAlRing = sys.gui.addText(1, 3, 8, 1, "Alarm note", sAlRing);
   tAlRingTime = sys.gui.addText(1, 4, 5, 3, "17:50", sAlRing);
   sys.gui.setTxtSize(tAlRingTime, FONT_70);
   
   bAlRingOk = sys.gui.addButton(5, 7, 4, 2, "Ok", sAlRing);
-  bAlRingSnooze = sys.gui.addButton(1, 7, 4, 2, "Snooze", sAlRing);
+  bAlRingSnooze = sys.gui.addButton(1, 7, 4, 2, lp("Snooze", "Odložit"), sAlRing);
   
   alarmFlag = 0;
   timerFlag = 0;
@@ -232,7 +246,7 @@ function initTimer {
   
   l++;
   
-  tTpMsg = sys.gui.addText(3, l, 4, 1, "Time is up!", sTimer);
+  tTpMsg = sys.gui.addText(3, l, 4, 1, lp("Time is up!", "Čas vypršel!"), sTimer);
   l++;
   bTpBtn = sys.gui.addButton(3, l, 4, 2, "Ok", sTimer);
   sys.gui.setTxtSize(bTpBtn, FONT_70);
@@ -310,7 +324,7 @@ function updateTimer {
       timerStopTime = sys.time.get() + 60*60*timerHour + 60*timerMin + timerSec;
       sys.time.setTimer((60*60*timerHour + 60*timerMin + timerSec) * 1000, &timerClb);
       timerRunning = 1;
-      sys.gui.setStr(bTpStart, "Pause");
+      sys.gui.setStr(bTpStart, lp("Pause", "Pozastavit"));
       timerHideBtns(0);
       sys.gui.setVisible(bTpReset, 1);
       setIcon();
@@ -492,7 +506,7 @@ function reloadAlarmScr {
           and days[5] 
           and days[6]
         ) {
-          repStr = "All week";
+          repStr = lp("All week", "Celý týden");
         } else if ( 
           days[0] 
           and days[1] 
@@ -502,7 +516,7 @@ function reloadAlarmScr {
           and (not days[5]) 
           and (not days[6])
         ) {
-          repStr = "Monday - Friday";
+          repStr = lp("Monday - Friday", "Pondělí - Pátek");
         } else if ( 
           days[5] 
           and days[6] 
@@ -512,7 +526,7 @@ function reloadAlarmScr {
           and not days[3] 
           and not days[4]
         ) {
-          repStr = "Weekends";
+          repStr = lp("Weekends", "Přes víkend");
         } else {
           local count = 0;
           for(local x = 0; x < len(days); x++;) {
@@ -526,7 +540,7 @@ function reloadAlarmScr {
           }
         }
       } else {
-        repStr = "Once";
+        repStr = lp("Once", "Jednou");
       }
       
       tAlText[x] = sys.gui.addText(
@@ -537,7 +551,7 @@ function reloadAlarmScr {
       
       l++;
       
-      bAlSnooze[x] = sys.gui.addButton(6, l, 3, 1, "Clear", sAlList);
+      bAlSnooze[x] = sys.gui.addButton(6, l, 3, 1, lp("Clear", "Zrušit"), sAlList);
       
       if (count >= 5) {
         sys.gui.setX1(bAlSnooze[x], 5);
@@ -547,7 +561,7 @@ function reloadAlarmScr {
         sys.gui.setVisible(bAlSnooze[x], 0);
         l--;
       } else {
-        sys.gui.addText(0, l, 4, 1, "Snoozed", sAlList);
+        sys.gui.addText(0, l, 4, 1, lp("Snoozed", "Odložen"), sAlList);
       }
       
       tAlId[x] = sys.fs.db.getEntryNum("id", 0);
@@ -561,7 +575,7 @@ function reloadAlarmScr {
     sys.gui.setParam(slScroll, (l - 2)*32 - 2);
     alListMax = x;
   } else {
-    sys.gui.addText(0, 0, 8, 1, "No alarms.", sAlList);
+    sys.gui.addText(0, 0, 8, 1, lp("No alarms.", "Žádné budíky."), sAlList);
   }
   
 }
@@ -601,22 +615,42 @@ function initAlarm {
 
 
 function getDayName {
-  if(arg1 == 0) {
-    if (arg0 == 0) return "Mo";
-    if (arg0 == 1) return "Tu";
-    if (arg0 == 2) return "We";
-    if (arg0 == 3) return "Th";
-    if (arg0 == 4) return "Fr";
-    if (arg0 == 5) return "Sa";
-    if (arg0 == 6) return "Su";
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    if(arg1 == 0) {
+      if (arg0 == 0) return "Po";
+      if (arg0 == 1) return "Út";
+      if (arg0 == 2) return "St";
+      if (arg0 == 3) return "Čt";
+      if (arg0 == 4) return "Pá";
+      if (arg0 == 5) return "So";
+      if (arg0 == 6) return "Ne";
+    } else {
+      if (arg0 == 0) return "Pondělí";
+      if (arg0 == 1) return "Úterý";
+      if (arg0 == 2) return "Středa";
+      if (arg0 == 3) return "Čtvrtek";
+      if (arg0 == 4) return "Pátek";
+      if (arg0 == 5) return "Sobota";
+      if (arg0 == 6) return "Neděle";
+    }
   } else {
-    if (arg0 == 0) return "Monday";
-    if (arg0 == 1) return "Tuesday";
-    if (arg0 == 2) return "Wednesday";
-    if (arg0 == 3) return "Thursday";
-    if (arg0 == 4) return "Friday";
-    if (arg0 == 5) return "Saturday";
-    if (arg0 == 6) return "Sunday";
+    if(arg1 == 0) {
+      if (arg0 == 0) return "Mo";
+      if (arg0 == 1) return "Tu";
+      if (arg0 == 2) return "We";
+      if (arg0 == 3) return "Th";
+      if (arg0 == 4) return "Fr";
+      if (arg0 == 5) return "Sa";
+      if (arg0 == 6) return "Su";
+    } else {
+      if (arg0 == 0) return "Monday";
+      if (arg0 == 1) return "Tuesday";
+      if (arg0 == 2) return "Wednesday";
+      if (arg0 == 3) return "Thursday";
+      if (arg0 == 4) return "Friday";
+      if (arg0 == 5) return "Saturday";
+      if (arg0 == 6) return "Sunday";
+    }
   }
   
   return "";   
@@ -646,9 +680,9 @@ function init_overlay {
   sys.gui.setYcell(ov_screen, 34);
   sys.gui.setXscroll(ov_screen, -2);
   sys.gui.setYscroll(ov_screen, -6);
-  sys.gui.addText(0, 0, 5, 1, "Alarm setup", ov_screen);
-  tName = sys.gui.addText(0, 1, 7, 1, "New Alarm", ov_screen);
-  bDel = sys.gui.addButton(5, 0, 2, 1, "Rem.", ov_screen);
+  sys.gui.addText(0, 0, 5, 1, lp("Alarm setup", "Nastavit budík"), ov_screen);
+  tName = sys.gui.addText(0, 1, 7, 1, lp("New Alarm","Nový budík"), ov_screen);
+  bDel = sys.gui.addButton(5, 0, 2, 1, lp("Rem.", "Smaž"), ov_screen);
   
   if(arg0 == 0) {
     sys.gui.setVisible(bDel, 0);
@@ -680,7 +714,7 @@ function init_overlay {
   
   l++;
   
-  bRepeat = sys.gui.addCheckBox(0, l, 5, 1, "Repeating", ov_screen);
+  bRepeat = sys.gui.addCheckBox(0, l, 5, 1, lp("Repeating", "Opakující se"), ov_screen);
   
   l++;
   
@@ -695,7 +729,7 @@ function init_overlay {
   l += 1;
   
   ov_ok = sys.gui.addButton(4, l, 3, 1, "Ok", ov_screen);
-  ov_cancel = sys.gui.addButton(0, l, 3, 1, "Back", ov_screen);
+  ov_cancel = sys.gui.addButton(0, l, 3, 1, lp("Back", "Zpět"), ov_screen);
   
   if(arg0 != 0) {
     if (not sys.fs.db.selectRowId(arg0)) {
@@ -904,7 +938,7 @@ function updateAlarm {
   # overlay
   if (sys.gui.getEventC(bAlNew) == EV_RELEASED) {
     if (sys.fs.db.getRowCount() >= 20) {
-      sys.os.error("Too many alarms!");
+      sys.os.error(lp("Too many alarms!", "Příliš mnoho budíků!"));
       return;
     }
     
