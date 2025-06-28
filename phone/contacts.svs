@@ -11,14 +11,18 @@ function init {
   sys.gui.setRelInit(1);
   sys.os.setSingular();
   sys.os.gui.setMainScr(scr);
+  scrSpacer(scr);
   
-  sys.gui.setXscroll(scr, 16);
-  sys.gui.setYscroll(scr, 16);
+  sys.gui.setXscroll(scr, 26);
+  sys.gui.setYscroll(scr, 32);
   sys.os.gui.setRoot(0, "/");
   
   sys.gui.addText(1, 1, 5, 1, "Contacts", scr);
   
   list_scr = sys.gui.addScreen(1, 2, 8, 11, scr);
+  sys.gui.setSpacing(list_scr, 0, 2, 0, 0);
+  sys.gui.setXcell(list_scr, 34);
+  sys.gui.setYcell(list_scr, 34);
     
   b_exit = sys.gui.addButton(1, 13, 3, 1, "Back", scr);
   sys.gui.setVisible(b_exit, 0);
@@ -71,13 +75,16 @@ function init {
   
   # new contact
   new_scr = sys.gui.addScreen();
-  sys.gui.setYscroll(new_scr, 16);
-  sys.gui.setXscroll(new_scr, 16);
-  b_nback = sys.gui.addButton(1, 13, 3, 1, "Back", new_scr);
-  b_nsave = sys.gui.addButton(6, 13, 3, 1, "Save", new_scr);
-  s_nbar  = sys.gui.addSliderV(9, 1, 1, 12, 250, 1, new_scr);
+  scrSpacer(new_scr);
+  sys.gui.setYscroll(new_scr, 20);
+  sys.gui.setXscroll(new_scr, 24);
+  b_nback = sys.gui.addButton(1, 12, 3, 1, "Back", new_scr);
+  b_nsave = sys.gui.addButton(6, 12, 3, 1, "Save", new_scr);
+  s_nbar  = sys.gui.addSliderV(9, 1, 1, 11, 280, 1, new_scr);
   
-  s_nin = sys.gui.addScreen(1, 1, 8, 12, new_scr);
+  s_nin = sys.gui.addScreen(1, 1, 8, 11, new_scr);
+  scrSpacer(s_nin);
+  sys.gui.setXscroll(s_nin, 1);
   
   sys.gui.addText(0, 0, 7, 1, "Name:", s_nin);
   t_nname = sys.gui.addText(0, 1, 8, 1, "", s_nin);
@@ -98,23 +105,30 @@ function init {
   t_nphone[0] = sys.gui.addText(0, 7, 8, 1, "", s_nin);
   sys.gui.setTexEd(t_nphone[0], 1);
   
-  b_nadd_num = sys.gui.addButton(1, 8, 6, 1, "+ Add number", s_nin);
+  b_nadd_num = sys.gui.addButton(1, 8, 6, 1, "+ Add", s_nin);
   
-  b_npic = sys.gui.addButton(1, 9, 6, 1, "Select picture", s_nin);
+  t_nnote_t = sys.gui.addText(0, 9, 7, 1, "Note:", s_nin);
   
-  t_nnote_t = sys.gui.addText(0, 10, 7, 1, "Note:", s_nin);
-  
-  t_nnote = sys.gui.addText(0, 11, 8, 4, "", s_nin);
+  t_nnote = sys.gui.addText(0, 10, 8, 4, "", s_nin);
   sys.gui.setTexEd(t_nnote, 1);
+  
+  b_npic = sys.gui.addButton(1, 15, 6, 1, "Select picture", s_nin);
+  
+  i_nimage = sys.gui.addImage(2, 16, 4, 4, "appdata/phone/empty.p16", s_nin);
   
   new_reset();
   
   # contact screen
   
   cont_scr = sys.gui.addScreen();
-  i_cimage = sys.gui.addImage(3, 1 , 4, 4, "appdata/phone/empty.p16", cont_scr);
+  scrSpacer(cont_scr);
+  sys.gui.setXscroll(cont_scr, 16);
+  sys.gui.setYscroll(cont_scr, 16);
+  i_cimage = sys.gui.addImage(3, 2, 4, 4, "appdata/phone/empty.p16", cont_scr);
   i_bcall  = sys.gui.addButton(1, 10, 4, 1, "Call", cont_scr);
+  sys.gui.setIcon(i_bcall, "appdata/phone/assets/call.sic");
   i_bmsg   = sys.gui.addButton(5, 10, 4, 1, "Message", cont_scr);
+  sys.gui.setIcon(i_bmsg, "appdata/phone/assets/msg2.sic");
   
   i_bedit = sys.gui.addButton(6, 12, 3, 1, "More", cont_scr);
   i_bback = sys.gui.addButton(1, 12, 3, 1, "Back", cont_scr);
@@ -127,7 +141,22 @@ function init {
   op_cont_exit = 0;
   op_cont_pick = 0;
   
-  if (typeof(arg0) == TYPE_STR) {
+  handle_args(arg0, arg1);
+  
+  com_init();
+  ddm_init();
+  
+  call_menu = 0;
+  opt_menu  = 0;
+  del_com   = 0;
+}
+
+function wakeup {
+  handle_args(arg0, arg1);
+}
+
+function handle_args {
+if (typeof(arg0) == TYPE_STR) {
     if (arg0 == "ONLYBACK") {
        sys.gui.setVisible(b_exit, 1);
        sys.gui.setVisible(b_new, 0);
@@ -148,15 +177,15 @@ function init {
       op_cont_pick = 1;
     }
   }
-  
-  com_init();
-  ddm_init();
-  
-  call_menu = 0;
-  opt_menu  = 0;
-  del_com   = 0;
 }
 
+function scrSpacer {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setYscroll(arg0, -6);
+}
 
 function new_reset {
   nname = "";
@@ -178,11 +207,14 @@ function new_reset {
     }
   }
   
-  sys.gui.setXYXY(b_nadd_num, 1, 8, 6, 1);
-  sys.gui.setXYXY(b_npic, 1, 9, 6, 1);
+  sys.gui.setXYXY(b_nadd_num, 5, 8, 3, 1);
+  sys.gui.setXYXY(t_nnote_t, 0, 9, 7, 1);
+  sys.gui.setXYXY(t_nnote, 0, 10, 8, 4);
+  sys.gui.setXYXY(b_npic, 1, 15, 6, 1);
   sys.gui.setStr(b_npic, "Select picture");
-  sys.gui.setXYXY(t_nnote_t, 0, 10, 7, 1);
-  sys.gui.setXYXY(t_nnote, 0, 11, 8, 4);
+  sys.gui.setParam(s_nbar, 340);
+  
+  sys.gui.setStr(i_nimage, "appdata/phone/empty.p16");
 }
 
 
@@ -448,6 +480,8 @@ function upd_cont {
         nnote = sys.fs.db.getEntryStr("note", "");
         npic = sys.fs.db.getEntryStr("picture", "");
         
+        sys.gui.setStr(i_nimage, npic);
+        
         sys.fs.db.selectTable("numbers");
         local p_i = 0;
         while(sys.fs.db.selectRowNum("contact_id", id)) {
@@ -534,7 +568,7 @@ function update {
 
 function picRet {
   if(arg0 == "") return;
-  sys.gui.setStr(b_npic, arg0);
+  sys.gui.setStr(i_nimage, arg0);
   npic = arg0;
 }
 
@@ -556,7 +590,7 @@ function upd_new {
   }
   
   if (sys.gui.getEventC(b_npic) == EV_RELEASED) {
-    sys.os.subProcess("lib/fsl2.svs", &picRet, 0, 0, 0);
+    sys.os.subProcess("lib/fsl2.svs", &picRet, sys.gui.getStr(i_nimage), 0, 0);
     return;
   }
   
@@ -575,8 +609,8 @@ function upd_new {
     sys.gui.setY2(s_nbar, 8);
     sys.gui.setY2(s_nin, 8);
   } else {
-    sys.gui.setY2(s_nbar, 12);
-    sys.gui.setY2(s_nin, 12);
+    sys.gui.setY2(s_nbar, 11);
+    sys.gui.setY2(s_nin, 11);
   }
   
   sys.gui.setYscroll(s_nin, sys.gui.getValue(s_nbar));
@@ -608,6 +642,11 @@ function new_add_num {
   
   sys.gui.setY1(t_nnote, sys.gui.getY1(t_nnote) + 1);
   sys.gui.setY2(t_nnote, sys.gui.getY2(t_nnote) + 1);
+  
+  sys.gui.setY1(i_nimage, sys.gui.getY1(i_nimage) + 1);
+  sys.gui.setY2(i_nimage, sys.gui.getY2(i_nimage) + 1);
+  
+  sys.gui.setParam(s_nbar, sys.gui.getParam(s_nbar) + 32);
   sys.gui.setRelInit(1);
 }
 
@@ -793,7 +832,7 @@ function handle_save {
   
   # add new ones
   for(local i = 0; i < 10; i++;) {
-    if (t_nphone[i] != 0) {
+    if (t_nphone[i] != 0 and nphone[i] != "") {
       sys.fs.db.newRow();
       sys.fs.db.setEntryStr("number", nphone[i]);
       sys.fs.db.setEntryNum("contact_id", id);

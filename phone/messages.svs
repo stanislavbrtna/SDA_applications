@@ -207,8 +207,8 @@ function upd_convs {
   local i;
   for(i = 0; i < pCount; i++;) {
     if (sys.gui.getEventC(pButtons[i]) == EV_RELEASED) {
-      load_conv(pFiles[i]);
       page = 0;
+      load_conv(pFiles[i]);
       sys.gui.setValue(cScroll, 1024);
     } 
   }
@@ -218,7 +218,6 @@ function upd_convs {
 function load_conv {
   print("Loading conv:" + arg0);
   currentConv = arg0;
-  page = 0;
   
   sys.os.gui.setMainScr(cscr);
   sys.gui.destroy(sMsgList);

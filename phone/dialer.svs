@@ -8,41 +8,42 @@ function init {
   ## Dialer Screen
   scr_d = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr_d);
-
-  sys.gui.setXscroll(scr_d, -16);
+  scrSpacer(scr_d);
+  sys.gui.setYcell(scr_d, 17);
+  sys.gui.setXscroll(scr_d, -6);
   sys.gui.setYscroll(scr_d, 16);
   
   array b_dial[10];
   
   for(local i = 1; i < 10; i++;) {
-    b_dial[i] = sys.gui.addButton(0 + 2*((i-1)%3), 3 + 2*((i-1)/3), 2, 2, "" + i, scr_d);
+    b_dial[i] = sys.gui.addButton(0 + 2*((i-1)%3), 6 + 4*((i-1)/3), 2, 4, "" + i, scr_d);
     sys.gui.setTxtSize(b_dial[i], 32);
   }
   
-  b_dial[0] = sys.gui.addButton(2, 10, 2, 2, "0", scr_d);
+  b_dial[0] = sys.gui.addButton(2, 19, 2, 4, "0", scr_d);
   sys.gui.setTxtSize(b_dial[0], 32);
   
-  b_star = sys.gui.addButton(0, 10, 2, 2, "*", scr_d);
-  b_hash = sys.gui.addButton(4, 10, 2, 2, "#", scr_d);
+  b_star = sys.gui.addButton(0, 19, 2, 4, "*", scr_d);
+  b_hash = sys.gui.addButton(4, 19, 2, 4, "#", scr_d);
   sys.gui.setTxtSize(b_star, 32);
   sys.gui.setTxtSize(b_hash, 32);
   
-  t_pin = sys.gui.addText(0, 2, 6, 1, "Enter PIN code", scr_d);
-  b_ok  = sys.gui.addButton(7, 6, 2, 1, "Ok", scr_d);
-  b_add = sys.gui.addButton(7, 6, 2, 1, "Add", scr_d);
+  t_pin = sys.gui.addText(0, 4, 6, 2, "Enter PIN code", scr_d);
+  b_ok  = sys.gui.addButton(7, 12, 2, 2, "Ok", scr_d);
+  b_add = sys.gui.addButton(7, 12, 2, 2, "Add", scr_d);
   sys.gui.setGrayout(b_ok, 1);
   sys.gui.setVisible(b_ok, 0);
   sys.gui.setVisible(t_pin, 0);
   
-  b_del = sys.gui.addButton(7, 1, 2, 1, "", scr_d);
+  b_del = sys.gui.addButton(7, 2, 2, 2, "", scr_d);
   sys.gui.setIcon(b_del, "backspace.sic");
   sys.gui.setParam(b_del, 16);
-  b_call = sys.gui.addButton(7, 3, 2, 2, "Call", scr_d);
+  b_call = sys.gui.addButton(7, 6, 2, 4, "Call", scr_d);
   
-  b_contacts = sys.gui.addButton(0, 13, 4, 1, "Contacts", scr_d);
-  b_history = sys.gui.addButton(5, 13, 4, 1, "History", scr_d);
+  b_contacts = sys.gui.addButton(0, 24, 4, 2, "Contacts", scr_d);
+  b_history = sys.gui.addButton(5, 24, 4, 2, "History", scr_d);
   
-  t_number = sys.gui.addText(0, 1, 6, 1, "", scr_d);
+  t_number = sys.gui.addText(0, 2, 6, 2, "", scr_d);
   number = "";
   fillNumber = "";
   
@@ -71,6 +72,14 @@ function init {
   
   # arg0 - type of request
   process_args(arg0, arg1, arg2);
+}
+
+function scrSpacer {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setYscroll(arg0, -6);
 }
 
 ## Tray Icon stuff
@@ -121,7 +130,7 @@ function process_args {
     }
     
     if (arg0 == "MISSED") {
-      print("Daler wkup, missed call");
+      print("Dialer wkup, missed call");
       set_icon();
       sys.os.suspend();
     }
@@ -131,9 +140,10 @@ function process_args {
 
 ## Loads call history screen
 function init_hist {
-  scr_hist = sys.gui.addScreen(); 
-  sys.gui.setXscroll(scr_hist, 16);
-  sys.gui.setYscroll(scr_hist, -16);
+  scr_hist = sys.gui.addScreen();
+  scrSpacer(scr_hist);
+  sys.gui.setXscroll(scr_hist, 26);
+  sys.gui.setYscroll(scr_hist, -2);
   
   list_scr = sys.gui.addScreen(1, 1, 8, 11, scr_hist);
   sys.gui.setXscroll(list_scr, -8);
@@ -241,7 +251,7 @@ function load_hist {
       = sys.gui.addButton(
         0,
         i*3 + y_add,
-        7,
+        8,
         1,
         sys.fs.db.getEntryStr("name", ""), 
         list_scr

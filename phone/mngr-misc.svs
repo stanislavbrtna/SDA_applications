@@ -70,14 +70,14 @@ function set_status {
   print("phone manager: setting status from: " + mngr_status + " to: " + arg0);
   mngr_status = arg0;
   
-  sys.gui.setStr(tStat, "Status: " + arg0);
+  sys.gui.setStr(tStat, "" + arg0);
 }
 
 
 function draw_signal {
   if(inOpt == 1) return;
 
-  sys.ds.setArea(200, 64 + 16, 220 + 70, 64+64 + 16);
+  sys.ds.setArea(200 + 5, 64, 220 + 70, 64+64);
   sys.ds.clearArea(sys.gui.getColor(COL_BACKGROUND));
   
   if (gsm_signal > 0) {

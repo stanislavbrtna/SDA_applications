@@ -33,15 +33,24 @@ function init {
   
   at_init();
   
+  sys.os.gui.setRoot(1, "phone/sic");
   scr = sys.gui.addScreen();
+  sys.gui.setYcell(scr, 35);
+  sys.gui.setXcell(scr, 18);
+  sys.gui.setSpacing(scr, 0, 2, 3, 0);
   sys.gui.setXscroll(scr, -16);
   sys.gui.setYscroll(scr, -16);
   
   sys.gui.setRelInit(1);
   
-  tStat = sys.gui.addText(0, 0, 5, 1, "Status", scr);
-  tOperator = sys.gui.addText(0, 1, 3, 1, "...", scr);
-  bOptions = sys.gui.addButton(0,2, 3, 1, "Options", scr);
+  tOperator = sys.gui.addText(0, 0, 6, 1, "...", scr);
+  tStat = sys.gui.addText(0, 1, 8, 1, "Status", scr);
+  sys.gui.setTxtSize(tStat, FONT_12);
+  bOptions = icoButton(12, 2, 2, 1, "conf.sic", scr);
+  
+  bDial = icoButton(0, 2, 2, 1, "call.sic", scr);
+  bMessages = icoButton(2, 2, 2, 1, "msg2.sic", scr);
+  bContacts = icoButton(4, 2, 2, 1, "contacts.sic", scr);
 
   init_gui();
 
@@ -119,6 +128,12 @@ function init {
   set_icon(0);
 }
 
+function icoButton {
+  local id = sys.gui.addButton(arg0, arg1, arg2, arg3, "", arg5);
+  sys.gui.setIcon(id, arg4);
+  sys.gui.setParam(id, 2);
+  return id;
+}
 
 function init_gui { 
   sys.os.gui.setMainScr(0);
@@ -228,6 +243,7 @@ function callRet {
   init_gui();
     
   if (arg0 + "" == "MISSED") {
+    exit_flag = 1;
     sys.os.subProcess("phone/dialer.svs", "", "MISSED", "", 0);
   }
 }
@@ -304,6 +320,10 @@ function gsm_ready {
   return (gsm_signal > 0 and pinOk and at_free()); 
 }
 
+function btn_call_ret {
+  sys.os.suspend();
+}
+
 
 function update {
 
@@ -340,6 +360,18 @@ function update {
     sys.o.destroy();
     sys.os.setRedraw();
     sys.os.gui.setMainScr(opt_scr);
+  }
+   
+  if(sys.gui.getEventC(bDial) == EV_RELEASED) {
+    sys.os.subProcess("phone/dialer.svs", &btn_call_ret, 0, 0, 0);
+  }
+  
+  if(sys.gui.getEventC(bMessages) == EV_RELEASED) {
+    sys.os.subProcess("phone/messages.svs", &btn_call_ret, 0, 0, 0);
+  }
+  
+  if(sys.gui.getEventC(bContacts) == EV_RELEASED) {
+    sys.os.subProcess("phone/contacts.svs", &btn_call_ret, 0, 0, 0);
   }
   
   if(sys.gui.getEventC(bBack) == EV_RELEASED) {
@@ -386,7 +418,7 @@ function update {
       sys.hw.wakeLcd();
       lcd_off_fl = 1;
     }
-    sys.gui.setStr(tStat, "Status: SMSRCV");
+    sys.gui.setStr(tStat, "SMSRCV");
     gc(-1); # perform full garbage collection before calling the sms handling function
     sms_retrive();
     print("time: " + sys.time.get());
@@ -663,7 +695,7 @@ function sms_fin_cb {
     sms_rcv_fl = 0;
   }
   
-  sys.gui.setStr(tStat, "Status: READY");
+  sys.gui.setStr(tStat, "READY");
   sys.gui.setStr(tSMS, "Got " + new_sms_flg + " new SMS messages.");
 }
 
