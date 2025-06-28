@@ -15,8 +15,8 @@ function ddm_create #* id of the calling button, return: id*# {
   array ddm_options[10];
   ddm_btn_cnt = 0;
   ddm_width   = sys.gui.getX2(arg0);# - sys.gui.getX1(arg0);
-  ddm_x1 = sys.gui.getX1(arg0) * sys.gui.getXcell(sys.os.gui.getMainScr()) + 12;
-  ddm_y1 = 28 +  (sys.gui.getY1(arg0) + 1) * sys.gui.getYcell(sys.os.gui.getMainScr());
+  ddm_x1 = sys.gui.getX1(arg0) * sys.gui.getXcell(sys.os.gui.getMainScr()) + 12 + sys.gui.getXscroll(sys.os.gui.getMainScr());
+  ddm_y1 = 28 +  (sys.gui.getY1(arg0) + 1) * sys.gui.getYcell(sys.os.gui.getMainScr()) - sys.gui.getYscroll(sys.os.gui.getMainScr());
 
   ddm_screen = sys.gui.addScreen();
   ddm_id = sys.o.setScr(ddm_screen);
@@ -93,9 +93,9 @@ function ddm_handle #* ddm id *# {
   }
   
   if (sys.gui.getEventC(ddm_dummy) == EV_RELEASED) {
-      sys.o.destroy();
-      return 0;
-    }
+    sys.o.destroy();
+    return 0;
+  }
   
   sys.os.gui.btnCtrl(ddm_screen, ddm_dummy);
 }
