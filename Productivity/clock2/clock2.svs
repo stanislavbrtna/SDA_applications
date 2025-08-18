@@ -331,8 +331,9 @@ function updateTimer {
     } else {
       timerRunning = 0;
       sys.gui.setStr(bTpStart, "Start");
+      sys.time.clearTimer();
       local tim = timerStopTime - sys.time.get();
-      
+      freeIcon();
       timerSec = tim % 60;
       timerMin = (tim % (60*60)) / 60;
       timerHour = tim / (60*60);
@@ -376,6 +377,7 @@ function timerClb {
 
 
 function timerReset {
+  sys.time.clearTimer();
   timerRunning = 0;
   timerFlag = 0;
   sys.gui.setStr(bTpStart, "Start");
