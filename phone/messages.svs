@@ -164,8 +164,6 @@ function load_convs {
   sys.gui.destroy(sConvs);
   sConvs = sys.gui.addScreen(0, 1, 8, 10, scr);
   local i = 0;
-  local new = "";
-  
   sys.fs.db.selectTable("convs");
   
   if (not sys.fs.db.selectRow(0)) {
@@ -173,6 +171,7 @@ function load_convs {
   }
   
   while(1) {
+    local new = "";
     if (sys.fs.db.getEntryNum("new", 0) == 1) {
       new = "*";
       icon_fl = 1;
