@@ -9,8 +9,8 @@ function init {
   sys.gui.addText(0, 0, 6, 1, "Serial tool", screen);
 
   input_t = sys.gui.addText(0, 1, 7, 1, "", screen);
-  b_send  = sys.gui.addButton(7, 1, 2, 1, "Send", screen);
-  b_hist  = sys.gui.addButton(9, 1, 1, 1, "", screen);
+  b_send  = sys.gui.addButton(8, 1, 2, 1, "Send", screen);
+  b_hist  = sys.gui.addButton(7, 1, 1, 1, "", screen);
   sys.gui.setIcon(b_hist, "down.sic");
   sys.gui.setParam(b_hist, 0);
   
