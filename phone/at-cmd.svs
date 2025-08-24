@@ -20,7 +20,7 @@ function at_init {
   
   # simulator debug options:
   simpin  = 1;
-  smsrcv  = 0;
+  smsrcv  = 1;
   failsms = 0;
   
   # consts
@@ -193,7 +193,7 @@ function at_update {
         #at_ustring = "at+cmgr=1\n\r+CMGR: \"REC READ\",\"00310032003300340035003600370038\",\"\",\"23/12/09,16:50:53+04\r\n0050015900ED006C006901610020017E006C00750165006F0075010D006B00FD0020006B016F01480020006400760061\n\rOK";
         at_ustring = "AT_RESULT: AT+CMGR=1\r\n+CMGR: \"REC READ\",\"+420603717477\",\"\",\"24/07/21,19:28:32+08\",145,68,0,0,\"+420602909909\",145,153\r\nAsi budu muset napsat dlouhou zpravu nejak rucne, aby bylo poznat kde to zacina a kde to konci\r\nOK";
       } else if(at_simcmd == "AT+CMGR=2" and smsrcv) {
-        at_ustring = "AT_RESULT: AT+CMGR=2\r\n+CMGR: \"REC READ\",\"+420603717477\",\"\",\"24/07/21,19:36:56+08\",145,68,0,8,\"+420602909909\",145,268\r\n0041006C006500200070006F006B0075010F0020007400750020006200750064006F00750020006800E1010D006B0079002000610020010D00E10072006B0079002C0020007400610064\r\nOK";
+        at_ustring = "AT_RESULT: AT+CMGR=2\r\n+CMGR: \"REC READ\",\"+420603717477\",\"\",\"24/07/21,19:36:56+08\",145,68,0,8,\"+420602909909\",145,268\r\n0041006C006500200070006F006B0075010F0020007400750020006200750064006F00750020006800E1010D006B0079002000610020010D00E10072006B0079002C0020007400610064D83DDE3F\r\nOK";
       } else {
         if(instr(at_simcmd, "AT+CMGR")) {
           at_ustring = "at+cmgr=n\n\r+CMGR:\r\nOK";

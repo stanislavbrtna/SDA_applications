@@ -379,35 +379,43 @@ function sms_getparam #*str, num*# {
   return "";
 }
 
+function int2hex {
+  local lb = "";
+  local hb = "";
+  local n = arg0;
+  local hex = "ABCDEF";
+  
+  if (n/16 < 10) {
+    hb = "" + n/16;
+  } else {
+    hb = getcp(hex, n/16 - 9);
+  }
+  
+  if (n%16 < 10) {
+    lb = "" + n%16;
+  } else {
+    lb = getcp(hex, n%16 - 9);
+  }
+  
+  return hb + lb;
+}
 
 ## U16 Tools 
 function str2u16 {
   local out = "";
   local pos = 1;
   
-  local array hex = ["A", "B", "C", "D", "E", "F"];
-  
   while(pos <= len(arg0)) {
     local n = getcp(arg0, pos);
-    #print(n);
+    #print("c: " + n + " cw: " + charval(n));
     
     # ASCII
-    if (charval(n) > 31 and charval(n) < 127) {
-      local lb = "";
-      local hb = "";
-      if (charval(n)/16 < 10) {
-        hb = "" + charval(n)/16;
-      } else {
-        hb = hex[charval(n)/16 - 10];
-      }
-      
-      if (charval(n)%16 < 10) {
-        lb = "" + charval(n)%16;
-      } else {
-        lb = hex[charval(n)%16 - 10];
-      }
-      
-      out += "00" + hb + lb;
+    if (charval(n) > 31 and charval(n) < 127 and charval(n) < 240) {
+      out += "00" + int2hex(charval(n));
+    }
+    
+    if(charval(n) == 240) {
+      out += emoji2u16(n);
     }
     
     # codetable
@@ -495,6 +503,27 @@ function u16toStr {
       if (n == "010E") {out += "Ď"; known = 1;}
       if (n == "0147") {out += "Ň"; known = 1;}
       
+      # emojis
+      if (n == "D83D") {
+        pos++;
+        local n = substr(arg0, 1 + pos*4, pos*4+4);
+        out += charval(0xF0);
+        out += charval(0x9F);
+        
+        local val = num("0x" + substr(n, 3, 4));
+        
+        if(val < 0x40) {
+          out += charval(0x98);
+          out += charval(0x80 + val);
+          
+          known = 1;
+        } else {
+          out += charval(0x99);
+          out += charval(0x80 + val - 0x40);
+          known = 1;
+        }        
+      }
+      
       if (known == 0 and len(n) == 4) {
         out += "?" + n + "?";
       }
@@ -515,4 +544,13 @@ function sms_get_ts {
     num(substr(arg0, 13, 14)),
     num(substr(arg0, 16, 17))
   );
+}
+
+function emoji2u16 {
+  if(charval(arg0, 2) == 0x98) {
+    return "D83DDE" + int2hex(charval(arg0, 3) - 0x80);
+  }
+  if(charval(arg0, 2) == 0x99) {
+    return "D83DDE" + int2hex(charval(arg0, 3) - 0x80 + 0x40);
+  }
 }
