@@ -53,7 +53,7 @@ function init {
   sys.gui.setTexAlign(tNoteName, ALIGN_CENTER);
   scr_inote = sys.gui.addScreen(1, 4, 8, 18, scr_note);
   sys.gui.setBgRedraw(scr_inote, 0);
-  tNoteText = sys.gui.addText(0, 0, 9, 40, "text", scr_inote);
+  tNoteText = sys.gui.addText(0, 0, 8, 40, "text", scr_inote);
   sys.gui.setTxtEd(tNoteText, 1);
   sys.gui.setTxtFit(tNoteText, 1);
   sys.gui.setTxtInvert(tNoteText, 1);
@@ -171,30 +171,60 @@ function handle_main {
 }
 
 
+function upd_note_sl {
+  if (sys.gui.getTxtHeight(tNoteText, 0) > 12*18) {
+    sys.gui.setVisible(slNote, 1);
+    sys.gui.setXcell(scr_note, 34);
+    sys.gui.setXcell(scr_inote, 34);
+    sys.gui.setX2(scr_inote, 8);
+    return 1;
+  }
+  return 0;
+}
+
+function upd_note_tx {
+  if (sys.gui.getTxtAct(tNoteText)) {
+    sys.gui.setYscroll(scr_note, 65);
+    sys.gui.setXscroll(scr_note, 32);
+    if(sys.gui.getVisible(slNote)) {
+      sys.gui.setXcell(scr_note, 35);
+      sys.gui.setXcell(scr_inote, 35);
+    } else {
+      sys.gui.setXcell(scr_note, 38);
+      sys.gui.setXcell(scr_inote, 38);
+    }
+    
+    sys.gui.setSpacing(scr_note, 2, 1, 2, 1);
+  } else {
+    sys.gui.setSpacing(scr_note, 1, 1, 1, 1);
+    sys.gui.setXcell(scr_note, 36);
+    sys.gui.setXcell(scr_inote, 36);
+    sys.gui.setXscroll(scr_note, 25);
+    sys.gui.setYscroll(scr_note, -8);
+    if(not upd_note_sl()) {
+      sys.gui.setVisible(slNote, 0);
+    }
+  }
+}
+
 function update_notes {
   sys.os.gui.handleText(tNoteName);
   noteString = sys.os.gui.handleText(tNoteText, noteString);
   
   if (sys.gui.getTxtAct(tNoteText) != textActO) {
-    if (sys.gui.getTxtAct(tNoteText)) {
-      sys.gui.setYscroll(scr_note, 65);
-    } else {
-      sys.gui.setYscroll(scr_note, -8);
-    }
+    upd_note_tx();
     sys.gui.setModif(scr_note);
   }
   
   textActO = sys.gui.getTxtAct(tNoteText);
-  
-  
+    
   #TODO: better long file handling
   if(sys.gui.getVisible(slNote)) {
     scrScroller(scr_inote, slNote, 0, sys.gui.getTxtHeight(tNoteText, 0) - 15);
   } else {
     # detect string height and show slider eventually
-    if (sys.gui.getTxtHeight(tNoteText, 0) > 12*18) {
-      sys.gui.setVisible(slNote, 1);
-      sys.gui.setXcell(scr_note, 32);
+    if(upd_note_sl()){
+      upd_note_tx();
     }
   }
   
@@ -287,7 +317,9 @@ function open_note {
   
   sys.os.gui.setMainScr(scr_note);
   sys.gui.setVisible(slNote, 0);
-  sys.gui.setXcell(scr_note, 34);
+  sys.gui.setXcell(scr_note, 36);
+  sys.gui.setXcell(scr_inote, 36);
+  sys.gui.setXscroll(scr_note, 25);
   sys.gui.setYscroll(scr_inote, 0);
   sys.gui.setValue(slNote, 0);
   
