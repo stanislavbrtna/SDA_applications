@@ -1,0 +1,1439 @@
+import "lib/inc/ddm.svs"
+import "lib/inc/com.svs"
+
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+
+  return new_str;
+}
+
+function getFolder {
+  for(i = len(arg0); i > 0; i--;) {
+    if (getcp(arg0, i) == "/") {
+      arg0 = substr(arg0, 0, i);
+      break;
+    }
+  }
+  
+  return arg0;
+}
+
+function scrSpacer {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setYscroll(arg0, -6);
+}
+
+function getMonthName {
+  if(arg0 == 1)  return "January";
+  if(arg0 == 2)  return "February";
+  if(arg0 == 3)  return "March";
+  if(arg0 == 4)  return "April";
+  if(arg0 == 5)  return "May";
+  if(arg0 == 6)  return "June";
+  if(arg0 == 7)  return "July";
+  if(arg0 == 8)  return "August";
+  if(arg0 == 9)  return "September";
+  if(arg0 == 10) return "October";
+  if(arg0 == 11) return "November";
+  if(arg0 == 12) return "December";
+  
+  return "";
+}
+
+function getDayName {
+  if (arg0 == 1) return "Monday";
+  if (arg0 == 2) return "Tuesday";
+  if (arg0 == 3) return "Wednesday";
+  if (arg0 == 4) return "Thursday";
+  if (arg0 == 5) return "Friday";
+  if (arg0 == 6) return "Saturday";
+  if (arg0 == 7) return "Sunday";
+}
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  scrSpacer(scr);
+  sys.gui.setYscroll(scr, -4);
+  
+  sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()));
+   
+  # main screen
+  bToday = sys.gui.addButton(0, 0, 3, 1, "Today", scr);
+  
+  bMonFwd = sys.gui.addButton(8, 0, 1, 1, "", scr);
+  bMonBack = sys.gui.addButton(7, 0, 1, 1, "", scr);
+  sys.os.gui.setIcon(bMonFwd, ICON_FORWARD);
+  sys.os.gui.setIcon(bMonBack, ICON_BACK);
+  sys.gui.setParam(bMonFwd, 0);
+  sys.gui.setParam(bMonBack, 0);
+  
+  sys.w.cal.highlight(1);
+  cal = sys.w.cal.init(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay());
+  sys.gui.setScreen(cal, scr);
+  sys.gui.setXYXY(cal, -1, 1, 11, 10); # kalendář je 7x7, ale je možnost ho nafouknout
+
+  sys.gui.setXcell(cal, 45);
+  sys.gui.setYcell(cal, 45);
+  sys.gui.setXscroll(cal, -29);
+  sys.gui.setYscroll(cal, -6);
+  
+  tMonth = sys.gui.addText(0, 11, 5, 1, getMonthName(sys.time.getMonth()), scr);
+  tYear  = sys.gui.addText(7, 11, 3, 1, sys.time.getYear() + "", scr);
+  
+  bAgenda = sys.gui.addButton(0, 12, 3, 1, "Agenda", scr);
+  bMonNew = sys.gui.addButton(7, 12, 2, 1, "+", scr);
+  sys.gui.setTxtAlign(bMonNew, ALIGN_CENTER);
+   
+  # Init date values
+  mYear = sys.time.getYear();
+  mMon  = sys.time.getMonth();
+  mDay  = sys.time.getDay();
+  
+  
+  if (sys.fs.exists("appdata/cal2.db")) {
+    sys.fs.db.open("appdata/cal2.db");
+    sys.fs.db.selectTable("events");
+  } else {
+    sys.fs.db.new("appdata/cal2.db");
+    sys.fs.db.newTable("events", 16);
+    
+    sys.fs.db.setColumn(0, "id", 0); ##
+    sys.fs.db.setColumn(1, "name", 1); ##
+    sys.fs.db.setColumn(2, "descr", 1); ##
+    sys.fs.db.setColumn(3, "start", 0); ##
+    sys.fs.db.setColumn(4, "end", 0); ##
+    sys.fs.db.setColumn(5, "all_day", 0); ##
+    sys.fs.db.setColumn(6, "uid", 1); ##
+    sys.fs.db.setColumn(7, "valid", 0); ##
+    sys.fs.db.setColumn(8, "rep_wkday", 0); ##
+    sys.fs.db.setColumn(9, "rep_day", 0); ##
+    sys.fs.db.setColumn(10, "rep_mon", 0); ##
+    sys.fs.db.setColumn(11, "rep_year", 0); ##
+    sys.fs.db.setColumn(12, "rep_end", 0);
+    sys.fs.db.setColumn(13, "notif_alarm", 0);
+    sys.fs.db.setColumn(14, "notif_time", 0); #index from the notif-times
+    sys.fs.db.setColumn(15, "notif_last", 0);
+    
+    sys.fs.db.idEnable("id");
+    
+    fresh_db = 1;
+  }
+  
+  array notifTimes = [0, 10*60, 30*60, 60*60, 24*60*60];
+  array notifTimesN = ["None", "10 min", "30 min", "1 hour", "1 day"];
+  
+  array repeatsN = ["Daily", "Weekly", "Monthly", "Yearly"];
+  
+  array events[25];
+  array eventIds[25];
+  array eventTypes[25];
+  array eventDates[25];
+  array eventSort[25];
+  evCount = 0;
+  
+  currentEvent = 0;
+  
+  eventStart = 0;
+  eventEnd = 0;
+  evNotifTime = 0;
+  
+  com_init();
+  ddm_init();
+  
+  dayInit();
+  viewInit();
+  editInit();
+  
+  monthReload();
+  
+  wakeup();
+}
+
+
+function editInit {
+  sEdit = sys.gui.addScreen();
+  scrSpacer(sEdit);
+  sys.gui.setYscroll(sEdit, -4);
+  
+  sys.gui.addText(0, 0, 5, 1, "Event name:", sEdit);
+  bEvMore = sys.gui.addButton(7, 0, 2, 1, "...", sEdit);
+  
+  tEvName = sys.gui.addText(0, 1, 9, 1, "", sEdit);
+  sys.gui.setTxtEd(tEvName, 1);
+  
+  bEvDate1 = sys.gui.addButton(0, 2, 4, 1, "00. 00. 0000", sEdit);
+  bEvDate2 = sys.gui.addButton(5, 2, 4, 1, "00. 00. 0000", sEdit);
+  bEvTime1 = sys.gui.addButton(5, 2, 2, 1, "00:00", sEdit);
+  bEvTime2 = sys.gui.addButton(7, 2, 2, 1, "00:00", sEdit);
+  
+  tEvAllDay = sys.gui.addText(5, 2, 3, 1, "All day", sEdit);
+  
+  sys.gui.addText(0, 4, 4, 1, "Note:", sEdit);
+  
+  tEvDescr = sys.gui.addText(0, 5, 9, 6, "", sEdit);
+  sys.gui.setTxtEd(tEvDescr, 1);
+  
+  iEvNotify = sys.gui.addImage(0, 11, 1, 1, "alarm.sic", sEdit);
+  tEvNotify = sys.gui.addText(1, 11, 5, 1, "10 min before", sEdit);
+  tEvRepeat = sys.gui.addText(6, 11, 4, 1, "Weekly", sEdit);
+  
+  bEClose = sys.gui.addButton(0, 12, 2, 1, "", sEdit);
+  sys.os.gui.setIcon(bEClose, ICON_BACK);
+  sys.gui.setParam(bEClose, 28);
+  
+  bECancel = sys.gui.addButton(6, 12, 3, 1, "Cancel", sEdit);
+  sys.gui.setVisible(bECancel, 0);
+  sys.gui.setTxtAlign(bECancel, ALIGN_CENTER);
+  
+  sys.gui.setVisible(tEvAllDay, 0);
+  sys.gui.setVisible(bEvDate2, 0);
+  
+  menu1 = 0;
+  menuRep = 0;
+  
+  # state
+  EdStAllDay   = 0;
+  EdStMultiDay = 0;
+  
+  EdStHour1 = 0;
+  EdStMin1 = 0;
+  
+  edStDay1 = 0;
+  edStMon1 = 0;
+  edStYear1 = 0;
+  
+  edStDay2 = 0;
+  edStMon2 = 0;
+  edStYear2 = 0;
+  
+  EdStHour2 = 0;
+  EdStMin2 = 0;
+  
+  txUpdNotify(tEvNotify, iEvNotify);
+}
+
+
+function editLayout {
+  if(EdStAllDay) {
+    if(EdStMultiDay) {
+      # all day multi
+      sys.gui.setVisible(bEvDate2, 1)
+      sys.gui.setVisible(tEvAllDay, 0);
+      sys.gui.setVisible(bEvTime1, 0);
+      sys.gui.setVisible(bEvTime2, 0);
+    } else  {
+      # all day single
+      sys.gui.setVisible(bEvDate2, 0)
+      sys.gui.setVisible(tEvAllDay, 1);
+      sys.gui.setVisible(bEvTime1, 0);
+      sys.gui.setVisible(bEvTime2, 0);
+    }
+  } else {
+    if(EdStMultiDay) {
+      # from-to multi
+      sys.gui.setVisible(bEvDate2, 1)
+      sys.gui.setVisible(tEvAllDay, 0);
+      sys.gui.setVisible(bEvTime1, 1);
+      sys.gui.setVisible(bEvTime2, 1);
+      sys.gui.setXYXY(bEvTime1, 0, 3, 2, 1);
+      sys.gui.setXYXY(bEvTime2, 5, 3, 2, 1);
+    } else  {
+      # from-to single
+      sys.gui.setVisible(bEvDate2, 0)
+      sys.gui.setVisible(tEvAllDay, 0);
+      sys.gui.setVisible(bEvTime1, 1);
+      sys.gui.setVisible(bEvTime2, 1);
+      sys.gui.setXYXY(bEvTime1, 5, 2, 2, 1);
+      sys.gui.setXYXY(bEvTime2, 7, 2, 2, 1);
+    }
+  }
+}
+
+function txUpdNotify #*textId, iconId *# {
+  if (evNotifTime != 0) {
+    sys.gui.setVisible(arg0, 1);
+    sys.gui.setVisible(arg1, 1);
+    sys.gui.setStr(arg0, notifTimesN[evNotifTime]);
+  } else {
+    sys.gui.setVisible(arg0, 0);
+    sys.gui.setVisible(arg1, 0);
+  }
+}
+
+ # Update date and time fields of edit screen
+function editUpdateDT {
+  sys.gui.setStr(bEvDate1, "");
+  sys.gui.setStr(bEvDate2, "");
+  
+  sys.gui.setStr(bEvTime1, lz(EdStHour1) + ":" + lz(EdStMin1));
+  sys.gui.setStr(bEvTime2, lz(EdStHour2) + ":" + lz(EdStMin2));
+  
+  sys.gui.setStr(bEvDate1, edStDay1 + ". " + edStMon1 + ". " + edStYear1);
+  sys.gui.setStr(bEvDate2, edStDay2 + ". " + edStMon2 + ". " + edStYear2);
+}
+
+#**
+ * Updates repeat string for given element.
+ * agr0: elementId
+*#
+function editUpdRep {
+  if(evRepDay) {
+    sys.gui.setStr(arg0, repeatsN[0]);
+    return;
+  } else if(evRepWkDay){
+    sys.gui.setStr(arg0, repeatsN[1]);
+    return;
+  } else if(evRepMon) {
+    sys.gui.setStr(arg0, repeatsN[2]);
+    return;
+  } else if(evRepYear) {
+    sys.gui.setStr(arg0, repeatsN[3]);
+    return;
+  } else {
+    sys.gui.setStr(arg0, "");
+    return;
+  }
+}
+
+
+function editUpdate {
+  sys.os.gui.handleText(tEvName);
+  sys.os.gui.handleText(tEvDescr);
+  
+  if (sys.gui.getEventC(bECancel) == EV_RELEASED) {
+    if(currentEvent != -1){
+      loadEvent(currentEvent);
+      sys.os.gui.setMainScr(sView);
+    } else {
+      dayReload();
+      sys.os.gui.setMainScr(sDay);
+    }
+  }
+  
+  if (sys.gui.getEventC(bEClose) == EV_RELEASED) {
+    if (sys.gui.getStr(tEvName) != "") {
+      saveEvent();
+    }
+    
+    print("ev: " + currentEvent);
+    
+    if(currentEvent != -1) {
+      loadEvent(currentEvent);
+      sys.os.gui.setMainScr(sView);
+    } else {
+      dayReload();
+      sys.os.gui.setMainScr(sDay);
+    }
+  }
+  
+  # Date handling
+  if (sys.gui.getEventC(bEvDate1) == EV_RELEASED) {
+    edDateOv1 = sys.o.date.add(edStYear1, edStMon1, edStDay1);
+  }
+  
+  if (sys.gui.getEventC(bEvDate2) == EV_RELEASED) {
+    edDateOv2 = sys.o.date.add(edStYear2, edStMon2, edStDay2);
+  }
+  
+  if (sys.o.date.getOk(edDateOv1)) {
+    edStDay1 = sys.o.date.getDay(edDateOv1);
+    edStMon1 = sys.o.date.getMon(edDateOv1);
+    edStYear1 = sys.o.date.getYr(edDateOv1);
+    sys.o.date.clrOk(edDateOv1);
+    editUpdateDT();
+    ed_changed = 1;
+  }
+  
+  if (sys.o.date.getOk(edDateOv2)) {
+    edStDay2 = sys.o.date.getDay(edDateOv2);
+    edStMon2 = sys.o.date.getMon(edDateOv2);
+    edStYear2 = sys.o.date.getYr(edDateOv2);
+    sys.o.date.clrOk(edDateOv2);
+    editUpdateDT();
+    ed_changed = 1;
+  }
+  
+  # Time handling
+  if (sys.gui.getEventC(bEvTime1) == EV_RELEASED) {
+    edTimeOv1 = sys.o.time.add();
+    sys.o.time.set(edTimeOv1, EdStHour1, EdStMin1);
+  }
+  
+  if (sys.gui.getEventC(bEvTime2) == EV_RELEASED) {
+    edTimeOv2 = sys.o.time.add();
+    sys.o.time.set(edTimeOv2, EdStHour2, EdStMin2);
+  }
+  
+  if(sys.o.time.getOk(edTimeOv1)) {
+    EdStHour1 = sys.o.time.getHr(edTimeOv1);
+    EdStMin1 = sys.o.time.getMin(edTimeOv1);
+    
+    if (EdStHour1 > EdStHour2 and EdStHour1 < 22 and not EdStMultiDay) {
+      EdStHour2 = EdStHour1 + 1;
+    }
+    sys.o.time.clrOk(edTimeOv1);
+    editUpdateDT();
+  }
+  
+  if(sys.o.time.getOk(edTimeOv2)) {
+    EdStHour2 = sys.o.time.getHr(edTimeOv2);
+    EdStMin2 = sys.o.time.getMin(edTimeOv2);
+    
+    if (EdStHour2 < EdStHour1 and EdStHour2 > 1 and not EdStMultiDay) {
+      EdStHour1 = EdStHour2 - 1;
+    }
+    
+    sys.o.time.clrOk(edTimeOv2);
+    editUpdateDT();
+  }
+  
+  #Todo: handle ts
+  #eventStart
+  #eventStop
+  
+  if (sys.gui.getEventC(bEvMore) == EV_RELEASED) {
+    menu1 = ddm_create(bEvMore);
+    ddm_width = 6; # width override, otherwise button width is used
+    ddm_add_btn("All day");
+    ddm_add_btn("Multiple days");
+    ddm_add_btn("Repeating");
+    ddm_add_btn("Notify");
+    if(currentEvent != -1) ddm_add_btn("Delete event");
+  }
+  
+  i = ddm_handle(menu1);
+  if (i > 0) {
+    if (i == 1) {
+      # all day
+      EdStAllDay = not EdStAllDay;
+      editLayout();
+    }
+    
+    if (i == 2) {
+      # multiple days
+      EdStMultiDay = not EdStMultiDay;
+      editLayout();
+    }
+    
+    if (i == 3) {
+      # repeating
+      menuRep = ddm_create_sub(i);
+      ddm_add_btn(repeatsN[0], "check.sic");
+      setCheck(1, evRepDay);
+      ddm_add_btn(repeatsN[1], "check.sic");
+      setCheck(2, evRepWkDay);
+      ddm_add_btn(repeatsN[2], "check.sic");
+      setCheck(3, evRepMon);
+      ddm_add_btn(repeatsN[3], "check.sic");
+      setCheck(4, evRepYear);
+      ddm_add_btn("Set end date");
+      ddm_add_btn("Clear repeats");
+    }
+    
+    if (i == 4) {
+      # Notifications
+      menuNotif = ddm_create_sub(i);
+      ddm_add_btn(notifTimesN[0]);
+      ddm_add_btn(notifTimesN[1]);
+      ddm_add_btn(notifTimesN[2]);
+      ddm_add_btn(notifTimesN[3]);
+      ddm_add_btn(notifTimesN[4]);
+    }
+    
+    if (i == 5) {
+      ddm_exit();
+      c_del = com_new("Delete event?", 0);
+    }
+    
+    if(i != 3 and i != 4 and i != 5) {
+      ddm_exit();
+    }
+  }
+  
+  # Handle repeating
+  i = ddm_handle(menuRep);
+  if (i > 0) {
+    if (i == 1) {
+      evRepWkDay = 0;
+      evRepDay   = 1;
+      evRepMon   = 0;
+      evRepYear  = 0;
+      setCheckAll(i);
+    } else if (i == 2) {
+      evRepWkDay = 1;
+      evRepDay   = 0;
+      evRepMon   = 0;
+      evRepYear  = 0;
+      setCheckAll(i);
+    } else if(i == 3) {
+      evRepWkDay = 0;
+      evRepDay   = 0;
+      evRepMon   = 1;
+      evRepYear  = 0;
+      setCheckAll(i);
+    } else if(i == 4) {
+      evRepWkDay = 0;
+      evRepDay   = 0;
+      evRepMon   = 0;
+      evRepYear  = 1;
+      setCheckAll(i);
+    } else if(i == 5) { # Set end date
+      edDateOv3 = sys.o.date.add(edStYear2, edStMon2, edStDay2);
+    } else if(i == 6) { # None
+      evRepWkDay = 0;
+      evRepDay   = 0;
+      evRepMon   = 0;
+      evRepYear  = 0;
+      evRepEnd   = 0;
+      editUpdRep(tEvRepeat);
+      ddm_exit();
+      #sys.gui.setEvent(bEvMore, EV_RELEASED); # Re-open
+    }
+  }
+  
+  # Event deletion
+  if(com_handle(c_del)) {
+    deleteEvent();
+    dayReload();
+    sys.os.gui.setMainScr(sDay);
+  }
+  
+  # Alarms evNotifTime
+  i = ddm_handle(menuNotif);
+  if (i > 0) {
+    evNotifTime = i - 1;
+    print("ent: " + evNotifTime);
+    txUpdNotify(tEvNotify, iEvNotify);
+    ddm_exit();
+  }
+  
+  if (sys.o.date.getOk(edDateOv3)) {
+    evRepEnd = sys.time.setTs(
+      sys.o.date.getYr(edDateOv3), 
+      sys.o.date.getMon(edDateOv3), 
+      sys.o.date.getDay(edDateOv3), 
+      23, 
+      59, 
+      0
+    );
+    sys.o.date.clrOk(edDateOv3);
+  }
+  
+  sys.o.date.update(edDateOv1);
+  sys.o.date.update(edDateOv2);
+  sys.o.date.update(edDateOv3);
+  sys.o.time.update(edTimeOv1);
+  sys.o.time.update(edTimeOv2);
+  
+  if(grayPre != (sys.gui.getStr(tEvName) == "")) {
+    if (sys.gui.getStr(tEvName) == "") {
+      sys.gui.setVisible(bECancel, 0);
+    } else {
+      sys.gui.setVisible(bECancel, 1);
+    }
+  }
+  grayPre = sys.gui.getStr(tEvName) == "";
+}
+
+
+#** set the check value
+ *  arg0: checkId (i)
+ *  arg1: val
+*#
+function setCheck {
+  if(arg1) {
+    sys.gui.setIcon(ddm_options[arg0 - 1], "check.sic");
+  } else {
+    sys.gui.setIcon(ddm_options[arg0 - 1], "check_e.sic");
+  }
+}
+
+function setCheckAll {
+  for(local i = 0; i < 4; i++;) {
+    sys.gui.setIcon(ddm_options[i], "check_e.sic");
+  }
+  sys.gui.setIcon(ddm_options[arg0 - 1], "check.sic");
+  editUpdRep(tEvRepeat);
+}
+
+function newEvent {
+  sys.os.gui.setMainScr(sEdit);
+  currentEvent = -1;
+  
+  eventStart = sys.time.setTs(mYear, mMon, mDay, sys.time.getHr(), 0, 0);
+  eventEnd = sys.time.setTs(mYear, mMon, mDay, sys.time.getHr(), 0, 0);
+  
+  evRepWkDay = 0;
+  evRepDay = 0;
+  evRepMon = 0;
+  evRepYear = 0;
+  evRepEnd = 0;
+  
+  evNotifTime = 0;
+  
+  EdStHour1 = sys.time.getHr();
+  EdStMin1 = 0;
+  
+  if(sys.time.getHr() < 23) {
+    EdStHour2 = sys.time.getHr() + 1;
+  } else {
+    EdStHour2 = sys.time.getHr();
+  }
+  
+  EdStMin2 = 0;
+  
+  edStDay1 = mDay;
+  edStMon1 = mMon;
+  edStYear1 = mYear;
+  
+  edStDay2 = mDay;
+  edStMon2 = mMon;
+  edStYear2 = mYear;
+  
+  sys.gui.setStr(tEvName, "");
+  sys.gui.setStr(tEvDescr, "");
+  
+  editUpdateDT();
+  txUpdNotify(tEvNotify, iEvNotify);
+  editLayout();
+  editUpdRep(tEvRepeat);
+  sys.gui.setVisible(bECancel, 0);
+}
+
+
+function loadEvEdit {
+ 
+  if(not sys.fs.db.selectRowId(arg0)) {
+    sys.error("Event " + arg0 + " not found!");
+  }
+  
+  sys.gui.setStr(tEvName, sys.fs.db.getEntryStr("name", "ERR"));
+  sys.gui.setStr(tEvDescr, sys.fs.db.getEntryStr("descr", "ERR"));
+  
+  eventStart = sys.fs.db.getEntryNum("start", 0);
+  eventEnd = sys.fs.db.getEntryNum("end", 0);
+  
+  # misc
+  EdStAllDay = sys.fs.db.getEntryNum("all_day", 0);
+  
+  EdStMultiDay = eventEnd - eventStart > 24*60*60;
+  
+  edStDay1 = sys.time.getTsDay(eventStart);
+  edStMon1 = sys.time.getTsMonth(eventStart);
+  edStYear1 = sys.time.getTsYear(eventStart);
+  
+  edStDay2 = sys.time.getTsDay(eventEnd);
+  edStMon2 = sys.time.getTsMonth(eventEnd);
+  edStYear2 = sys.time.getTsYear(eventEnd);
+  
+  EdStHour1 = sys.time.getTsHr(eventStart);
+  EdStMin1 = sys.time.getTsMin(eventStart);
+  
+  EdStHour2 = sys.time.getTsHr(eventEnd);
+  EdStMin2 = sys.time.getTsMin(eventEnd);
+  
+  evRepWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
+  evRepDay = sys.fs.db.getEntryNum("rep_day", 0); 
+  evRepMon = sys.fs.db.getEntryNum("rep_mon", 0);
+  evRepYear = sys.fs.db.getEntryNum("rep_year", 0);
+  evRepEnd = sys.fs.db.getEntryNum("rep_end", 0);
+  
+  # TODO: notofications
+  
+  evNotifTime = sys.fs.db.getEntryNum("notif_time", 0);
+  
+  editUpdateDT();
+  editLayout();
+  txUpdNotify(tEvNotify, iEvNotify);
+  editUpdRep(tEvRepeat);
+  sys.gui.setVisible(bECancel, 1);
+}
+
+
+function deleteEvent {
+ if (currentEvent == (-1)) {
+    sys.os.error("Invalid event id (-1).");
+    return;
+  } else {
+    if (not sys.fs.db.selectRowId(currentEvent)) {
+      sys.os.error("DB: Invalid event.");
+      return;
+    }
+  }
+  
+  sys.fs.db.setEntryNum("valid", 0);
+  sys.fs.db.sync();
+  
+  # TODO: Remove alarms
+}
+
+
+function saveEvent {
+  if (currentEvent == (-1)) {
+    sys.fs.db.newRow();
+  } else {
+    sys.fs.db.selectRowId(currentEvent);
+  }
+
+  sys.fs.db.setEntryStr("name", sys.gui.getStr(tEvName));
+  sys.fs.db.setEntryStr("descr", sys.gui.getStr(tEvDescr));
+  
+  if(currentEvent == -1) {
+    sys.fs.db.setEntryStr("uid", random_str(8));
+  }
+  
+  if(EdStAllDay) {
+    eventStart = sys.time.setTs(edStYear1, edStMon1, edStDay1, 0, 0, 0);
+    if(EdStMultiDay) {
+      eventEnd = sys.time.setTs(edStYear2, edStMon2, edStDay2, 23, 59, 59);
+    } else {
+      eventEnd = sys.time.setTs(edStYear1, edStMon1, edStDay1, 23, 59, 59);
+    }
+  } else {
+    eventStart = sys.time.setTs(edStYear1, edStMon1, edStDay1, EdStHour1, EdStMin1, 0);
+    if(EdStMultiDay) {
+      eventEnd = sys.time.setTs(edStYear2, edStMon2, edStDay2, EdStHour2, EdStMin2, 0);
+    } else {
+      eventEnd = sys.time.setTs(edStYear1, edStMon1, edStDay1, EdStHour2, EdStMin2, 0);
+    }
+  }
+  
+  local timeChanged = 0;
+  local notifRemoved = 0;
+  local notifFirst = 0;
+  
+  if (currentEvent != -1) {
+    if (
+      sys.fs.db.getEntryNum("start", 0) != eventStart or
+      sys.fs.db.getEntryNum("end", 0) != eventEnd or
+      sys.fs.db.getEntryNum("notif_time", 0) != evNotifTime
+      # TODO: Repeating events...
+    ) {
+      timeChanged = 1;
+    }
+    
+    if (
+      sys.fs.db.getEntryNum("notif_time", 0) != evNotifTime and
+      evNotifTime == 0
+    ) {
+      notifRemoved = 1;
+    }
+    
+    if(evNotifTime != 0 and sys.fs.db.getEntryNum("notif_time", 0) == 0) {
+      notifFirst = 1;
+    }
+  }
+  
+  # dates
+  sys.fs.db.setEntryNum("start", eventStart);
+  sys.fs.db.setEntryNum("end", eventEnd);
+  
+  # Repeats
+  sys.fs.db.setEntryNum("all_day", EdStAllDay);
+  sys.fs.db.setEntryNum("valid", 1);
+  sys.fs.db.setEntryNum("rep_wkday", evRepWkDay);
+  sys.fs.db.setEntryNum("rep_day", evRepDay); 
+  sys.fs.db.setEntryNum("rep_mon", evRepMon);
+  sys.fs.db.setEntryNum("rep_year", evRepYear);
+  sys.fs.db.setEntryNum("rep_end", evRepEnd);
+  
+  # alarms
+  if(evNotifTime != 0 and eventStart - notifTimes[evNotifTime] > sys.time.get()) {
+    if (currentEvent == -1) {
+      local al = sys.alarm.setFixed(eventStart - notifTimes[evNotifTime], sys.fs.db.getEntryNum("id", 0));
+      sys.fs.db.setEntryNum("notif_alarm", al);
+      sys.fs.db.setEntryNum("notif_time", evNotifTime);
+      sys.fs.db.setEntryNum("notif_last", sys.time.get());
+      
+      print("new alarm: " + al);
+      
+    } else if (timeChanged) {
+      if (not notifFirst) {
+        # verify alarm validity
+        if (
+          sys.alarm.getValid(sys.fs.db.getEntryNum("notif_alarm", 0)) and
+          sys.alarm.getParam(sys.fs.db.getEntryNum("notif_alarm", 0)) != currentEvent
+        ) {
+          sys.os.error("Alarm id do not match the event id.");
+          return;
+        }
+        
+        # Remove old alarm
+        sys.alarm.destroy(sys.fs.db.getEntryNum("notif_alarm", 0));
+      }
+      
+      # Create new
+      local al = sys.alarm.setFixed(eventStart - notifTimes[evNotifTime], sys.fs.db.getEntryNum("id", 0));
+      sys.fs.db.setEntryNum("notif_alarm", al);
+      sys.fs.db.setEntryNum("notif_time", evNotifTime);
+      sys.fs.db.setEntryNum("notif_last", sys.time.get());
+      
+      print("updated alarm: " + al);
+      
+      # TODO: Resolve repeating alarms...
+    }
+  } else if (notifRemoved) {
+    # verify alarm validity
+    if (
+      sys.alarm.getValid(sys.fs.db.getEntryNum("notif_alarm", 0)) and
+      sys.alarm.getParam(sys.fs.db.getEntryNum("notif_alarm", 0)) != currentEvent
+    ) {
+      sys.os.error("Alarm id do not match the event id.");
+      return;
+    }
+
+    # Remove old alarm
+    sys.alarm.destroy(sys.fs.db.getEntryNum("notif_alarm", 0));
+    sys.fs.db.setEntryNum("notif_time", evNotifTime);
+    
+    print("alarm removed");
+  }
+  
+  if (currentEvent == -1) {
+    currentEvent = sys.fs.db.getEntryNum("id", 0);
+  }
+  
+  sys.fs.db.sync();
+}
+
+
+function lz {
+  if (arg0 < 10) return "0" + arg0;
+  return "" + arg0;
+}
+
+
+function getFmTime {
+  return lz(sys.time.getTsHr(arg0)) + ":" + lz(sys.time.getTsMin(arg0));
+}
+
+
+function getFmDate {
+  return sys.time.getTsDay(arg0) + ". " + sys.time.getTsMonth(arg0) + ". " + sys.time.getTsYear(arg0);
+}
+
+
+function loadEvent {
+  currentEvent = arg0;
+  if(not sys.fs.db.selectRowId(currentEvent)) {
+    sys.error("Borked db!");
+  }
+  
+  sys.gui.setStr(tVTitle, sys.fs.db.getEntryStr("name", ""));
+  sys.gui.setStr(tVDescr, sys.fs.db.getEntryStr("descr", ""));
+  
+  if(sys.fs.db.getEntryStr("descr", "") == "") {
+    sys.gui.setVisible(tVDescr, 0);
+  } else {
+    sys.gui.setVisible(tVDescr, 1);
+  }
+  
+  local startDate = sys.fs.db.getEntryNum("start", 0);
+  local endDate   = sys.fs.db.getEntryNum("end", 0);
+  # time formating
+  if(sys.time.getTsMonth(endDate) == sys.time.getTsMonth(startDate)
+    and sys.time.getTsDay(endDate) == sys.time.getTsDay(startDate)
+    and sys.time.getTsYear(endDate) == sys.time.getTsYear(startDate)
+    ) {
+    # single day
+    sys.gui.setStr(tVDate1, getFmTime(startDate) + " - " + getFmTime(endDate));
+    
+    sys.gui.setStr(tVDate2, getFmDate(startDate));
+    
+    sys.gui.setVisible(tVDate3, 0);
+    sys.gui.setVisible(tVDate4, 0);
+    
+    sys.gui.setY1(tVTitle, 1);
+    sys.gui.setY1(tVDescr, 3);
+    
+    sys.gui.setXYXY(tVDate1, 0, 0, 5, 1);
+    sys.gui.setXYXY(tVDate2, 5, 0, 4, 1);
+    
+  } else {
+    sys.gui.setStr(tVDate1, "Begin: ");
+    sys.gui.setStr(tVDate3, "End: ");
+    sys.gui.setVisible(tVDate3, 1);
+    sys.gui.setVisible(tVDate4, 1);
+    
+    sys.gui.setXYXY(tVDate1, 0, 0, 3, 1);
+    sys.gui.setXYXY(tVDate2, 3, 0, 6, 1);
+    
+    sys.gui.setY1(tVTitle, 2);
+    sys.gui.setY1(tVDescr, 4);
+    
+    # TODO: multi-day event formating
+    if(sys.fs.db.getEntryNum("all_day", 0)) {
+      sys.gui.setStr(tVDate2, getFmDate(startDate));
+      sys.gui.setStr(tVDate4, getFmDate(endDate));
+    } else {
+      sys.gui.setStr(tVDate2, getFmTime(startDate) + " " + getFmDate(startDate));
+      sys.gui.setStr(tVDate4, getFmTime(endDate) + " " + getFmDate(endDate));
+    }
+  }
+  
+  # TODO: alarms, repeats
+  evRepWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
+  evRepDay = sys.fs.db.getEntryNum("rep_day", 0); 
+  evRepMon = sys.fs.db.getEntryNum("rep_mon", 0);
+  evRepYear = sys.fs.db.getEntryNum("rep_year", 0);
+  evRepEnd = sys.fs.db.getEntryNum("rep_end", 0);
+  
+  evNotifTime = sys.fs.db.getEntryNum("notif_time", 0);
+  
+  txUpdNotify(tVNotify, iVNotify);
+  
+  editUpdRep(tVRepeat);
+  
+}
+
+
+function viewInit {
+  sView = sys.gui.addScreen();
+  scrSpacer(sView);
+  sys.gui.setYscroll(sView, -4);
+  
+  tVDate1 = sys.gui.addText(0, 0, 5, 1, "17:30 - 19:00", sView);
+  tVDate2 = sys.gui.addText(5, 0, 4, 1, "s17:30 - 19:00", sView);
+  
+  tVDate3 = sys.gui.addText(0, 1, 3, 1, "17:30 - 19:00", sView);
+  tVDate4 = sys.gui.addText(3, 1, 6, 1, "s17:30 - 19:00", sView);
+  
+  sys.gui.setTxtAlign(tVDate2, ALIGN_RIGHT);
+  sys.gui.setTxtAlign(tVDate4, ALIGN_RIGHT);
+  
+  tVTitle = sys.gui.addText(0, 2, 10, 2, "Schůze SVJ", sView);
+  sys.gui.setTxtSize(tVTitle, FONT_32);
+  
+  tVDescr = sys.gui.addText(0, 5, 9, 7, "Popis", sView);
+  sys.gui.setSelect(tVDescr, 1);
+  
+  bVClose = sys.gui.addButton(0, 12, 2, 1, "", sView);
+  sys.os.gui.setIcon(bVClose, ICON_BACK);
+  sys.gui.setParam(bVClose, 28);
+  
+  bVEdit = sys.gui.addButton(7, 12, 2, 1, "Edit", sView);
+  
+  iVNotify = sys.gui.addImage(0, 11, 1, 1, "alarm.sic", sView);
+  tVNotify = sys.gui.addText(1, 11, 5, 1, "10 min before", sView);
+  
+  tVRepeat = sys.gui.addText(6, 11, 4, 1, "Weekly", sView);
+}
+
+
+function viewUpdate {
+  if (sys.gui.getEventC(bVClose) == EV_RELEASED) {
+    dayReload();
+    sys.os.gui.setMainScr(sDay);
+  }
+  
+  if (sys.gui.getEventC(bVEdit) == EV_RELEASED) {
+    loadEvEdit(currentEvent);
+    sys.os.gui.setMainScr(sEdit);
+  }
+}
+
+
+function solveRepeats {     
+  local rWkDay;
+  local rDay; 
+  local rMon;
+  local rYear;
+  local rEnd = sys.fs.db.getEntryNum("rep_end", 0);
+
+  if ((rEnd > dayStart or rEnd == 0) and (timeStart <= dayStart)) {
+    rWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
+    rDay = sys.fs.db.getEntryNum("rep_day", 0); 
+    rMon = sys.fs.db.getEntryNum("rep_mon", 0);
+    rYear = sys.fs.db.getEntryNum("rep_year", 0);
+  } else {
+    return 0;
+  }
+  
+  # print("wkday:" + sys.time.getTsWkDay(dayStart) + " " + sys.time.getTsWkDay(timeStart) + "Repeat:" + rWkDay);
+  
+  # To handle multiday repeats
+  for(local timeSt = timeStart; timeSt < timeEnd; timeSt += 24*60*60;) {
+    if (rDay) {
+      return 1;
+    }
+    
+    if ((sys.time.getTsWkDay(dayStart) == sys.time.getTsWkDay(timeSt) and rWkDay)) {
+      return 1;
+    }
+    
+    if (
+      sys.time.getTsDay(dayStart) == sys.time.getTsDay(timeSt) and
+      rMon
+    ) {
+      return 1;
+    }
+    
+    if (
+      sys.time.getTsDay(dayStart) == sys.time.getTsDay(timeSt) and
+      sys.time.getTsMonth(dayStart) == sys.time.getTsMonth(timeSt) and
+      rYear
+    ) {
+      return 1;
+    }
+  }
+  
+  return 0;
+}
+
+
+function dayReload {
+  updDayDate();
+  
+  if (sDayList) {
+    sys.gui.destroy(sDayList);
+  }
+  
+  sDayList = sys.gui.addScreen(0, 1, 9, 11, sDay);
+  sys.gui.setXcell(sDayList, 16);
+  
+  local i = 0;
+  local allDayOc = 0;
+  
+  # Todo: separate all day and timed events
+  # Display multi-day events across all day as all day 
+  
+  local dayStart = sys.time.setTs(mYear, mMon, mDay, 0, 0, 0);
+  local dayEnd = sys.time.setTs(mYear, mMon, mDay, 23, 59, 59);
+  
+  if (sys.fs.db.selectRow(0)) {
+    while(1) {
+      local timeStart = sys.fs.db.getEntryNum("start", 0);
+      local timeEnd = sys.fs.db.getEntryNum("end", 0);
+      local allDay = sys.fs.db.getEntryNum("all_day", 0);
+      
+      if (
+        (
+          (timeStart >= dayStart and timeEnd < dayEnd) or 
+          (timeStart >= dayStart and timeStart < dayEnd) or
+          (timeStart <= dayStart and timeEnd > dayEnd) or
+          (timeEnd >= dayStart and timeEnd < dayEnd) or
+          solveRepeats()
+        ) and
+        sys.fs.db.getEntryNum("valid", 0) == 1
+      ){
+        events[i] = sys.gui.addButton(
+          0, 0 + i, 19, 1,
+          sys.fs.db.getEntryStr("name", "File Error"), 
+          sDayList
+        );
+        
+        eventIds[i] = sys.fs.db.getEntryNum("id", 0);
+        if(allDay or (timeStart <= dayStart and timeEnd > dayEnd)) {
+          eventTypes[i] = 1;
+          allDayOc = 1;
+        } else {
+          eventTypes[i] = 0;
+          eventDates[i] = sys.gui.addText(
+            0,
+            0 + i,
+            20,
+            1,
+            getDTS(timeStart, timeEnd, dayStart, dayEnd),
+            sDayList
+          );
+          sys.gui.setTxtSize(eventDates[i], FONT_12);
+          eventSort[i] = sys.time.getTsHr(timeStart);
+        }
+        i++;
+      }
+      
+      if(not sys.fs.db.nextRow()) {
+        break;
+      }
+    }
+  }
+  evCount = i;
+  
+  local allDay = sys.gui.addText(0, 0, 12, 1, "All Day:", sDayList);
+  sys.gui.setVisible(allDay, 0);
+  
+  local y = allDayOc;
+  
+  for(i = 0; i < evCount; i++;) {
+    if(eventTypes[i]) {
+      sys.gui.setVisible(allDay, 1);
+      sys.gui.setY1(events[i], y);
+      y++;
+    }
+  }
+  
+  if(sys.gui.getVisible(allDay)) {
+    sys.gui.addImage(3, y, 19, 1, "separator.sic", sDayList);
+    y++;
+  }
+  
+  for(local hr = 0; hr < 24; hr++;) {
+    for(i = 0; i < evCount; i++;) {
+      if(eventTypes[i] == 0 and hr == eventSort[i]) {
+        sys.gui.setY1(eventDates[i], y);
+        sys.gui.setY1(events[i], y + 1);
+        y += 2;
+      }
+    }
+  }
+  
+  if(y > 11) {
+    sys.gui.setVisible(slDay, 1);
+    sys.gui.setX2(sDayList, 8);
+    sys.gui.setParam(slDay, (y - 2)*32);
+    sys.gui.setValue(slDay, 0);
+  } else {
+    sys.gui.setVisible(slDay, 0);
+  }
+}
+
+function getDTS {
+  local timeStart = arg0;
+  local timeEnd = arg1;
+  local dayStart = arg2;
+  local dayEnd = arg3;
+  
+  if(dayStart > timeStart) {
+    return getFmTime(timeStart) + " " + getFmDate(timeStart) + " - " + getFmTime(timeEnd);
+  }
+  
+  if(dayEnd < timeEnd) {
+    return getFmTime(timeStart) + " - " + getFmTime(timeEnd) + " " + getFmDate(timeEnd);
+  }
+
+  return getFmTime(timeStart) + " - " + getFmTime(timeEnd);
+}
+
+
+function updDayDate {
+  local ts = sys.time.setTs(mYear, mMon, mDay, 0, 0, 0);
+  sys.time.getTsWkDay(ts);
+  sys.gui.setStr(
+    tDayDate,
+    mDay + ". " + mMon + ". " + mYear + " " + getDayName(sys.time.getTsWkDay(ts))
+  );
+}
+
+
+function dayInit {
+  sDay = sys.gui.addScreen();
+  scrSpacer(sDay);
+  sys.gui.setYscroll(sDay, -4);
+  
+  tDayDate = sys.gui.addText(0, 0, 7, 1, "Date", sDay);
+  
+  bDayFwd = sys.gui.addButton(8, 0, 1, 1, "", sDay);
+  bDayBack = sys.gui.addButton(7, 0, 1, 1, "", sDay);
+  sys.os.gui.setIcon(bDayFwd, ICON_FORWARD);
+  sys.os.gui.setIcon(bDayBack, ICON_BACK);
+  sys.gui.setParam(bDayFwd, 0);
+  sys.gui.setParam(bDayBack, 0);
+  
+  bDayClose = sys.gui.addButton(0, 12, 2, 1, "", sDay);
+  sys.os.gui.setIcon(bDayClose, ICON_BACK);
+  sys.gui.setParam(bDayClose, 28);
+  
+  bDayNew = sys.gui.addButton(7, 12, 2, 1, "+", sDay);
+  sys.gui.setTxtAlign(bDayNew, ALIGN_CENTER);
+  
+  slDay = sys.gui.addSliderV(8, 1, 1, 8, 100, 50, sDay);
+  
+  sys.gui.setVisible(slDay, 0);
+  
+  dayReload();
+}
+
+
+function updateDay {
+  if (sys.gui.getEventC(bDayFwd) == EV_RELEASED) {
+    local ts = sys.time.setTs(mYear, mMon, mDay, 0, 0, 0);
+    ts += 60*60*24;
+    mYear = sys.time.getTsYear(ts);
+    mMon = sys.time.getTsMonth(ts);
+    mDay = sys.time.getTsDay(ts);
+    dayReload();
+  }
+  
+  if (sys.gui.getEventC(bDayBack) == EV_RELEASED) {
+    local ts = sys.time.setTs(mYear, mMon, mDay, 0, 0, 0);
+    ts -= 60*60*24;
+    mYear = sys.time.getTsYear(ts);
+    mMon = sys.time.getTsMonth(ts);
+    mDay = sys.time.getTsDay(ts);
+    dayReload();
+  }
+  
+  if (sys.gui.getEventC(bDayClose) == EV_RELEASED) {
+    monthReload();
+    sys.os.gui.setMainScr(scr);
+  }
+  
+   if (sys.gui.getEventC(bDayNew) == EV_RELEASED) {
+    newEvent();
+  }
+  
+  for(local i = 0; i < evCount; i++;) {
+    if(sys.gui.getEventC(events[i]) == EV_RELEASED) {
+      loadEvent(eventIds[i])
+      sys.os.gui.setMainScr(sView);
+    }
+  }
+  
+  if(sys.gui.getVisible(slDay)) {
+    sys.gui.setYscroll(sDayList, sys.gui.getValue(slDay));
+  }
+  
+  #*TODO: remove after testing
+  if(sys.gui.getEventC(events[0]) == EV_RELEASED) {
+    sys.os.gui.setMainScr(sView);
+  }*#
+}
+
+
+function monthReload {
+  sys.gui.setStr(tMonth, getMonthName(mMon));
+  sys.gui.setStr(tYear, "" + mYear);
+  sys.w.cal.select(mYear, mMon, mDay);
+  
+  # todo: mark event dates
+  
+  local monthStart = sys.time.setTs(mYear, mMon, 0, 0, 0, 0);
+  local monthEnd;
+  if(mMon < 12) {
+    monthEnd = sys.time.setTs(mYear, mMon + 1, 0, 0, 0, 0) - 1;
+  } else {
+    monthEnd = sys.time.setTs(mYear + 1, 1, 0, 0, 0, 0) - 1;
+  }
+  
+  local daySecs = 24*60*60;
+  
+  local days = ((monthEnd - monthStart + 1)/(daySecs));
+  
+  for(local i = 1; i <= days; i++;) {
+    sys.w.cal.mark(i, 0);
+  }
+  
+  if (sys.fs.db.selectRow(0)) {
+    while(1) {
+      local timeStart = sys.fs.db.getEntryNum("start", 0);
+      local timeEnd = sys.fs.db.getEntryNum("end", 0);
+      local allDay = sys.fs.db.getEntryNum("all_day", 0);
+      
+      # todo: repeats
+      
+      for(local i = 1; i <= days; i++;) {
+        local dayStart = monthStart + daySecs*i;
+        local dayEnd = monthStart + daySecs*(i + 1);
+        if (
+          (
+            (timeStart >= dayStart and timeEnd < dayEnd) or 
+            (timeStart >= dayStart and timeStart < dayEnd) or
+            (timeStart <= dayStart and timeEnd > dayEnd) or
+            (timeEnd >= dayStart and timeEnd < dayEnd) or
+            solveRepeats()
+          ) and
+          sys.fs.db.getEntryNum("valid", 0) == 1
+        ) {
+          sys.w.cal.mark(i, 1);
+        }
+      }
+      
+      if(not sys.fs.db.nextRow()) {
+        break;
+      }
+    }
+  }
+  
+  
+}
+
+
+function updateMonth {
+  if (sys.gui.getEventC(bToday) == EV_RELEASED) {
+    mYear = sys.time.getYear();
+    mMon  = sys.time.getMonth();
+    mDay  = sys.time.getDay();
+    monthReload();
+  }
+  
+  if (sys.gui.getEventC(bMonFwd) == EV_RELEASED) {
+    if (mMon < 12) {
+      mMon++;
+    } else {
+      mMon = 1;
+      mYear++;
+    }
+    monthReload();
+  }
+  
+  if (sys.gui.getEventC(bMonBack) == EV_RELEASED) {
+    if (mMon > 1) {
+      mMon--;
+    } else {
+      mMon = 12;
+      mYear--;
+    }
+    monthReload();
+  }
+  
+  updRet = sys.w.cal.update();
+
+  if(updRet == 1) {
+    mDay = sys.w.cal.getDay();
+  }
+
+  if(updRet == 2) {
+    dayReload();
+    sys.os.gui.setMainScr(sDay);
+  }
+  
+  if (sys.gui.getEventC(bMonNew) == EV_RELEASED) {
+    newEvent();
+  }
+  
+  if (sys.gui.getEventC(bAgenda) == EV_RELEASED) {
+    notifOverlay(27);
+    sys.snd.beepC(800, 250, &boop);
+  }
+}
+
+function wakeup {
+  if (sys.alarm.getFlag()) {
+    local param = sys.alarm.getPar();
+    sys.hw.wakeLcd();
+    sys.alarm.clrFlag();
+
+    # init ui
+    notifOverlay(param);
+    
+    # set the lastNotif thingy ()
+    
+    # beepBoop
+    sys.snd.beepC(800, 200, &boop);
+  }
+}
+
+function beep {
+  sys.snd.beepC(800, 200, "");
+}
+
+function boop {
+  sys.snd.beepC(0, 200, &beep);
+}
+
+function dateFmt {
+  return 
+         lz(sys.time.getTsHr(arg0)) + ":" + 
+         lz(sys.time.getTsMin(arg0)) + " " + 
+         sys.time.getTsDay(arg0) + ". " + 
+         sys.time.getTsMonth(arg0) + ". " +
+         sys.time.getTsYear(arg0)
+         ;
+}
+
+function calcDelta {
+  local time = arg0 - sys.time.get();
+  local out = "";
+  
+  if (time > 60*60*24) {
+    out += time/(60*60*24) + "d. ";
+    time -= (time/(60*60*24)) * 60*60*24;
+  }
+  
+  if (time > 60*60) {
+    out += time/(60*60) + "hr. ";
+    time -= time/(60*60) * 60*60;
+  }
+  
+  if (time > 60) {
+    out += time/(60) + " minutes.";
+  }
+  
+  return out;
+}
+
+function notifOverlay {
+  #sys.os.gui.setMainScr(0);
+  
+  sNotif = sys.gui.addScreen();
+  scrSpacer(sNotif);
+  
+  sys.gui.addImage(0, 0, 1, 1, "alarm.sic", sNotif);
+  sys.gui.setTxtSize(
+    sys.gui.addText(1, 0, 10, 1, "Calendar event notification", sNotif),
+    FONT_12
+  );
+  tNName = sys.gui.addText(0, 1, 10, 1, "Event Name", sNotif);
+  tNDate = sys.gui.addText(0, 2, 10, 1, "17:30 01.01.2025", sNotif);
+  tNStartsIn = sys.gui.addText(0, 3, 10, 1, "Starts in 29 minutes", sNotif);
+  
+  bNOpen = sys.gui.addButton(0, 4, 4, 1, "Open event", sNotif);
+  bNClose = sys.gui.addButton(5, 4, 3, 1, "Close", sNotif);
+  
+  local ev = arg0;
+  notifEvent = arg0;
+  
+  if(not sys.fs.db.selectRowId(ev)) {
+    sys.error("Borked db!");
+  }
+  
+  sys.gui.setStr(tNName, sys.fs.db.getEntryStr("name", ""));
+  sys.gui.setStr(tNDate, dateFmt(sys.fs.db.getEntryNum("start", 0)));
+  
+  sys.gui.setStr(tNStartsIn, "Starts in " + calcDelta(sys.fs.db.getEntryNum("start", 0)) + "");
+  
+  selfOvr = sys.o.setScr(sNotif);
+  local border = 16;
+  
+  sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*6);
+    
+  draw_flag = 1;
+}
+
+function updateOv {
+  if(sys.o.getId() != selfOvr or selfOvr == 0) {
+    return;
+  }
+  
+  if(sys.gui.getEventC(bNClose) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+  
+  if(sys.gui.getEventC(bNOpen) == EV_RELEASED) {
+    sys.o.destroy();
+    currentEvent = notifEvent;
+    loadEvent(currentEvent);
+    sys.os.gui.setMainScr(sView);
+    return;
+  }
+  
+  sys.os.gui.btnCtrl(sNotif, bNClose);
+}
+
+function update {
+  if(sys.os.gui.getMainScr() == scr) updateMonth();
+  if(sys.os.gui.getMainScr() == sDay) updateDay();
+  if(sys.os.gui.getMainScr() == sView) viewUpdate();
+  if(sys.os.gui.getMainScr() == sEdit) editUpdate();
+  # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
+  updateOv();
+  sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
+}
+
+
+function exit {
+
+}
