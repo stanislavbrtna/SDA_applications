@@ -872,7 +872,11 @@ function handle_overlay {
     }
     
     if(sys.fs.db.getEntryNum("active", 0)) {
-      sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+      if(sys.alarm.getParam(sys.fs.db.getEntryNum("alarmId", 0)) == ovAlId) {
+        sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+      } else {
+        sys.os.error("Failed to remove alarm!");
+      }
     }
     
     sys.fs.db.dropRow();
@@ -895,7 +899,14 @@ function handle_overlay {
         return;
       }
       if(sys.fs.db.getEntryNum("active", 0)) {
-        sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+        if (
+          sys.alarm.getValid(sys.fs.db.getEntryNum("alarmId", 0)) and
+          sys.alarm.getParam(sys.fs.db.getEntryNum("alarmId", 0)) == ovAlId
+        ) {
+          sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+        } else {
+          sys.os.error("Failed to remove alarm!");
+        }
       }
     }
     
@@ -964,7 +975,11 @@ function updateAlarm {
       if (sys.gui.getValue(bAlChecks[x])) {
         sys.fs.db.setEntryNum("alarmId", activateAlarm(tAlId[x])); 
       } else {
-        sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+        if(sys.alarm.getParam(sys.fs.db.getEntryNum("alarmId", 0)) == tAlId[x]) {
+          sys.alarm.destroy(sys.fs.db.getEntryNum("alarmId", 0));
+        } else {
+          print("something borked, alarm id param mismatch");
+        }
       }
       sys.fs.db.sync();
     }
@@ -973,7 +988,12 @@ function updateAlarm {
       sys.fs.db.selectRow(0);
       sys.fs.db.selectRowId(tAlId[x]);
       sys.fs.db.setEntryNum("snoozed", 0);
-      sys.alarm.destroy(sys.fs.db.getEntryNum("snoozedId", 0));
+      
+      if(sys.alarm.getParam(sys.fs.db.getEntryNum("snoozedId", 0)) == tAlId[x]) {
+        sys.alarm.destroy(sys.fs.db.getEntryNum("snoozedId", 0));
+      } else {
+        print("something borked, snooze id param mismatch");
+      }
       
       if(sys.fs.db.getEntryNum("repeat", 0) == 0) {
         sys.fs.db.setEntryNum("active", 0);
