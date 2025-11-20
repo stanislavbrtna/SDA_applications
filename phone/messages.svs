@@ -400,7 +400,22 @@ function upd_conv {
   }
   
   if (com_handle(del_com) == 1) {
-    sys.fs.delete(currentConv);
+    # remove from conv tables
+    sys.fs.db.selectTable("convs");
+    if (not sys.fs.db.selectRowId(currentConv)) {
+      sys.error("Current conv not valid!");
+      return;
+    }
+    local conv_tab = sys.fs.db.getEntryStr("tabname", "<error>");
+    sys.fs.db.dropRow();
+    
+    if (not sys.fs.db.selectTable(conv_tab)) {
+      sys.error("Conversation table is missing from DB");
+    }
+    
+    # drop conv table
+    sys.fs.db.dropTable();
+    
     load_convs();
     sys.os.gui.setMainScr(scr);
     kbd_back_btn = 0;
