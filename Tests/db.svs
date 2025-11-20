@@ -136,7 +136,7 @@ function test_rw {
     local surname = "Doe" + i;
     local job = "job " + i;
     local foo = 0;
-    sys.fs.db.setEntryStr("name", name);
+    sys.fs.db.setEntry("name", name);
     sys.fs.db.setEntryStr("surname", surname);
     sys.fs.db.setEntryStr("job", job);
     
@@ -146,7 +146,7 @@ function test_rw {
       foo = 66;
     }
     
-    sys.fs.db.setEntryNum("foo", foo);
+    sys.fs.db.setEntry("foo", foo);
     
     if (i == 7) {
       name = "We like tom very much.";
@@ -180,8 +180,8 @@ function test_rw {
     local data = sys.fs.db.getEntryNum("id", 0)
       + " " + sys.fs.db.getEntryStr("name", "def") 
       + " " + sys.fs.db.getEntryStr("surname", "def")
-      + " " + sys.fs.db.getEntryStr("job", "") 
-      + " " + sys.fs.db.getEntryNum("foo", 0);
+      + " " + sys.fs.db.getEntry("job") 
+      + " " + sys.fs.db.getEntry("foo");
      
     print(data);
     
