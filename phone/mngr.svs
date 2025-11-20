@@ -43,7 +43,7 @@ function init {
   
   sys.gui.setRelInit(1);
   
-  tOperator = sys.gui.addText(0, 0, 6, 1, "...", scr);
+  tOperator = sys.gui.addText(0, 0, 8, 1, "...", scr);
   tStat = sys.gui.addText(0, 1, 8, 1, "Status", scr);
   sys.gui.setTxtSize(tStat, FONT_12);
   bOptions = icoButton(12, 2, 2, 1, "conf.sic", scr);
@@ -121,6 +121,8 @@ function init {
   
   lcd_off_fl = 0;
   
+  ov_sleep_time = sys.time.get();
+  
   set_status("INIT");
   
   # arg0 - type of request
@@ -142,7 +144,7 @@ function init_gui {
   selfOvr = sys.o.setScr(s);
   local border = 16;
   sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*4);
-    
+  ov_sleep_time = sys.time.get();
   draw_flag = 1;
 }
 
@@ -329,6 +331,7 @@ function update {
 
   if ((gui_wkup == 1 and sys.o.getId() != selfOvr) and inOpt == 0) {
     init_gui();
+    ov_sleep_time = sys.time.get();
     gui_wkup = 0;
     sys.os.gui.setMainScr(0);
     return;
@@ -588,6 +591,11 @@ function update {
   sms_upd();
   
   at_update();
+  
+  # Manager goes to sleep 
+  if((ov_sleep_time + 120) < sys.time.get()) {
+    exit_flag = 1;
+  }
   
   if (exit_flag and at_enabled == 0 and sms_rcv_fl == 0) {
     if (exit_flag == 1) {

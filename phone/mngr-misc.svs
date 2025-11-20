@@ -46,6 +46,7 @@ function icoCallback {
   sys.com.uartRdClb(&uartCB, 0);
   sys.time.clearTimer();
   at_set_dtr(0); # sleep disabled
+  ov_sleep_time = sys.time.get();
 }
 
 
