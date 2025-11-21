@@ -265,8 +265,6 @@ function load_conv {
   
   max = sys.fs.db.getRowCount();
   
-  print("got " + max + " messages!");
-  
   local i;
   
   for(i = 0; i < len(ctext); i++;) {
@@ -403,7 +401,6 @@ function upd_conv {
   i = ddm_handle(menu2);
   if (i > 0) {
     if (i == 1) {
-      print("msg: calling: " + currentNumber);
       ddm_exit();
       sys.os.subProcess("phone/mngr.svs", "", "CALL", currentNumber, 0);
       return;
@@ -538,11 +535,6 @@ function upd_conv {
   scrScroller(sMsgList, cScroll, 0, scrollMax + scrollAdd);
 }
 
-#*
-bCall  = sys.gui.addButton(7, 0, 1, 1, "...", cscr);
-tTitle = sys.gui.addText(0, 0, 6, 1, "Placeholder name", cscr); 
-sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
-*#
 
 function conv_reply {
   if(arg0) {
@@ -777,7 +769,7 @@ function contRet {
     return;
   }
 
-  print("contRet: "+ arg0 + " " + arg1);
+  #print("contRet: "+ arg0 + " " + arg1);
   currentName   = arg0;
   currentNumber = arg1;
   
