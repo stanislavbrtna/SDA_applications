@@ -52,17 +52,24 @@ function init {
   set_spacing(cscr);
   sys.gui.setYscroll(cscr, -16);
   
-  cScroll = sys.gui.addSliderV(8, 2, 1, 7, 1024, 1024, cscr);
+  cScroll = sys.gui.addSliderV(8, 2, 1, 6, 1024, 1024, cscr);
   bScrUp  = sys.gui.addButton(8, 1, 1, 1, "/\\", cscr);
-  bScrDn  = sys.gui.addButton(8, 9, 1, 1, "\\/", cscr);
+  bScrDn  = sys.gui.addButton(8, 8, 1, 1, "\\/", cscr);
   
   bCall  = sys.gui.addButton(7, 0, 1, 1, "...", cscr);
   tTitle = sys.gui.addText(0, 0, 6, 1, "Placeholder name", cscr); 
   
   sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
   sys.gui.setXscroll(sMsgList, -6);
-  bCNew = sys.gui.addButton(5, 11, 3, 1, "New", cscr);
+  bCNew = sys.gui.addButton(5, 11, 3, 1, "Reply", cscr);
   bBack = sys.gui.addButton(0, 11, 3, 1, "Back", cscr);
+  
+  bCSend = sys.gui.addButton(5, 8, 3, 1, "Send", cscr);
+  sys.gui.setVisible(bCSend, 0);
+  
+  tCCount = sys.gui.addText(0, 8, 3, 1, "0/140", cscr);
+  sys.gui.setVisible(tCCount, 0);
+  #sys.gui.setTxtAlign(tCCount, ALIGN_RIGHT);
 
   # compose screen
   newScr  = sys.gui.addScreen();
@@ -95,11 +102,15 @@ function init {
 
   page = 0;
   scrollMax = 0;
+  scrollAdd = 0;
+  
   
   currentConv   = -1;
   newMsgLoaded  = 0;
   NewMsgConcept = 0;
   currentNumber = "";
+  sendMsgTxt = "";
+  flCSend = 0;
   
   kbd_back_btn = 0;
   menu1 = 0;
@@ -334,11 +345,22 @@ function load_conv {
   bCDn = sys.gui.addButton(0, b*5 + 4 + yAdd - 5, 1, 1, "\\/", sMsgList);
   if (page == 0) {
     sys.gui.setVisible(bCDn, 0);
+    
+    tCNewMsg = sys.gui.addText(0, b*5 + 4 + yAdd - 5, 8, 1, "", sMsgList);
+    sys.gui.setTxtEd(tCNewMsg, 1);
+    sys.gui.setTxtFit(tCNewMsg, 1);
+    
+    sys.gui.setVisible(tCNewMsg, 0);
   } else {
     scrollMax += 32;
   }
   
   kbd_back_btn = bBack;
+  
+  if(flCSend) {
+    conv_reply(flCSend);
+    sys.os.showKbd();
+  }
 }
 
 
@@ -423,8 +445,26 @@ function upd_conv {
   }
     
   if(sys.gui.getEventC(bCNew) == EV_RELEASED) {
-    ld_new_msg(currentNumber, cscr);
+    page = 0;
+    load_conv(currentConv);
+    sys.gui.setValue(cScroll, 1024);
+    conv_reply(1);
+    
+    sys.fs.db.selectTable("convs");
+    sys.fs.db.selectRowId(currentConv);
+    sys.gui.setStr(tCNewMsg, sys.fs.db.getEntryStr("concept", ""));
+    
+    sys.gui.setParam(tCNewMsg, len(sys.gui.getStr(tCNewMsg)));
+    #ld_new_msg(currentNumber, cscr);
   }
+  
+  if(sys.gui.getEventC(bCSend) == EV_RELEASED) {
+    sms_send(sys.gui.getStr(tCNewMsg));
+    flCSend = 1;
+    return;
+    #ld_new_msg(currentNumber, cscr);
+  }
+  
   
   if(sys.gui.getEventC(bScrDn) == EV_RELEASED and sys.gui.getValue(cScroll) <= 1008) {
     sys.gui.setValue(cScroll, sys.gui.getValue(cScroll) + 16);
@@ -436,7 +476,12 @@ function upd_conv {
   
   
   for(i = 0; i < len(ctext); i++;) {
-    if (ctext[i] != 0 and sys.gui.getEvent(ctext[i]) == EV_RELEASED and ctext[i] != rdText) {
+    if (
+      ctext[i] != 0 and
+      flCSend == 0 and
+      sys.gui.getEvent(ctext[i]) == EV_RELEASED and
+      ctext[i] != rdText
+    ) {
       if(rdText) {
         # Clean/Deactivate
         sys.gui.setTxtEd(rdText, 0);
@@ -456,16 +501,93 @@ function upd_conv {
   
   if(rdText) {
     if(not sys.gui.getTxtAct(rdText)) {
-      print("deactivate");
+      #print("deactivate");
       sys.gui.setTxtEd(rdText, 0);
       rdText = 0;
     } else {
       sys.os.gui.handleText(rdText);
     }
   }
+  
+  if(sys.gui.getVisible(tCNewMsg)) {
+    sys.os.gui.handleText(tCNewMsg);
+    local text = sys.gui.getStr(tCNewMsg);
+    upd_count(tCCount, rlen(text), len(text));
+    
+    if(sys.gui.getTxtHeight(tCNewMsg, 0) > (scrollAdd - (128 + 28) + 32)) {
+      scrollAdd += 32;
+      sys.gui.setY2(tCNewMsg, sys.gui.getY2(tCNewMsg) + 1);
+    }
+    
+    if(sys.gui.getTxtHeight(tCNewMsg, 0) < (scrollAdd - (128 + 28))) {
+      scrollAdd -= 32;
+      sys.gui.setY2(tCNewMsg, sys.gui.getY2(tCNewMsg) - 1);
+    }
+    
+    if(not sys.os.kbdGetState()) {
+      conv_reply(0);
+      flCSend = 0;
+      
+      sys.fs.db.selectTable("convs");
+      sys.fs.db.selectRowId(currentConv);
+      sys.fs.db.setEntryStr("concept", sys.gui.getStr(tCNewMsg));
+      sys.fs.db.sync();
+    }
+  }
 
-  scrScroller(sMsgList, cScroll, 0, scrollMax);
+  scrScroller(sMsgList, cScroll, 0, scrollMax + scrollAdd);
 }
+
+#*
+bCall  = sys.gui.addButton(7, 0, 1, 1, "...", cscr);
+tTitle = sys.gui.addText(0, 0, 6, 1, "Placeholder name", cscr); 
+sMsgList = sys.gui.addScreen(0, 1, 8, 10, cscr);
+*#
+
+function conv_reply {
+  if(arg0) {
+    flCSend = 1;
+    sys.gui.setVisible(bCNew, 0);
+    sys.gui.setVisible(bBack, 0);
+    
+    sys.gui.setVisible(bCSend, 1);
+    sys.gui.setVisible(tCCount, 1);
+    
+    sys.gui.setY1(bCall, 1);
+    
+    sys.gui.setY1(tTitle, 1);
+    
+    sys.gui.setY1(sMsgList, 2);
+    sys.gui.setY2(sMsgList, 6);
+    sys.gui.setYscroll(cscr, 28);
+    
+    sys.gui.setVisible(tCNewMsg, 1);
+    sys.gui.setVisible(bCUp, 0);
+    sys.gui.setTxtAct(tCNewMsg);
+    sys.os.showKbd();
+    scrollAdd = 128 + 28;
+  } else {
+    flCSend = 0;
+    sys.gui.setVisible(bCNew, 1);
+    sys.gui.setVisible(bBack, 1);
+    
+    sys.gui.setVisible(bCSend, 0);
+    sys.gui.setVisible(tCCount, 0);
+    
+    sys.gui.setY1(bCall, 0);
+    sys.gui.setY1(tTitle, 0);
+    
+    sys.gui.setY1(sMsgList, 1);
+    sys.gui.setY2(sMsgList, 10);
+    
+    sys.gui.setYscroll(cscr, -16);
+    
+    sys.gui.setVisible(tCNewMsg, 0);
+    sys.gui.setVisible(bCUp, 1);
+    scrollAdd = 0;
+  }
+}
+
 
 ## Load new message screen
 function ld_new_msg { # number, prev_Screen
@@ -502,28 +624,41 @@ function ld_new_msg { # number, prev_Screen
       sys.gui.setGrayout(bNSend, 0);
       
       sNewMsg = sys.fs.db.getEntryStr("concept", "<error>");
-      upd_count(rlen(sNewMsg), len(sNewMsg));
+      upd_count(tNCount, rlen(sNewMsg), len(sNewMsg));
     } else {
       sys.gui.setStr(bNCont, arg0);
       sNewMsg = "";
     }
+    
   }
 }
 
 
+function get_concept {
+
+  sys.fs.db.selectTable("convs");
+  if (not sys.fs.db.selectRowId(currentConv)) {
+    sys.error("Current conv not valid!");
+    return;
+  }
+  
+  return sys.fs.db.getEntryStr("concept", "");
+}
+
+
 ## Char count update function
-function upd_count #* rl, l*# {
-  if(arg0 == arg1) {
-    if (arg1 < 140) {
-      sys.gui.setStr(tNCount, arg1+"/140");
+function upd_count #* txt_id, rl, l*# {
+  if(arg1 == arg2) {
+    if (arg2 < 140) {
+      sys.gui.setStr(arg0, arg2 + "/140");
     } else {
-      sys.gui.setStr(tNCount, (arg1/140 + 1) + ". " + arg1%140+"/140");
+      sys.gui.setStr(arg0, (arg2/140 + 1) + ". " + arg2%140+"/140");
     }
   } else {
-    if (arg1 < 70) {
-      sys.gui.setStr(tNCount, arg1+"/70");
+    if (arg2 < 70) {
+      sys.gui.setStr(arg0, arg2 + "/70");
     } else {
-      sys.gui.setStr(tNCount, (arg1/70 + 1) + ". " + arg1%70+"/70");
+      sys.gui.setStr(arg0, (arg2/70 + 1) + ". " + arg2%70+"/70");
     }
   }
 }
@@ -553,20 +688,13 @@ function upd_new_msg {
   
   if (len(sNewMsg) != nMsgLen) {
     local l = len(sNewMsg);
-    upd_count(rlen(sNewMsg), l);
+    upd_count(tNCount, rlen(sNewMsg), l);
     nMsgLen = l;
   }
   
   if(sys.gui.getEventC(bNSend) == EV_RELEASED) {    
-    sendMsgLen = 140;
-    # get encoding
-    if(len(sNewMsg) != rlen(sNewMsg)) {
-      sendMsgLen = 70;
-    }
-    msg_gc_guard = substr(sNewMsg, 1, sendMsgLen);
-    sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, msg_gc_guard);
-    sNewMsg = substr(sNewMsg, sendMsgLen, len(sNewMsg));
-    sms_c_conv = currentConv;
+    sms_send(sNewMsg);
+    sys.os.hideKbd();
     return;
   }
   
@@ -579,14 +707,29 @@ function upd_new_msg {
 }
 
 
+function sms_send {
+  sendMsgTxt = arg0;
+  sendMsgLen = 140;
+  # get encoding
+  if(len(sendMsgTxt) != rlen(sendMsgTxt)) {
+    sendMsgLen = 70;
+  }
+  msg_gc_guard = substr(sendMsgTxt, 1, sendMsgLen);
+  sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, msg_gc_guard);
+  sendMsgTxt = substr(sendMsgTxt, sendMsgLen, len(sendMsgTxt));
+  sms_c_conv = currentConv;
+  return;
+}
+
+
 ## SMS send callback
 function sms_ret {
   if(arg0 + "" == "OK") {
     # check if all of the message was sent
-    if(len(sNewMsg)) {
+    if(len(sendMsgTxt)) {
       # send next part
-      sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, substr(sNewMsg, 1, sendMsgLen));
-      sNewMsg = substr(sNewMsg, sendMsgLen + 1, len(sNewMsg));
+      sys.os.subProcess("phone/mngr.svs", &sms_ret, "SMS", currentNumber, substr(sendMsgTxt, 1, sendMsgLen));
+      sendMsgTxt = substr(sendMsgTxt, sendMsgLen + 1, len(sendMsgTxt));
       return;
     }
     
@@ -601,7 +744,7 @@ function sms_ret {
       NewMsgConcept = 0;
     }
     
-    sNewMsg = "";
+    sendMsgTxt = "";
     page = 0;
     load_convs();
     if(sms_c_conv != -1) {
@@ -614,7 +757,6 @@ function sms_ret {
         load_conv(conv);
       }
     }
-    sys.os.hideKbd();
     newMsgLoaded = 0;
 
   } else {
@@ -704,7 +846,7 @@ function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
 function wakeup {
   load_convs();
   if(currentConv != -1) {
-    load_conv(currentConv);
+    load_conv(currentConv);  
   }
 
   process_args(arg0, arg1, arg2);
