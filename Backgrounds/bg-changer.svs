@@ -1,7 +1,7 @@
 function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
-  
+  sys.os.setName("Bg Changer");
   sys.os.gui.setMainScr(scr);
   
   sys.fs.chDir(1); #move to apps

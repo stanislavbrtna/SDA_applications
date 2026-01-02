@@ -7,6 +7,7 @@ function init {
   DEBUG = 0;
 
   sys.os.setSingular();
+  sys.os.setName("SMS Messages");
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr);
@@ -143,6 +144,9 @@ function process_args {
     
     if (arg0 == "RCV_NEW") {
       set_icon();
+      if(sys.os.getLock()) {
+        sys.os.suspend();
+      }
     }
   }
 }

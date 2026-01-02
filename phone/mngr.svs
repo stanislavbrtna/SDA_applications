@@ -25,6 +25,7 @@ function init {
 
   # setup all that hacky stuff
   sys.os.setSingular();
+  sys.os.setName("Phone Manager");
   sys.os.noClose(1);
   sys.hw.lockSuspend(1);
   sys.hw.claim(INT_EXP_PORT);
@@ -137,6 +138,14 @@ function icoButton {
   return id;
 }
 
+function handle_lock {
+  local i = sys.os.getLock();
+  sys.gui.setGrayout(bOptions, i);
+  sys.gui.setGrayout(bDial, i);
+  sys.gui.setGrayout(bMessages, i);
+  sys.gui.setGrayout(bContacts, i);
+}
+
 function init_gui { 
   sys.os.gui.setMainScr(0);
   local s = sys.gui.addScreen();
@@ -146,6 +155,8 @@ function init_gui {
   sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*4);
   ov_sleep_time = sys.time.get();
   draw_flag = 1;
+  
+  handle_lock();
 }
 
 

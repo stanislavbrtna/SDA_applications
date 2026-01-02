@@ -10,6 +10,7 @@ function init {
   sys.os.gui.setMainScr(scr);
 
   sys.gui.setRelInit(1);
+  sys.os.setName("ProgEd");
 
   textscreen = sys.gui.addScreen(0, 1, 9, 11, scr);
 
@@ -303,6 +304,7 @@ function callRet {
   if (sys.fs.exists(filename)) {
     program = sys.fs.readStr(filename);
     sys.gui.setStr(fnameT, "Editing: " + filename);
+    updNewName(filename);
     upd_liner();
     resize_bar();
   }
@@ -319,6 +321,7 @@ function saveRet {
   
   sys.fs.writeStr(program, filename);
   sys.gui.setStr(fnameT, "Editing: " + filename);
+  updNewName(filename);
 }
 
 function newRet {
@@ -333,6 +336,22 @@ function newRet {
   program = "";
   resize_bar();
   sys.gui.setStr(fnameT, "Editing: " + filename);
+  updNewName(filename);
+}
+
+
+function updNewName {
+  local i;
+  for(i = len(arg0); i > 0; i--;) {
+    if (getcp(arg0, i) == "/") {
+      arg0 = substr(arg0, i, len(arg0));
+      break;
+    }
+  }
+
+  local g = substr("ed: " + arg0, 0, 31);
+  print(g);
+  sys.os.setName(g);
 }
 
 

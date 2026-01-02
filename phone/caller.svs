@@ -10,6 +10,7 @@ function init {
 
   scr_c = sys.gui.addScreen();
   sys.gui.setRelInit(1);
+  sys.os.setName("Phone Call");
   sys.os.gui.setMainScr(scr_c);
   sys.gui.setXscroll(scr_c, 16);
   

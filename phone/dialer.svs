@@ -2,7 +2,8 @@ import "~cont-tools.svs"
 import "~hist-tools.svs"
 
 function init {
-  sys.os.setSingular();  
+  sys.os.setSingular();
+  sys.os.setName("Dialer");
   sys.gui.setRelInit(1);
   
   ## Dialer Screen

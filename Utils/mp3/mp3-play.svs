@@ -130,6 +130,7 @@ function convDbWork {
 function init {
   sys.os.checkVer(10420);
   sys.os.setSingular();
+  sys.os.setName("MP3 Player");
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.gui.setYcell(scr, 16);
@@ -289,7 +290,7 @@ function add_big_list {
   bl_slider = sys.gui.addSliderV(16, 4, 2, 16, (numOfSongs - 9)*32 + 15, 0, big_list);
   
   bl_up = sys.gui.addButton(16, 1, 2, 3, "/\\", big_list);
-  bl_dn = sys.gui.addButton(16, 20, 2, 3, "\n\\/", big_list);
+  bl_dn = sys.gui.addButton(16, 20, 2, 3, "\\/", big_list);
   
   bl_search = sys.gui.addText(1, 20, 7, 1, "", big_list);
   bl_cancel = sys.gui.addButton(14, 20, 3, 1, "X", big_list);
