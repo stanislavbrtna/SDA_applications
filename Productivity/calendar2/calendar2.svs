@@ -1,3 +1,15 @@
+#*
+ * Calendar2: Events Strike Back
+ *
+ * Features:
+ *   - Repeating events                   - DONE
+ *   - Event notifications                - DONE
+ *   - Repeating event notifications      - TODO
+ *   - Agenda screen                      - TODO
+ *   - Event edit text field handling     - TODO
+ *   - Remove alarms after deleting event - TODO
+ *#
+
 import "lib/inc/ddm.svs"
 import "lib/inc/com.svs"
 
@@ -63,6 +75,7 @@ function getDayName {
 function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
+  sys.os.setSingular();
   sys.os.gui.setMainScr(scr);
   scrSpacer(scr);
   sys.gui.setYscroll(scr, -4);
@@ -107,24 +120,25 @@ function init {
     sys.fs.db.selectTable("events");
   } else {
     sys.fs.db.new("appdata/cal2.db");
-    sys.fs.db.newTable("events", 16);
+    sys.fs.db.newTable("events", 17);
     
-    sys.fs.db.setColumn(0, "id", 0); ##
-    sys.fs.db.setColumn(1, "name", 1); ##
-    sys.fs.db.setColumn(2, "descr", 1); ##
-    sys.fs.db.setColumn(3, "start", 0); ##
-    sys.fs.db.setColumn(4, "end", 0); ##
-    sys.fs.db.setColumn(5, "all_day", 0); ##
-    sys.fs.db.setColumn(6, "uid", 1); ##
-    sys.fs.db.setColumn(7, "valid", 0); ##
-    sys.fs.db.setColumn(8, "rep_wkday", 0); ##
-    sys.fs.db.setColumn(9, "rep_day", 0); ##
-    sys.fs.db.setColumn(10, "rep_mon", 0); ##
-    sys.fs.db.setColumn(11, "rep_year", 0); ##
+    sys.fs.db.setColumn(0, "id", 0);           ##
+    sys.fs.db.setColumn(1, "name", 1);         ##
+    sys.fs.db.setColumn(2, "descr", 1);        ##
+    sys.fs.db.setColumn(3, "start", 0);        ##
+    sys.fs.db.setColumn(4, "end", 0);          ##
+    sys.fs.db.setColumn(5, "all_day", 0);      ##
+    sys.fs.db.setColumn(6, "uid", 1);          ##
+    sys.fs.db.setColumn(7, "valid", 0);        ##
+    sys.fs.db.setColumn(8, "rep_wkday", 0);    ##
+    sys.fs.db.setColumn(9, "rep_day", 0);      ##
+    sys.fs.db.setColumn(10, "rep_mon", 0);     ##
+    sys.fs.db.setColumn(11, "rep_year", 0);    ##
     sys.fs.db.setColumn(12, "rep_end", 0);
     sys.fs.db.setColumn(13, "notif_alarm", 0);
-    sys.fs.db.setColumn(14, "notif_time", 0); #index from the notif-times
+    sys.fs.db.setColumn(14, "notif_time", 0);  # index from the notif-times
     sys.fs.db.setColumn(15, "notif_last", 0);
+    sys.fs.db.setColumn(16, "rep_enabled", 0); # if repeat is neabled
     
     sys.fs.db.idEnable("id");
     
@@ -141,6 +155,7 @@ function init {
   array eventTypes[25];
   array eventDates[25];
   array eventSort[25];
+  array eventNotifs[25];
   evCount = 0;
   
   currentEvent = 0;
@@ -744,18 +759,24 @@ function saveEvent {
   sys.fs.db.setEntryNum("all_day", EdStAllDay);
   sys.fs.db.setEntryNum("valid", 1);
   sys.fs.db.setEntryNum("rep_wkday", evRepWkDay);
-  sys.fs.db.setEntryNum("rep_day", evRepDay); 
+  sys.fs.db.setEntryNum("rep_day", evRepDay);
   sys.fs.db.setEntryNum("rep_mon", evRepMon);
   sys.fs.db.setEntryNum("rep_year", evRepYear);
-  sys.fs.db.setEntryNum("rep_end", evRepEnd);
+  sys.fs.db.setEntryNum("rep_end", evRepEnd); 
+  sys.fs.db.setEntryNum("rep_enabled", evRepWkDay or evRepDay or evRepMon or evRepYear or evRepEnd);
+  
   
   # alarms
-  if(evNotifTime != 0 and eventStart - notifTimes[evNotifTime] > sys.time.get()) {
+  
+  local nextAlarmTime = getNextAlTime();
+  
+  if(evNotifTime != 0 and nextAlarmTime - notifTimes[evNotifTime] > sys.time.get()) {
     if (currentEvent == -1) {
-      local al = sys.alarm.setFixed(eventStart - notifTimes[evNotifTime], sys.fs.db.getEntryNum("id", 0));
+      local al = sys.alarm.setFixed(nextAlarmTime - notifTimes[evNotifTime], sys.fs.db.getEntryNum("id", 0));
+      sys.alarm.setNotify(al, 0);
       sys.fs.db.setEntryNum("notif_alarm", al);
       sys.fs.db.setEntryNum("notif_time", evNotifTime);
-      sys.fs.db.setEntryNum("notif_last", sys.time.get());
+      sys.fs.db.setEntryNum("notif_last", eventStart);
       
       print("new alarm: " + al);
       
@@ -775,10 +796,11 @@ function saveEvent {
       }
       
       # Create new
-      local al = sys.alarm.setFixed(eventStart - notifTimes[evNotifTime], sys.fs.db.getEntryNum("id", 0));
+      local al = sys.alarm.setFixed(nextAlarmTime - notifTimes[evNotifTime], sys.fs.db.getEntryNum("id", 0));
+      sys.alarm.setNotify(al, 0);
       sys.fs.db.setEntryNum("notif_alarm", al);
       sys.fs.db.setEntryNum("notif_time", evNotifTime);
-      sys.fs.db.setEntryNum("notif_last", sys.time.get());
+      sys.fs.db.setEntryNum("notif_last", eventStart);
       
       print("updated alarm: " + al);
       
@@ -808,6 +830,48 @@ function saveEvent {
   sys.fs.db.sync();
 }
 
+
+function getNextAlTime {
+  local retval = eventStart;
+  
+  while(retval < sys.time.get()) {
+    if(evRepWkDay) {
+      retval += 7*24*60*60;
+    }
+    
+    if(evRepDay) {
+      retval += 24*60*60;
+    }
+    
+    if(evRepMon) {
+      retval = sys.time.setTs(
+        sys.time.getTsYear(retval),
+        sys.time.getTsMonth(retval) + 1,
+        sys.time.getTsDay(retval),
+        sys.time.getTsHr(retval),
+        sys.time.getTsMin(retval),
+        sys.time.getTsSec(retval)
+      );
+    }
+    
+    if(evRepYear) {
+      retval = sys.time.setTs(
+        sys.time.getTsYear(retval) + 1,
+        sys.time.getTsMonth(retval),
+        sys.time.getTsDay(retval),
+        sys.time.getTsHr(retval),
+        sys.time.getTsMin(retval),
+        sys.time.getTsSec(retval)
+      );
+    }
+    
+    if(retval > evRepEnd and evRepEnd != 0) {
+      return 0;
+    }
+  }
+  print("latest alarm date: " + dateFmt(retval));
+  return retval;
+}
 
 function lz {
   if (arg0 < 10) return "0" + arg0;
@@ -946,25 +1010,19 @@ function viewUpdate {
 
 
 function solveRepeats {     
-  local rWkDay;
-  local rDay; 
-  local rMon;
-  local rYear;
-  local rEnd = sys.fs.db.getEntryNum("rep_end", 0);
 
-  if ((rEnd > dayStart or rEnd == 0) and (timeStart <= dayStart)) {
-    rWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
-    rDay = sys.fs.db.getEntryNum("rep_day", 0); 
-    rMon = sys.fs.db.getEntryNum("rep_mon", 0);
-    rYear = sys.fs.db.getEntryNum("rep_year", 0);
-  } else {
+  #print("solver: time start:" + timeStart + " timeEnd: " + timeEnd + " End: " + rEnd + " Wk: " + rWkDay + " rDay: " + rDay + " rMon: " + rMon + " rYear: " + rYear);
+
+  if ((rEnd > dayStart or rEnd == 0) and (timeStart <= dayStart))
+  {} else {
     return 0;
   }
   
-  # print("wkday:" + sys.time.getTsWkDay(dayStart) + " " + sys.time.getTsWkDay(timeStart) + "Repeat:" + rWkDay);
+  #print("wkday:" + sys.time.getTsWkDay(dayStart) + " " + sys.time.getTsWkDay(timeStart) + " Repeat: " + rWkDay);
   
   # To handle multiday repeats
-  for(local timeSt = timeStart; timeSt < timeEnd; timeSt += 24*60*60;) {
+  for(local timeSt = timeStart; timeSt <= timeEnd; timeSt += 24*60*60;) {
+    #print("in loop");
     if (rDay) {
       return 1;
     }
@@ -989,6 +1047,7 @@ function solveRepeats {
     }
   }
   
+  #print("no repeat found");
   return 0;
 }
 
@@ -1018,15 +1077,34 @@ function dayReload {
       local timeEnd = sys.fs.db.getEntryNum("end", 0);
       local allDay = sys.fs.db.getEntryNum("all_day", 0);
       
+      local repeats = 0;
+      local rWkDay;
+      local rDay; 
+      local rMon;
+      local rYear;
+      local rEnd;
+      
+      if (sys.fs.db.setEntryNum("rep_enabled", 0)) {
+        rEnd = sys.fs.db.getEntryNum("rep_end", 0);
+        rWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
+        rDay = sys.fs.db.getEntryNum("rep_day", 0); 
+        rMon = sys.fs.db.getEntryNum("rep_mon", 0);
+        rYear = sys.fs.db.getEntryNum("rep_year", 0);
+        print("End: " + rEnd + " Wk: " + rWkDay + " rDay: " + rDay + " rMon: " + rMon + " rYear: " + rYear);
+        repeats = 1;
+      }
+      
+      print("repeats: " + repeats + " solver: " + solveRepeats());
+            
       if (
+        sys.fs.db.getEntryNum("valid", 0) == 1 and
         (
           (timeStart >= dayStart and timeEnd < dayEnd) or 
           (timeStart >= dayStart and timeStart < dayEnd) or
           (timeStart <= dayStart and timeEnd > dayEnd) or
           (timeEnd >= dayStart and timeEnd < dayEnd) or
-          solveRepeats()
-        ) and
-        sys.fs.db.getEntryNum("valid", 0) == 1
+          (repeats and solveRepeats())
+        )
       ){
         events[i] = sys.gui.addButton(
           0, 0 + i, 19, 1,
@@ -1034,16 +1112,26 @@ function dayReload {
           sDayList
         );
         
+        eventNotifs[i] = sys.gui.addImage(
+          17, 0 + i, 2, 1,
+          "alarm.sic", 
+          sDayList
+        );
+        
+        if (sys.fs.db.getEntryNum("notif_time", 0) == 0) {
+          sys.gui.setVisible(eventNotifs[i], 0);
+        }
+        
         eventIds[i] = sys.fs.db.getEntryNum("id", 0);
         if(allDay or (timeStart <= dayStart and timeEnd > dayEnd)) {
           eventTypes[i] = 1;
-          allDayOc = 1;
+          allDayOc = 1; # mark when AllDay occurs
         } else {
           eventTypes[i] = 0;
           eventDates[i] = sys.gui.addText(
             0,
             0 + i,
-            20,
+            17,
             1,
             getDTS(timeStart, timeEnd, dayStart, dayEnd),
             sDayList
@@ -1069,6 +1157,12 @@ function dayReload {
   for(i = 0; i < evCount; i++;) {
     if(eventTypes[i]) {
       sys.gui.setVisible(allDay, 1);
+      if(y != 1 and sys.gui.getVisible(eventNotifs[i])) {
+        sys.gui.setY1(eventNotifs[i], y);
+        y++;
+      } else if(y == 1 and sys.gui.getVisible(eventNotifs[i])) {
+        sys.gui.setY1(eventNotifs[i], y - 1);
+      }
       sys.gui.setY1(events[i], y);
       y++;
     }
@@ -1084,6 +1178,7 @@ function dayReload {
       if(eventTypes[i] == 0 and hr == eventSort[i]) {
         sys.gui.setY1(eventDates[i], y);
         sys.gui.setY1(events[i], y + 1);
+        sys.gui.setY1(eventNotifs[i], y);
         y += 2;
       }
     }
@@ -1231,7 +1326,24 @@ function monthReload {
       local timeEnd = sys.fs.db.getEntryNum("end", 0);
       local allDay = sys.fs.db.getEntryNum("all_day", 0);
       
-      # todo: repeats
+      # Repeats
+      local repeats = 0;
+      local rWkDay;
+      local rDay; 
+      local rMon;
+      local rYear;
+      local rEnd;
+      
+      if (sys.fs.db.setEntryNum("rep_enabled", 0)) {
+        rEnd = sys.fs.db.getEntryNum("rep_end", 0);
+        rWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
+        rDay = sys.fs.db.getEntryNum("rep_day", 0); 
+        rMon = sys.fs.db.getEntryNum("rep_mon", 0);
+        rYear = sys.fs.db.getEntryNum("rep_year", 0);
+        repeats = 1;
+      }
+      
+      print("repeats: " + repeats);
       
       for(local i = 1; i <= days; i++;) {
         local dayStart = monthStart + daySecs*i;
@@ -1242,7 +1354,7 @@ function monthReload {
             (timeStart >= dayStart and timeStart < dayEnd) or
             (timeStart <= dayStart and timeEnd > dayEnd) or
             (timeEnd >= dayStart and timeEnd < dayEnd) or
-            solveRepeats()
+            (repeats and solveRepeats())
           ) and
           sys.fs.db.getEntryNum("valid", 0) == 1
         ) {
@@ -1255,8 +1367,6 @@ function monthReload {
       }
     }
   }
-  
-  
 }
 
 
@@ -1305,9 +1415,57 @@ function updateMonth {
   
   if (sys.gui.getEventC(bAgenda) == EV_RELEASED) {
     notifOverlay(27);
-    sys.snd.beepC(800, 250, &boop);
+    beep();
   }
 }
+
+
+function getNextRepeat {
+  local evRepWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
+  local evRepDay = sys.fs.db.getEntryNum("rep_day", 0); 
+  local evRepMon = sys.fs.db.getEntryNum("rep_mon", 0);
+  local evRepYear = sys.fs.db.getEntryNum("rep_year", 0);
+  local evRepEnd = sys.fs.db.getEntryNum("rep_end", 0);
+  
+  local retval = 0;
+  
+  if(evRepWkDay) {
+    retval = arg0 + 7*24*60*60;
+  }
+  
+  if(evRepDay) {
+    retval = arg0 + 24*60*60;
+  }
+  
+  if(evRepMon) {
+    retval = sys.time.setTs(
+      sys.time.getTsYear(arg0),
+      sys.time.getTsMonth(arg0) + 1,
+      sys.time.getTsDay(arg0),
+      sys.time.getTsHr(arg0),
+      sys.time.getTsMin(arg0),
+      sys.time.getTsSec(arg0)
+    );
+  }
+  
+  if(evRepYear) {
+    retval = sys.time.setTs(
+      sys.time.getTsYear(arg0) + 1,
+      sys.time.getTsMonth(arg0),
+      sys.time.getTsDay(arg0),
+      sys.time.getTsHr(arg0),
+      sys.time.getTsMin(arg0),
+      sys.time.getTsSec(arg0)
+    );
+  }
+  
+  if(retval > evRepEnd) {
+    return retval;
+  } else {
+    return 0;
+  }
+}
+
 
 function wakeup {
   if (sys.alarm.getFlag()) {
@@ -1315,23 +1473,60 @@ function wakeup {
     sys.hw.wakeLcd();
     sys.alarm.clrFlag();
 
-    # init ui
-    notifOverlay(param);
-    
     # set the lastNotif thingy ()
+    if(not sys.fs.db.selectRowId(param)) {
+      sys.error("Borked db!");
+    }
+    
+    if(sys.fs.db.getEntryNum("rep_enabled", 0)) {
+      local last = sys.fs.db.getEntryNum("notif_last", sys.time.get());
+      local evNotifTime = sys.fs.db.getEntryNum("notif_time", 0);
+      
+      local next = getNextRepeat(last);
+      
+      if(next) {
+        print("new repeating alarm: " + dateFmt(next));
+        local al = sys.alarm.setFixed(getNextRepeat(last) - notifTimes[evNotifTime], sys.fs.db.getEntryNum("id", 0));
+        sys.alarm.setNotify(al, 0);
+        sys.fs.db.setEntryNum("notif_alarm", al);
+        sys.fs.db.setEntryNum("notif_time", evNotifTime);  
+        print("updated repeating alarm: " + al);
+      }
+      
+      sys.fs.db.setEntryNum("notif_last", sys.fs.db.getEntryNum("notif_last", sys.time.get()));
+    }
+    
+    # Find the next notification occurence
+
+    # init ui
+    notifOverlay(param);  
     
     # beepBoop
-    sys.snd.beepC(800, 200, &boop);
+    beep();
+    
   }
 }
 
 function beep {
-  sys.snd.beepC(800, 200, "");
+  if (beepState == 0) {
+    sys.snd.beepC(1400, 200, &beep);
+    beepState++;
+    return;
+  }
+  
+  if (beepState == 1) {
+    sys.snd.beepC(0, 200, &beep);
+    beepState++;
+    return;
+  }
+  
+  if (beepState == 2) {
+    sys.snd.beepC(1400, 200, "");
+    beepState = 0;
+    return;
+  }
 }
 
-function boop {
-  sys.snd.beepC(0, 200, &beep);
-}
 
 function dateFmt {
   return 
@@ -1385,10 +1580,6 @@ function notifOverlay {
   local ev = arg0;
   notifEvent = arg0;
   
-  if(not sys.fs.db.selectRowId(ev)) {
-    sys.error("Borked db!");
-  }
-  
   sys.gui.setStr(tNName, sys.fs.db.getEntryStr("name", ""));
   sys.gui.setStr(tNDate, dateFmt(sys.fs.db.getEntryNum("start", 0)));
   
@@ -1428,7 +1619,6 @@ function update {
   if(sys.os.gui.getMainScr() == sDay) updateDay();
   if(sys.os.gui.getMainScr() == sView) viewUpdate();
   if(sys.os.gui.getMainScr() == sEdit) editUpdate();
-  # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
   updateOv();
   sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
 }
