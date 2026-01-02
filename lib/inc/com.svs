@@ -14,6 +14,7 @@ function com_init {
 
 function com_new { # title, mode, def_inp_text
   com_screen = sys.gui.addScreen();
+  sys.gui.scrTxtScroll(com_screen, 1);
   com_title  = sys.gui.addText(0, 0, 8, 1, arg0, com_screen);
   
   com_ok_val   = 0;
