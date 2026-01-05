@@ -163,7 +163,7 @@ function updateRun {
 
   inText = sys.os.gui.handleText(inTextEl, inText);
 
-  if(sys.os.getRedraw()) {
+  if(sys.os.getRedraw() and sys.o.getId() == 0) {
     redrawText(sys.gui.getVisible(inTextOk) == 0);
   }
 }
