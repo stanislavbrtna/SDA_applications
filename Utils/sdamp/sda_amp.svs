@@ -1,0 +1,683 @@
+#*
+Features:
+[] Library
+  [] screen
+  [] scanner
+    [] db scaffold
+    [] folder scanner
+  [] search
+[] Queue
+  [] screen
+[] Playback
+  [x] screen
+  [] btn control
+  [] volume controll
+  [] scrolling current text
+
+*#
+
+function scrSpacer {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6 + 16);
+  sys.gui.setYscroll(arg0, -6 - 8);
+}
+
+function dbReset {
+  sys.fs.db.new("appdata/sdamp.db");
+  
+  sys.fs.db.newTable("songs", 5);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "path", 1); # full path
+  sys.fs.db.setColumn(3, "folderId", 0);
+  sys.fs.db.setColumn(4, "len", 0);
+  
+  sys.fs.db.idEnable("id");
+  sys.fs.db.setIndex("id");
+  
+  sys.fs.db.newTable("folders", 5);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);   # path
+  sys.fs.db.setColumn(2, "scanAt", 0); # timestamp
+  sys.fs.db.setColumn(3, "files", 0);  # number of files
+  sys.fs.db.setColumn(4, "total", 0);  # total size of all files in bytes
+  
+  sys.fs.db.idEnable("id");
+  sys.fs.db.setIndex("id");
+  
+  dbAddFl("music");
+  
+  sys.fs.db.sync();
+}
+
+function getsize {
+  local x;
+  sys.fs.open(arg0);
+  x = sys.fs.size();
+  sys.fs.close();
+  return x;
+}
+
+function dbScanFl { # todo: arg0 - folder id
+  sys.fs.db.selectTable("folders");
+  sys.fs.db.selectRowId(arg0);
+  
+  local fname = sys.fs.db.getEntryStr("name", "");
+  local noSongs = 0;
+  local total = 0;
+  
+  if(sys.fs.db.getEntry("scanAt") != 0) {
+    print("Already scanned...");
+    return;
+  }
+  
+  print("fname:" + fname);
+
+  for(local findfil = sys.fs.find("", fname); findfil != ""; findfil = sys.fs.findNext();) {
+    print("found: " + findfil);
+    # add sub-dirs
+    if(sys.fs.isDir(fname + "/" + findfil)) {
+      dbAddFl(fname + "/" + findfil);
+    } else {
+      # add files
+      if(substr(findfil, len(findfil) - 2, len(findfil)) == "mp3"){
+        print("mp3: " + fname + "/" + findfil);
+        dbAddmp3(findfil, fname + "/" + findfil, arg0);
+        total += getsize(fname + "/" + findfil);
+        noSongs++;
+      }
+    }
+  }
+  sys.fs.db.selectTable("folders");
+  sys.fs.db.selectRowId(arg0);
+  sys.fs.db.setEntry("scanAt", sys.time.get());
+  sys.fs.db.setEntry("files", noSongs);
+  sys.fs.db.setEntry("total", total);
+  
+  print(noSongs + " files total " + total + " bytes");
+  
+}
+
+
+function dbAddFl {
+  print("adding folder: " + arg0);
+  sys.fs.db.selectTable("folders");
+  
+  # ignore existing entries
+  if(sys.fs.db.selectRowStr("name", arg0, 0, 0)) {
+    print("Folder already exists...");
+    return;
+  }
+  
+  sys.fs.db.newRow();
+  sys.fs.db.setEntry("scanAt", 0);
+  sys.fs.db.setEntry("name", arg0);
+  sys.fs.db.setEntry("files", 0);
+  sys.fs.db.setEntry("total", 0);
+}
+
+function dbAddmp3 #*name, fullPath, folderId*# {
+  print("adding song: " + arg0);
+  sys.fs.db.selectTable("songs");
+  sys.fs.db.newRow();
+  sys.fs.db.setEntry("name", arg0);
+  sys.fs.db.setEntry("path", arg1);
+  sys.fs.db.setEntry("folderId", arg2);
+  sys.fs.db.setEntry("len", sys.snd.getDuration(arg1) + 1);
+}
+
+function dbCheck {
+  sys.fs.db.selectTable("folders");
+  
+  for(local i = 1; i < 100; i++;) {
+    print("scanning" + i);
+    sys.fs.db.selectTable("folders");
+    if (not sys.fs.db.selectRowId(i)) {
+      break;
+    }
+    dbScanFl(i);
+  }
+}
+
+function dbPrint {
+  print("Songs db:");
+  sys.fs.db.selectTable("folders");
+  
+  for(local i = 1; i < 100; i++;) {
+    sys.fs.db.selectTable("folders");
+    
+    if (not sys.fs.db.selectRowId(i)) {
+      break;
+    }
+    
+    print("Folder: " + sys.fs.db.getEntry("name"));
+    sys.fs.db.selectTable("songs");
+    
+    sys.fs.db.selectRow(0);
+    
+    for(local b = 1; b < 300; b++;) {
+      if (not sys.fs.db.selectRowNum("folderId", i)) {
+        break;
+      }
+      
+      print("  " + sys.fs.db.getEntry("name"));
+      sys.fs.db.nextRow();
+    }
+    
+  }
+  print("done");
+}
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  sys.hw.btn.stdbyEn(1);
+  sys.os.setSingular();
+  sys.os.setName("SdaAMP");
+  scrSpacer(scr);
+  
+  sys.gui.setXOffset(sys.gui.addImage(1, 0, 10, 3, "logo.sic", scr), 8);
+  
+  tName = sys.gui.addText(1, 2, 8, 1, "", scr);
+  sys.gui.setSelect(tName, 1);
+  
+  tBitRate = sys.gui.addText(1, 3, 4, 1, "", scr);
+  tSmplRate = sys.gui.addText(6, 3, 3, 1, "", scr);
+  sys.gui.setTxtAlign(tSmplRate, ALIGN_RIGHT);
+  sys.gui.setXOffset(tSmplRate, 0);
+  
+  slider = sys.gui.addSliderH(1, 4, 8, 1, 1000, 0, scr);
+  tDur = sys.gui.addText(1, 5, 8, 1, "0:00", scr);
+  
+  bQueue = sys.gui.addButton(1, 7, 4, 1, "Queue", scr);
+  sys.gui.setTxtAlign(bQueue, ALIGN_CENTER);
+  
+  bLibrary = sys.gui.addButton(5, 7, 4, 1, "Library", scr);
+  sys.gui.setTxtAlign(bLibrary, ALIGN_CENTER);
+  
+  bRandom = sys.gui.addButton(1, 8, 2, 1, "", scr);
+  sys.gui.setIcon(bRandom, "shuffle.sic");
+  sys.gui.setYOffset(bRandom, 3);
+  sys.gui.setXOffset(bRandom, 16);
+  sys.gui.setGhost(bRandom, 1);
+  
+  bLoop = sys.gui.addButton(3, 8, 2, 1, "", scr);
+  sys.gui.setIcon(bLoop, "repeat.sic");
+  sys.gui.setYOffset(bLoop, 3);
+  sys.gui.setXOffset(bLoop, 16);
+  sys.gui.setGhost(bLoop, 1);
+  
+  slVol = sys.gui.addSliderH(5, 8, 4, 1, 1000, sys.snd.getVolume(), scr);
+  sys.gui.setYOffset(slVol, 0);
+  
+  sys.gui.setIcon(slVol, "vol-sld.sic");
+  
+  bPrev = sys.gui.addButton(1, 10, 2, 2, "", scr);
+  sys.gui.setXOffset(bPrev, 16);
+  sys.gui.setYOffset(bPrev, 8);
+  sys.gui.setIcon(bPrev, "prev.sic");
+ 
+  bPlay = sys.gui.addButton(3, 10, 2, 2, "", scr);
+  sys.gui.setXOffset(bPlay, 9);
+  sys.gui.setYOffset(bPlay, 8);
+  sys.gui.setIcon(bPlay, "play.sic");
+ 
+  bStop = sys.gui.addButton(5, 10, 2, 2, "", scr);
+  sys.gui.setYOffset(bStop, 8);
+  sys.gui.setXOffset(bStop, 9);
+  sys.gui.setIcon(bStop, "stop.sic");
+
+  bNext = sys.gui.addButton(7, 10, 2, 2, "", scr);
+  sys.gui.setXOffset(bNext, 16);
+  sys.gui.setYOffset(bNext, 8);
+  sys.gui.setIcon(bNext, "next.sic");
+  
+  # Library screen
+  sLib = sys.gui.addScreen();
+  scrSpacer(sLib);
+  sys.gui.setXcell(sLib, 34);
+  sys.gui.setXscroll(sLib, 26);
+  
+  #sLibIn = sys.gui.addScreen(1, 0, 7, 11, sLib);
+  
+  sLBar = sys.gui.addSliderV(9, 0, 1, 7, 100, 0, sLib);
+  
+  bLfolder = sys.gui.addButton(7, 11, 2, 1, "", sLib);
+  sys.gui.setIcon(bLfolder, "folder.sic");
+  sys.gui.setXOffset(bLfolder, 12);
+  sys.gui.setYOffset(bLfolder, 3);
+  
+  bLSearch = sys.gui.addButton(4, 11, 2, 1, "", sLib);
+  sys.gui.setIcon(bLSearch, "search.sic");
+  sys.gui.setXOffset(bLSearch, 15);
+  
+  bLBack = sys.gui.addButton(1, 11, 2, 1, "", sLib);
+  sys.os.gui.setIcon(bLBack, ICON_BACK);
+  sys.gui.setXOffset(bLBack, 16);
+  
+  file = "";
+
+  duration = 0;
+  
+  fname = "";
+  
+  playFlg = 0;
+  
+  sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()));
+  
+  if(sys.fs.exists("appdata/sdamp.db")) {
+    sys.fs.db.open("appdata/sdamp.db");  
+    #sys.fs.db.selectTable("songs");
+    
+    if(sys.os.inSim()) {
+      dbPrint();
+    }
+  } else {
+    dbReset();
+  }
+  
+  dbCheck();
+  
+  array buttons[100];
+  array ids[100];
+  libLen = 0;
+  inFolders = 1;
+  
+  currentSong = 0;
+  currentFolder = 0;
+  
+  randomMode = 0; # 0 - off, 1 - folder, 2 - all
+  
+  ldFolders();
+  
+  folderBegin = 0;
+  filesBegin = 0;
+  
+  folderScroll = 0;
+  
+  mRandom = 0;
+}
+
+import "lib/inc/ddm.svs"
+
+function clrLibScr {
+  sys.gui.destroy(sLibIn);
+  sLibIn = sys.gui.addScreen(1, 0, 8, 11, sLib);
+  scrSpacer(sLibIn);
+  sys.gui.setXcell(sLibIn, 38);
+  sys.gui.setXscroll(sLibIn, -2);
+}
+
+
+function ldFolders {
+  clrLibScr();
+  sys.fs.db.selectTable("folders");
+  
+  local y = 0;
+  
+  for(local i = 1; i < 100; i++;) {
+    sys.fs.db.selectTable("folders");
+    
+    if (not sys.fs.db.selectRowId(i + folderBegin)) {
+      break;
+    }
+    
+    buttons[y] = sys.gui.addButton(0, y, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
+    ids[y] = sys.fs.db.getEntry("id");
+    print("Folder: " + sys.fs.db.getEntry("name"));
+    y++;
+  }
+  
+  libLen = y;
+  setSlider(y);
+}
+
+function ldFolder {
+  clrLibScr();
+  local y = 0;
+  
+  sys.fs.db.selectTable("songs");
+    
+  sys.fs.db.selectRow(0);
+  
+  bListBk = sys.gui.addButton(0, 0, 7, 1, "<-", sLibIn);
+  
+  for(local b = 1; b < 250; b++;) {
+    if (not sys.fs.db.selectRowNum("folderId", arg0)) {
+      break;
+    }
+    
+    buttons[y] = sys.gui.addButton(0, y + 1, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
+    ids[y] = sys.fs.db.getEntry("id");
+    print("Folder: " + sys.fs.db.getEntry("name"));
+    y++;
+    
+    if(y == len(ids)) {
+      break;
+    }
+    
+    sys.fs.db.nextRow();
+  }
+  
+  libLen = y;
+  setSlider(y);
+}
+
+
+function getFolder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+  return ".";
+}
+
+function lz {
+  if(len("" + arg0) == 1) {
+    return "0" + arg0;
+  }
+  return arg0;
+}
+
+function getMin {
+  return arg0/60 + ":" + lz(arg0%60);
+}
+
+function get_fname {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, arg2 + 1, len(arg0));
+    }
+  }
+  return arg0;
+}
+
+
+##=============================================================================
+##========================= Playback functions ================================
+
+function playNext {
+  sys.snd.stop();
+  sys.fs.db.selectTable("songs");
+  
+  if(random == 0) {
+    sys.fs.db.selectRowId(currentSong);
+    sys.fs.db.nextRow();
+    
+    if (not sys.fs.db.selectRowNum("folderId", currentFolder)) {
+      stopPlayback();
+      return;
+    }
+    
+    print("next: " + sys.fs.db.getEntry("name"));
+    playNo(sys.fs.db.getEntry("id"));
+  }
+  
+  if(random == 1) {
+    # Folder
+    
+  }
+  
+  if(random == 2) {
+    # Full library
+    local rows = sys.fs.db.getRowCount();
+    
+    if(not sys.fs.db.selectRow(rnd()%rows)) {
+      sys.os.error("Row select failed.");
+    }
+    
+    print("next: " + sys.fs.db.getEntry("name"));
+    playNo(sys.fs.db.getEntry("id"));
+  }
+}
+
+
+function playNo { # song id
+  sys.fs.db.selectTable("songs");
+  sys.fs.db.selectRowId(arg0);
+  
+  currentSong = sys.fs.db.getEntry("id");
+  currentFolder = sys.fs.db.getEntry("folderId");
+  
+  playFile(sys.fs.db.getEntry("path"), sys.fs.db.getEntry("len"));
+}
+
+
+function playFile { # path, duration
+  if(arg0 == "") {
+    return;
+  }
+
+  duration = arg1;
+  
+  print("duration " + duration);
+  
+  sys.gui.setParam(slider, duration);
+  sys.gui.setValue(slider, 0);
+  sys.gui.setStr(tName, get_fname(arg0));
+  sys.gui.setStr(tDur, "0:00/" + getMin(duration));
+  sys.gui.setStr(tSmplRate, float(sys.snd.getSmplRate(arg0))/1000.0  + "kHz");
+  sys.gui.setVisible(tSmplRate, 1);
+  
+  local bitrate = sys.snd.getBitRate(arg0);
+  if(bitrate) {
+    sys.gui.setStr(tBitRate, bitrate + "kbps");
+    sys.gui.setVisible(tBitRate, 1);
+  } else {
+    sys.gui.setVisible(tBitRate, 0);
+  }
+  
+  sys.snd.play(arg0);
+  fname = arg0;
+  sys.time.setTimer(duration * 1000, &playNext);
+}
+
+
+function stopPlayback {
+  duration = 0;
+  sys.time.clearTimer();
+  sys.snd.stop();
+  playFlg = 0;
+  pauseFlg = 0;
+}
+
+##=============================================================================
+##========================= GUI updates =======================================
+
+function setSlider {
+  sys.gui.setParam(sLBar, (arg0 - 1) * 32 - 8);
+}
+
+function handleList {
+  for(local i = 0; i < libLen; i++;) {
+    if(sys.gui.getEventC(buttons[i]) == EV_RELEASED) {
+      if(inFolders) {
+        folderScroll = sys.gui.getValue(sLBar);
+        sys.gui.setValue(sLBar, 0);
+        sys.gui.setEvent(sLbar, EV_PRESSED);
+        ldFolder(ids[i]);
+        inFolders = 0;
+      } else {
+        playNo(ids[i]);
+      }
+    }
+    
+    if(not inFolders) {
+      if(sys.gui.getEventC(bListBk) == EV_RELEASED) {
+        inFolders = 1;
+        ldFolders();
+        sys.gui.setValue(sLBar, folderScroll);
+        sys.gui.setEvent(sLbar, EV_PRESSED);
+      }
+    }
+  }
+  
+  if(sys.gui.getEvent(sLBar)) {
+    sys.gui.setYscroll(sLibIn, sys.gui.getValue(sLBar) - 6);
+  }
+}
+
+ # call return for FSL
+function callRet {
+  if(arg0 == "") {
+    return;
+  }
+  
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+  
+  print("folder: " + getFolder(arg0) + " (" + arg1 + ") Fname: " + get_fname(arg0));
+  inApps = arg1;
+  sys.fs.chDir(inApps);
+  sys.fs.chDir(getFolder(arg0));
+  duration = 0;
+  playFile(get_fname(arg0));
+}
+
+
+function updMain {
+  if (sys.gui.getEventC(bPlay) == EV_RELEASED) {
+    if(playFlg == 0) {
+      if(currentSong != 0) {
+        playNo(currentSong);
+        playFlg = 1;
+      }
+    } else {
+      pauseFlg = 1 - pauseFlg;
+      print("pausing: " + pauseFlg);
+      sys.snd.setPause(pauseFlg);
+    }
+  }
+  
+  if (sys.gui.getEventC(bStop) == EV_RELEASED) {
+    stopPlayback();
+  }
+  
+  if(sys.gui.getEventC(bNext) == EV_RELEASED) {
+    playNext();
+  }
+  
+  if (sys.gui.getEventC(bLibrary) == EV_RELEASED) {
+    sys.os.gui.setMainScr(sLib);
+  }
+  
+  if (sys.gui.getEventC(bRandom) == EV_RELEASED) {
+    mRandom = ddm_create(bRandom);
+    ddm_width = 4;
+    ddm_add_btn("All songs");
+    ddm_add_btn("Folder");
+    ddm_add_btn("Off");
+  }
+  
+  i = ddm_handle(mRandom);
+  if (i > 0) {
+    if (i == 1) {
+      random = 2;
+      sys.gui.setGhost(bRandom, 0);
+    }
+    if (i == 2) {
+      random = 1;
+      sys.gui.setGhost(bRandom, 0);
+    }
+    if (i == 3) {
+      random = 0;
+      sys.gui.setGhost(bRandom, 1);
+    }
+    ddm_exit();
+  }
+  
+  local p = sys.snd.getPos();
+  
+  if(sys.gui.getValue(slider) != p and not sys.gui.getEvent(slider)) {
+    #print("currentPos " + p);
+    sys.gui.setStr(tDur, getMin(p) + "/" + getMin(duration));
+    sys.gui.setValue(slider, p);
+  }
+  
+  
+  if (sys.gui.getEventC(slider) == EV_RELEASED) {
+    sys.snd.seek(sys.gui.getValue(slider));
+    sys.time.clearTimer();
+    sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &playNext);
+    print("timer se to " + (duration - sys.gui.getValue(slider)) + "s");
+  }
+  
+  if(sys.gui.getEvent(slVol)) {
+    sys.snd.setVolume(sys.gui.getValue(slVol));
+  } else {
+    if(sys.snd.getVolume() != sys.gui.getValue(slVol)) {
+      sys.gui.setValue(slVol, sys.snd.getVolume());
+    }
+  }
+  sys.gui.setEvent(slVol, EV_NONE);
+  
+  # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
+  if(sys.hw.getLcdState()) {
+    sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
+  } else {
+    if(sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
+      sys.gui.setEvent(bNext, EV_RELEASED);
+    }
+    sys.hw.btn.clrEvent(BTN_RIGHT);
+    
+    if(sys.hw.btn.getEvent(BTN_B) == EV_PRESSED) {
+      sys.gui.setEvent(bPlay, EV_RELEASED);
+    }
+    sys.hw.btn.clrEvent(BTN_B);
+    
+    if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+      if(sys.gui.getValue(slVol) + 100 < 1000) {
+        sys.gui.setValue(slVol, sys.gui.getValue(slVol) + 100);
+      } else {
+        sys.gui.setValue(slVol, 1000);
+      }
+      sys.snd.setVolume(sys.gui.getValue(slVol));
+    }
+    sys.hw.btn.clrEvent(BTN_UP);
+    
+    if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+      if(sys.gui.getValue(slVol) - 100 > 0) {
+        sys.gui.setValue(slVol, sys.gui.getValue(slVol) - 100);
+      } else {
+        sys.gui.setValue(slVol, 0);
+      }
+      sys.snd.setVolume(sys.gui.getValue(slVol));
+    }
+    sys.hw.btn.clrEvent(BTN_DOWN);
+  }
+}
+
+function updLib {
+  if (sys.gui.getEventC(bLBack) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr);
+  }
+  
+  handleList();
+}
+
+
+function update {
+  # fsl
+  #*if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl2.svs", &callRet, 0, 0, 0);
+    return;
+  }*#
+  
+  if(sys.os.gui.getMainScr() == scr) {
+    updMain();
+  }
+  
+  if(sys.os.gui.getMainScr() == sLib) {
+    updLib();
+  }
+  
+}
+
+
+function exit {
+  sys.snd.stop();
+}
