@@ -9,7 +9,7 @@ function init {
     ghost   = sys.gui.addCheckBox(1, 12, 4, 1, "ghost", screen);
     select  = sys.gui.addCheckBox(1, 13, 4, 1, "select", screen);
     
-    s_param   = sys.gui.addSliderH(5, 10, 4, 1, 160, 50, screen);
+    s_param   = sys.gui.addSliderH(5, 10, 4, 1, 250, 50, screen);
     al_center = sys.gui.addCheckBox(5, 11, 4, 1, "Center", screen);
     al_left   = sys.gui.addCheckBox(5, 12, 4, 1, "Left", screen);
     al_right  = sys.gui.addCheckBox(5, 13, 4, 1, "Right", screen);
@@ -31,7 +31,7 @@ function update {
     }
     
     if (sys.gui.getEvent(s_param)) {
-      sys.gui.setParam(element, sys.gui.getValue(s_param));
+      sys.gui.setXOffset(element, sys.gui.getValue(s_param));
     }
     
     if (sys.gui.getEventC(grayout)) {

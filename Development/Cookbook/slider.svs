@@ -16,6 +16,9 @@ function init {
     # DUT
     element = sys.gui.addSliderH(1, 2, 9, 3, 100, 1, screen);
     element2 = sys.gui.addSliderV(8, 4, 9, 10, 100, 1, screen);
+    
+    sys.fs.chDir(1);
+    sys.gui.setIcon(element, "Development/Cookbook/backlight.sic");
 }
 
 function update {

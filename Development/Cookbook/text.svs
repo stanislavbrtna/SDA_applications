@@ -16,6 +16,9 @@ function init {
     editable = sys.gui.addCheckBox(1, 10, 5, 11,"editable", screen);
     fit = sys.gui.addCheckBox(1, 9, 9, 10,"fit", screen);
     pwd = sys.gui.addCheckBox(1, 8, 5, 9,"pwd", screen);
+    
+    s_y_off = sys.gui.addSliderH(5, 6, 9, 7, 100, 50, screen);
+    s_x_off = sys.gui.addSliderH(5, 7, 9, 8, 100, 50, screen);
 
     # DUT
     element = sys.gui.addText(1, 2, 9, 3, "Text field", screen);
@@ -25,6 +28,14 @@ function init {
 
 function update {
     # Handle element options
+    if (sys.gui.getEvent(s_x_off)) {
+      sys.gui.setXOffset(element, sys.gui.getValue(s_x_off) - 50);
+    }
+    
+    if (sys.gui.getEvent(s_y_off)) {
+      sys.gui.setYOffset(element, sys.gui.getValue(s_y_off) - 50);
+    }
+    
     if (sys.gui.getEventC(grayout)) {
         sys.gui.setGrayout(element, sys.gui.getValue(grayout));
     }
