@@ -1,19 +1,28 @@
 #*
 Features:
-[] Library
-  [] screen
-  [] scanner
-    [] db scaffold
-    [] folder scanner
+[x] Library
+  [x] screen
+  [x] scanner
+    [x] db scaffold
+    [x] folder scanner
+    [] folder change detect & rescan
   [] search
+  [] show currently playing
 [] Queue
-  [] screen
+  [x] screen
 [] Playback
   [x] screen
-  [] btn control
-  [] volume controll
+  [x] btn control
+  [x] volume controll
+  [x] repeat
+    [x] song
+    [-] folder
+    [-] queue
   [] scrolling current text
-
+[] Settings
+  [] rnd store/load
+  [] repeat store/load
+  [] queue store/load
 *#
 
 function scrSpacer {
@@ -82,7 +91,7 @@ function dbScanFl { # todo: arg0 - folder id
       dbAddFl(fname + "/" + findfil);
     } else {
       # add files
-      if(substr(findfil, len(findfil) - 2, len(findfil)) == "mp3"){
+      if(substr(findfil, len(findfil) - 2, len(findfil)) == "mp3") {
         print("mp3: " + fname + "/" + findfil);
         dbAddmp3(findfil, fname + "/" + findfil, arg0);
         total += getsize(fname + "/" + findfil);
@@ -97,7 +106,6 @@ function dbScanFl { # todo: arg0 - folder id
   sys.fs.db.setEntry("total", total);
   
   print(noSongs + " files total " + total + " bytes");
-  
 }
 
 
@@ -244,6 +252,7 @@ function init {
   #sLibIn = sys.gui.addScreen(1, 0, 7, 11, sLib);
   
   sLBar = sys.gui.addSliderV(9, 0, 1, 7, 100, 0, sLib);
+  bLQueue = sys.gui.addButton(9, 7, 1, 1, "Q", sLib);
   
   bLfolder = sys.gui.addButton(7, 11, 2, 1, "", sLib);
   sys.gui.setIcon(bLfolder, "folder.sic");
@@ -257,6 +266,20 @@ function init {
   bLBack = sys.gui.addButton(1, 11, 2, 1, "", sLib);
   sys.os.gui.setIcon(bLBack, ICON_BACK);
   sys.gui.setXOffset(bLBack, 16);
+  
+  # Queue screen
+  sQue = sys.gui.addScreen();
+  scrSpacer(sQue);
+  sys.gui.setXcell(sQue, 34);
+  sys.gui.setXscroll(sQue, 26);
+ 
+  sLibIn = sys.gui.addScreen(1, 0, 7, 11, sQue);
+  sQBar = sys.gui.addSliderV(9, 0, 1, 7, 100, 0, sQue);
+  bQStopEn = sys.gui.addCheckBox(4, 11, 6, 1, "Stop playback", sQue);
+  
+  bQBack = sys.gui.addButton(1, 11, 2, 1, "", sQue);
+  sys.os.gui.setIcon(bQBack, ICON_BACK);
+  sys.gui.setXOffset(bQBack, 16);
   
   file = "";
 
@@ -281,17 +304,29 @@ function init {
   
   dbCheck();
   
-  array buttons[100];
-  array ids[100];
+  array buttons[50];
+  array ids[50];
   libLen = 0;
   inFolders = 1;
+  
+  array queue[50];
+  array bQUps[50];
+  array bQDowns[50];
+  
+  queueL = 0;
+  queStopFlg = 0;
+  
+  array prevSongs[10];
+  prevSongsLen = 0;
+  
+  for (local i = 0; i < len(prevSongs); i++;) {
+    prevSongs[i] = 0;
+  }
   
   currentSong = 0;
   currentFolder = 0;
   
   randomMode = 0; # 0 - off, 1 - folder, 2 - all
-  
-  ldFolders();
   
   folderBegin = 0;
   filesBegin = 0;
@@ -299,24 +334,71 @@ function init {
   folderScroll = 0;
   
   mRandom = 0;
+  
+  bListNext = 0;
+  bListPrev = 0;
+  
+  dispFolder = 0;
+  dispQueBtn = 0;
+  
+  # Libs
+  ddm_init();
+  
+  # Load
+  ldFolders();
 }
 
 import "lib/inc/ddm.svs"
 
 function clrLibScr {
   sys.gui.destroy(sLibIn);
-  sLibIn = sys.gui.addScreen(1, 0, 8, 11, sLib);
+  sLibIn = sys.gui.addScreen(1, 0, 8, 11, arg0);
   scrSpacer(sLibIn);
   sys.gui.setXcell(sLibIn, 38);
   sys.gui.setXscroll(sLibIn, -2);
 }
 
 
-function ldFolders {
-  clrLibScr();
+function ldQueue {
+  clrLibScr(sQue);
   sys.fs.db.selectTable("folders");
   
   local y = 0;
+  
+  for(local i = 0; i < queueL; i++;) {
+    sys.fs.db.selectTable("songs");
+    
+    print("queue? " + queue[i]);
+    
+    if (not sys.fs.db.selectRowId(queue[i])) {
+      break;
+    }
+    
+    buttons[y] = sys.gui.addButton(0, y, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
+    ids[y] = sys.fs.db.getEntry("id");
+    #print("Folder: " + sys.fs.db.getEntry("name"));
+    y++;
+  }
+  
+  libLen = y;
+  setSlider(y);
+}
+
+
+function ldFolders {
+  clrLibScr(sLib);
+  sys.gui.setVisible(bLQueue, 0);
+  sys.fs.db.selectTable("folders");
+  
+  local y = 0;
+  
+  inFolders = 1;
+  sys.gui.setValue(sLBar, folderScroll);
+  sys.gui.setEvent(sLBar, EV_PRESSED);
+  
+  bListBk = 0;
+  bListNext = 0;
+  bListPrev = 0;
   
   for(local i = 1; i < 100; i++;) {
     sys.fs.db.selectTable("folders");
@@ -327,35 +409,69 @@ function ldFolders {
     
     buttons[y] = sys.gui.addButton(0, y, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
     ids[y] = sys.fs.db.getEntry("id");
-    print("Folder: " + sys.fs.db.getEntry("name"));
+    #print("Folder: " + sys.fs.db.getEntry("name"));
     y++;
+    
+    if(y == len(ids)) {
+      bListNext = sys.gui.addButton(0, y + 1, 7, 1,"\\/", sLibIn);
+      break;
+    }
   }
   
   libLen = y;
   setSlider(y);
 }
 
-function ldFolder {
-  clrLibScr();
+
+function ldFolder { # folder_id
+  clrLibScr(sLib);
   local y = 0;
-  
+  local yadd = 0;
+  sys.gui.setVisible(bLQueue, 1);
   sys.fs.db.selectTable("songs");
     
   sys.fs.db.selectRow(0);
   
-  bListBk = sys.gui.addButton(0, 0, 7, 1, "<-", sLibIn);
+  inFolders = 0;
+  bListBk = sys.gui.addButton(0, 0, 4, 1, "", sLibIn);
+  sys.gui.setIcon(bListBk, "up_dir.sic");
+  sys.gui.setYOffset(bListBk, 5);
+  sys.gui.setXOffset(bListBk, 64);
+  
+  bListNext = 0;
+  
+  if(filesBegin != 0) {
+    bListPrev = sys.gui.addButton(0, 1, 7, 2,"", sLibIn);
+    sys.gui.setIcon(bListPrev, "up.sic");
+    sys.gui.setYOffset(bListPrev, 5);
+    sys.gui.setXOffset(bListPrev, 110);
+    yadd += 2;
+  }
   
   for(local b = 1; b < 250; b++;) {
     if (not sys.fs.db.selectRowNum("folderId", arg0)) {
       break;
     }
     
-    buttons[y] = sys.gui.addButton(0, y + 1, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
+    if(filesBegin > b) {
+      sys.fs.db.nextRow();
+      continue;
+    }
+    
+    buttons[y] = sys.gui.addButton(1 * dispQueBtn, y + 1 + yadd, 7 - 1 * dispQueBtn, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
     ids[y] = sys.fs.db.getEntry("id");
-    print("Folder: " + sys.fs.db.getEntry("name"));
+    if(dispQueBtn) {
+      bQUps[y] = sys.gui.addButton(0, y + 1 + yadd, 1, 1, "Q", sLibIn);
+    }
+    #print("Folder: " + sys.fs.db.getEntry("name"));
     y++;
     
     if(y == len(ids)) {
+      bListNext = sys.gui.addButton(0, y + 1 + yadd, 7, 2,"", sLibIn);
+      sys.gui.setIcon(bListNext, "down.sic");
+      sys.gui.setYOffset(bListNext, 5);
+      sys.gui.setXOffset(bListNext, 110);
+      y++;
       break;
     }
     
@@ -363,7 +479,7 @@ function ldFolder {
   }
   
   libLen = y;
-  setSlider(y);
+  setSlider(y + yadd + 1);
 }
 
 
@@ -376,6 +492,7 @@ function getFolder {
   return ".";
 }
 
+
 function lz {
   if(len("" + arg0) == 1) {
     return "0" + arg0;
@@ -387,6 +504,7 @@ function getMin {
   return arg0/60 + ":" + lz(arg0%60);
 }
 
+
 function get_fname {
   for(arg2 = len(arg0); arg2 > 0; arg2--;) {
     if (getcp(arg0, arg2) == "/") {
@@ -396,12 +514,72 @@ function get_fname {
   return arg0;
 }
 
+##=============================================================================
+##========================= Queue Functions ===================================
+
+function qAdd {
+  queue[queueL] = arg0;
+  queueL++;
+}
+
+function qGet {
+  local val = queue[0];
+  
+  for (local i = 0; i < len(queue) - 1; i++;) {
+    queue[i] = queue[i + 1];
+  }
+  queue[len(queue) - 1] = 0;
+  queueL--;
+  
+  return val;
+}
 
 ##=============================================================================
 ##========================= Playback functions ================================
 
+function getRndFrFldr {
+  sys.fs.db.selectTable("folders");
+  sys.fs.db.selectRowId(arg0);
+  
+  local song = rnd()%sys.fs.db.getEntry("files");
+  
+  sys.fs.db.selectTable("songs");
+  
+  for(local i = 0; i <= song; i++;) {
+    if (not sys.fs.db.selectRowNum("folderId", arg0)) {
+      return 0;
+    }
+    
+    if(i != song)
+      sys.fs.db.nextRow();
+  }
+  
+  return sys.fs.db.getEntry("id");
+}
+
 function playNext {
   sys.snd.stop();
+  
+  if(not sys.gui.getGhost(bLoop)) {
+    playNo(currentSong);
+    return;
+  }
+  
+  if(queStopFlg) {
+    queStopFlg = 0;
+    stopPlayback();
+    return;
+  }
+  
+  if(queueL) {
+    playNo(qGet());
+    
+    if(queueL == 0 and sys.gui.getValue(bQStopEn)) {
+      queStopFlg = 1;
+    }
+    return;
+  }
+  
   sys.fs.db.selectTable("songs");
   
   if(random == 0) {
@@ -419,7 +597,13 @@ function playNext {
   
   if(random == 1) {
     # Folder
+    local song = getRndFrFldr(currentFolder);
     
+    while (song == currentSong) {
+      song = getRndFrFldr(currentFolder);
+    }
+    
+    playNo(song);
   }
   
   if(random == 2) {
@@ -436,6 +620,19 @@ function playNext {
 }
 
 
+function playPrev {
+  for (local i = 0; i < len(prevSongs) - 1; i++;) {
+    prevSongs[i] = prevSongs[i + 1];
+  }
+  prevSongs[len(prevSongs) - 1] = 0;
+  if(prevSongs[0] != 0) {
+    playNo(prevSongs[0]);
+  } else {
+    stopPlayback();
+  }
+}
+
+
 function playNo { # song id
   sys.fs.db.selectTable("songs");
   sys.fs.db.selectRowId(arg0);
@@ -444,6 +641,21 @@ function playNo { # song id
   currentFolder = sys.fs.db.getEntry("folderId");
   
   playFile(sys.fs.db.getEntry("path"), sys.fs.db.getEntry("len"));
+  
+  if(prevSongs[0] == arg0) {
+    return;
+  }
+  
+  for (local i = len(prevSongs) - 1; i > 0; i--;) {
+    prevSongs[i] = prevSongs[i - 1];
+  }
+  
+  prevSongs[0] = arg0;
+  
+  print("ququq:");
+  for (local i = 0; i < len(prevSongs); i++;) {
+    print(i + " : " + prevSongs[i]);
+  }
 }
 
 
@@ -474,6 +686,7 @@ function playFile { # path, duration
   sys.snd.play(arg0);
   fname = arg0;
   sys.time.setTimer(duration * 1000, &playNext);
+  playFlg = 1;
 }
 
 
@@ -489,7 +702,7 @@ function stopPlayback {
 ##========================= GUI updates =======================================
 
 function setSlider {
-  sys.gui.setParam(sLBar, (arg0 - 1) * 32 - 8);
+  sys.gui.setParam(sLBar, (arg0) * 28 + 8);
 }
 
 function handleList {
@@ -498,7 +711,9 @@ function handleList {
       if(inFolders) {
         folderScroll = sys.gui.getValue(sLBar);
         sys.gui.setValue(sLBar, 0);
-        sys.gui.setEvent(sLbar, EV_PRESSED);
+        sys.gui.setEvent(sLBar, EV_PRESSED);
+        filesBegin = 0;
+        dispFolder = ids[i];
         ldFolder(ids[i]);
         inFolders = 0;
       } else {
@@ -507,12 +722,45 @@ function handleList {
     }
     
     if(not inFolders) {
-      if(sys.gui.getEventC(bListBk) == EV_RELEASED) {
-        inFolders = 1;
-        ldFolders();
-        sys.gui.setValue(sLBar, folderScroll);
-        sys.gui.setEvent(sLbar, EV_PRESSED);
+      if(dispQueBtn) {
+        if(sys.gui.getEventC(bQUps[i]) == EV_RELEASED) {
+          qAdd(ids[i]);
+        }
       }
+      
+      if(sys.gui.getEventC(bLQueue) == EV_RELEASED) {
+        dispQueBtn = 1 - dispQueBtn;
+        ldFolder(dispFolder);
+      }
+
+    }
+    
+    if(not inFolders) {
+      if(sys.gui.getEventC(bListBk) == EV_RELEASED) {
+        ldFolders();
+      }
+    }
+  }
+  
+  if(bListNext) {
+    if(sys.gui.getEventC(bListNext) == EV_RELEASED) {
+      filesBegin += len(buttons);
+      ldFolder(dispFolder);
+      sys.gui.setValue(sLBar, 0);
+      sys.gui.setEvent(sLBar, EV_PRESSED);
+    }
+  }
+  
+  if(bListPrev) {
+    if(sys.gui.getEventC(bListPrev) == EV_RELEASED) {
+      filesBegin -= len(buttons);
+      if(filesBegin < 0) {
+        filesBegin = 0;
+      }
+      ldFolder(dispFolder);
+      
+      sys.gui.setValue(sLBar, sys.gui.getParam(sLBar));
+      sys.gui.setEvent(sLBar, EV_PRESSED);
     }
   }
   
@@ -545,11 +793,22 @@ function updMain {
       if(currentSong != 0) {
         playNo(currentSong);
         playFlg = 1;
+      } else {
+        if (queueL) {
+          playNo(qGet());
+        }
       }
     } else {
       pauseFlg = 1 - pauseFlg;
       print("pausing: " + pauseFlg);
       sys.snd.setPause(pauseFlg);
+      if(pauseFlg) {
+        sys.time.clearTimer();
+      } else {
+        print("setting timer...");
+        sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &playNext);
+      }
+      
     }
   }
   
@@ -561,8 +820,26 @@ function updMain {
     playNext();
   }
   
+  if(sys.gui.getEventC(bPrev) == EV_RELEASED) {
+    playPrev();
+  }
+  
   if (sys.gui.getEventC(bLibrary) == EV_RELEASED) {
+    if(inFolders) {
+      ldFolders();
+    } else {
+      ldFolder(dispFolder);
+    }
     sys.os.gui.setMainScr(sLib);
+  }
+  
+  if (sys.gui.getEventC(bQueue) == EV_RELEASED) {
+    ldQueue();
+    sys.os.gui.setMainScr(sQue);
+  }
+  
+  if (sys.gui.getEventC(bLoop) == EV_RELEASED) {
+    sys.gui.setGhost(bLoop, 1 - sys.gui.getGhost(bLoop));
   }
   
   if (sys.gui.getEventC(bRandom) == EV_RELEASED) {
@@ -651,12 +928,26 @@ function updMain {
   }
 }
 
+
 function updLib {
   if (sys.gui.getEventC(bLBack) == EV_RELEASED) {
     sys.os.gui.setMainScr(scr);
   }
   
   handleList();
+}
+
+function updQueue {
+  if (sys.gui.getEventC(bQBack) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr);
+  }
+  
+  for(local i = 0; i < queueL; i++;) {
+    if(sys.gui.getEventC(buttons[i]) == EV_RELEASED) {
+      playNo(queue[i]);
+    }
+  }
+  #handleList();
 }
 
 
@@ -675,6 +966,15 @@ function update {
     updLib();
   }
   
+  if(sys.os.gui.getMainScr() == sQue) {
+    updQueue();
+  }
+  
+  if(sys.snd.getDevice() == 1 and oldDevice == 2) {
+    stopPlayback();
+  }
+  
+  oldDevice = sys.snd.getDevice();
 }
 
 
