@@ -380,8 +380,7 @@ function ldQueue {
     y++;
   }
   
-  libLen = y;
-  setSlider(y);
+  sys.gui.setParam(sQBar, (y) * 28 + 8);
 }
 
 
@@ -573,6 +572,10 @@ function playNext {
   
   if(queueL) {
     playNo(qGet());
+    
+    if(sys.os.gui.getMainScr() == sQue) {
+      ldQueue();
+    }
     
     if(queueL == 0 and sys.gui.getValue(bQStopEn)) {
       queStopFlg = 1;
@@ -948,6 +951,10 @@ function updQueue {
     }
   }
   #handleList();
+  
+  if(sys.gui.getEvent(sQBar)) {
+    sys.gui.setYscroll(sLibIn, sys.gui.getValue(sQBar) - 6);
+  }
 }
 
 
