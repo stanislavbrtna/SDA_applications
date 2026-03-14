@@ -1106,6 +1106,12 @@ function updSearch {
   list_filter_pr = list_filter;
   
   if (sys.gui.getEventC(bSClose) == EV_RELEASED or sys.os.kbdGetState() == 0) {
+    for(local b = 0; b < searchLen; b++;) {
+      sys.gui.destroy((buttons[b]));
+    }
+    list_filter = "";
+    list_filter_pr = "";
+    
     if(inFolders) {
       ldFolders();
     } else {
@@ -1113,6 +1119,7 @@ function updSearch {
     }
     sys.os.gui.setMainScr(sLib);
     sys.os.hideKbd();
+    return;
   }
   
   if(sys.gui.getEvent(sSBar)) {
