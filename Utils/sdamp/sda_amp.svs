@@ -212,10 +212,13 @@ function dbAddFl {
   print("adding folder: " + arg0);
   sys.fs.db.selectTable("folders");
   
-  # ignore existing entries
-  if(sys.fs.db.selectRowStr("name", arg0, 0, 0)) {
-    print("Folder already exists...");
-    return;
+  if(sys.fs.db.getRowCount() > 0) {
+    sys.fs.db.selectRow(0);
+    # ignore existing entries
+    if(sys.fs.db.selectRowStr("name", arg0, 0, 0)) {
+      print("Folder already exists...");
+      return;
+    }
   }
   
   sys.fs.db.newRow();
@@ -240,7 +243,7 @@ function dbCheck {
   
   # check folders
   local rows = sys.fs.db.getRowCount();
-  for(local i = 1; i < rows; i++;) {
+  for(local i = 1; i <= rows; i++;) {
     
     sys.fs.db.selectTable("folders");
     if (not sys.fs.db.selectRowId(i)) {
