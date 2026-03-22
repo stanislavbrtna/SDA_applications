@@ -10,6 +10,7 @@ function init {
   openB = sys.gui.addButton(1, 1, 3, 1, "Otevřít", newScr);
   newB = sys.gui.addButton(5, 1, 3, 1, "Nový", newScr);
   mainB = sys.gui.addButton(1, 3, 7, 1, "Otevřít main.mnu", newScr);
+  quickB = sys.gui.addButton(1, 5, 7, 1, "Otevřít quick.mnu", newScr);
   
   newT = sys.gui.addText(1,1,7,1, "", newScr);
   newFname = "";
@@ -98,6 +99,7 @@ function translate {
     sys.gui.setStr(openB, "Open");
     sys.gui.setStr(newB, "New");
     sys.gui.setStr(mainB, "Open main.mnu");
+    sys.gui.setStr(quickB, "Open quick.mnu");
     sys.gui.setStr(createB, "Create");
     sys.gui.setStr(nCancelB, "Cancel");
     sys.gui.setStr(saveB, "Save");
@@ -141,9 +143,10 @@ function clicked {
 }
 
 function update_new {
-  if(clicked(openB)) {
+  if (clicked(openB)) {
     sys.os.subProcess("lib/fsl2.svs", &newRet, 0, 1, "-lock -filter mnu");
   }
+  
   if(clicked(newB)) {
     newFname = "";
     sys.gui.setVisible(newT, 1);
@@ -170,6 +173,10 @@ function update_new {
   
   if(clicked(mainB)){
     load_mnu("main.mnu");
+  }
+  
+  if (clicked(quickB)) {
+    load_mnu("quick.mnu");
   }
   
   if(clicked(createB)) {
