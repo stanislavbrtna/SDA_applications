@@ -7,7 +7,7 @@ function init {
   sys.gui.setRelInit(1);
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
-  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.1.2", scr);
+  sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.1.3", scr);
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
   sys.gui.setSliderSize(scrollbar, 80);
@@ -383,7 +383,14 @@ function tryOpen {
 
   if (extension == "txt") {
     sys.os.subProcCWD(0);
-    sys.os.subProcess("Productivity/notepad/notepad.svs", "", getPath()+arg0, 0, 0);
+    sys.os.subProcess(
+        "Development/proged/proged.svs",
+        "",
+        getPath() + arg0,
+        inApps,
+        0
+      );
+    #sys.os.subProcess("Productivity/notepad/notepad.svs", "", getPath() + arg0, 0, 0);
     print("opening: notepad/notepad.svs " + getPath()+arg0);
   }
   
@@ -535,7 +542,13 @@ function update {
   if (sys.gui.getEventC(bEdit) == EV_RELEASED) {
     if (selected != -1 and not sys.fs.isDir(sys.gui.getStr(fScrBtns[selected]))) {
       sys.os.subProcCWD(0);
-      sys.os.subProcess("Development/proged/proged.svs", "", getPath() + sys.gui.getStr(fScrBtns[selected]), inApps, 0);
+      sys.os.subProcess(
+        "Development/proged/proged.svs",
+        "",
+        getPath() + sys.gui.getStr(fScrBtns[selected]),
+        inApps,
+        0
+      );
       print("opening: proged" + getPath() + sys.gui.getStr(fScrBtns[selected]));
     }
   }
