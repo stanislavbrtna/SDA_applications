@@ -61,6 +61,8 @@ function update {
     ts = sys.time.setTs(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay(), hour, min, 0);
     if (ts > sys.time.get()) {
       currentAlarm = sys.alarm.setFixed(ts, 0);
+      sys.gui.setStr(setAlarm, "Active: " + currentAlarm);
+      print("Active: " + currentAlarm);
       sys.gui.setGrayout(removeAlarm, 0);
     }
   }
