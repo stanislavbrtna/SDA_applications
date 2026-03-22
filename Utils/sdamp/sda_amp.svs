@@ -843,8 +843,14 @@ function playNext {
     # Full library
     local rows = sys.fs.db.getRowCount();
     
+    if (rows == 0) {
+      sys.os.error("Media library is empty, please rescan it.");
+      return;
+    }
+    
     if(not sys.fs.db.selectRow(rnd()%(rows - 1) + 1)) {
       sys.os.error("Row select failed.");
+      return;
     }
     
     print("next: " + sys.fs.db.getEntry("name"));
@@ -947,6 +953,7 @@ function playFile { # path, duration
   fname = arg0;
   sys.time.setTimer(duration * 1000, &playNext);
   playFlg = 1;
+  pauseFlg = 0;
 }
 
 
@@ -956,6 +963,35 @@ function stopPlayback {
   sys.snd.stop();
   playFlg = 0;
   pauseFlg = 0;
+}
+
+function playPause {
+  if (playFlg == 0) {
+    if (currentSong != 0) {
+      playNo(currentSong);
+      playFlg = 1;
+    } else {
+      if (queueL) {
+        playNo(qGet());
+      }
+    }
+  } else {
+    pauseFlg = 1 - pauseFlg;
+    print("pausing: " + pauseFlg);
+    sys.snd.setPause(pauseFlg);
+    if(pauseFlg) {
+      sys.time.clearTimer();
+    } else {
+      print("setting timer...");
+      sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &playNext);
+    } 
+  }
+}
+
+function pausePlayback {
+  pauseFlg = 1;
+  sys.snd.setPause(pauseFlg);
+  sys.time.clearTimer();
 }
 
 ##=============================================================================
@@ -1138,26 +1174,7 @@ function updSearch {
 
 function updMain {
   if (sys.gui.getEventC(bPlay) == EV_RELEASED) {
-    if(playFlg == 0) {
-      if(currentSong != 0) {
-        playNo(currentSong);
-        playFlg = 1;
-      } else {
-        if (queueL) {
-          playNo(qGet());
-        }
-      }
-    } else {
-      pauseFlg = 1 - pauseFlg;
-      print("pausing: " + pauseFlg);
-      sys.snd.setPause(pauseFlg);
-      if(pauseFlg) {
-        sys.time.clearTimer();
-      } else {
-        print("setting timer...");
-        sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &playNext);
-      } 
-    }
+    playPause();
   }
   
   if (sys.gui.getEventC(bStop) == EV_RELEASED) {
@@ -1240,41 +1257,6 @@ function updMain {
     }
   }
   sys.gui.setEvent(slVol, EV_NONE);
-  
-  # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
-  if(sys.hw.getLcdState()) {
-    sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
-  } else {
-    if(sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
-      sys.gui.setEvent(bNext, EV_RELEASED);
-    }
-    sys.hw.btn.clrEvent(BTN_RIGHT);
-    
-    if(sys.hw.btn.getEvent(BTN_B) == EV_PRESSED) {
-      sys.gui.setEvent(bPlay, EV_RELEASED);
-    }
-    sys.hw.btn.clrEvent(BTN_B);
-    
-    if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
-      if(sys.gui.getValue(slVol) + 100 < 1000) {
-        sys.gui.setValue(slVol, sys.gui.getValue(slVol) + 100);
-      } else {
-        sys.gui.setValue(slVol, 1000);
-      }
-      sys.snd.setVolume(sys.gui.getValue(slVol));
-    }
-    sys.hw.btn.clrEvent(BTN_UP);
-    
-    if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
-      if(sys.gui.getValue(slVol) - 100 > 0) {
-        sys.gui.setValue(slVol, sys.gui.getValue(slVol) - 100);
-      } else {
-        sys.gui.setValue(slVol, 0);
-      }
-      sys.snd.setVolume(sys.gui.getValue(slVol));
-    }
-    sys.hw.btn.clrEvent(BTN_DOWN);
-  }
 }
 
 
@@ -1408,11 +1390,7 @@ function updQueue {
 
 
 function update {
-  # fsl
-  #*if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
-    sys.os.subProcess("lib/fsl2.svs", &callRet, 0, 0, 0);
-    return;
-  }*#
+  local bkBtn = 0;
   
   if(sys.os.gui.getMainScr() == scr) {
     updMain();
@@ -1420,22 +1398,60 @@ function update {
   
   if(sys.os.gui.getMainScr() == sLib) {
     updLib();
+    bkBtn = bLBack;
   }
   
   if(sys.os.gui.getMainScr() == sQue) {
     updQueue();
+    bkBtn = bQBack;
   }
   
   if(sys.os.gui.getMainScr() == sSearch) {
     updSearch();
+    bkBtn = bSClose();
   }
   
-  
+  # handle pause on jack remove
   if(sys.snd.getDevice() == 1 and oldDevice == 2) {
-    stopPlayback();
+    pausePlayback();
   }
   
   oldDevice = sys.snd.getDevice();
+  
+  # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
+  if(sys.hw.getLcdState()) {
+    sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), bkBtn);
+  } else {
+    if(sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
+      playNext();  
+    }
+    sys.hw.btn.clrEvent(BTN_RIGHT);
+    
+    if(sys.hw.btn.getEvent(BTN_B) == EV_PRESSED) {
+      playPause();
+    }
+    sys.hw.btn.clrEvent(BTN_B);
+    
+    if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+      if(sys.gui.getValue(slVol) + 100 < 1000) {
+        sys.gui.setValue(slVol, sys.gui.getValue(slVol) + 100);
+      } else {
+        sys.gui.setValue(slVol, 1000);
+      }
+      sys.snd.setVolume(sys.gui.getValue(slVol));
+    }
+    sys.hw.btn.clrEvent(BTN_UP);
+    
+    if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+      if(sys.gui.getValue(slVol) - 100 > 0) {
+        sys.gui.setValue(slVol, sys.gui.getValue(slVol) - 100);
+      } else {
+        sys.gui.setValue(slVol, 0);
+      }
+      sys.snd.setVolume(sys.gui.getValue(slVol));
+    }
+    sys.hw.btn.clrEvent(BTN_DOWN);
+  }
 }
 
 
