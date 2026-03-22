@@ -65,6 +65,8 @@ function init {
   if(pickNew == 1) {
     newT = sys.gui.addText(0, 2, 8, 1, "", scr);
     sys.gui.setTexEd(newT, 1);
+  } else {
+    newT = 0;
   }
 
   if (sys.os.getLang() == SVP_LANG_CZ) {
@@ -137,7 +139,7 @@ function init {
     inApps = 0;
   }
   
-  if (typeof(arg0) == TYPE_STR) {
+  if (typeof(arg0) == TYPE_STR and sys.fs.exists(arg0)) {
     print("defdir: " + arg0 + "(" + getFolder(arg0) + ")");
     sys.fs.chDir(getFolder(arg0));
     updatePath(getFolder(arg0));
@@ -167,6 +169,11 @@ function init {
  
   # set default returns
   sys.os.subRetval("", 0, 0);
+  
+  newFActO = 0;
+  newTActO = 0;
+  
+  print("FSL: get path " + getPath() + " inApps: " + inApps);
 }
 
 
