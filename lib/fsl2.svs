@@ -368,10 +368,14 @@ function rldFiles {
       fScrBtns[i] = findfil;
       i++;
     } else {
-      if(sys.fs.isDir(findfil) or instr(findfil, "."+filter) or instr(findfil, "."+filter2)) {
+      if(sys.fs.isDir(findfil) or instr(findfil, "."+ filter) or instr(findfil, "."+filter2)) {
         fScrBtns[i] = findfil;
         i++;
       }
+    }
+    if(i >= len(fScrBtns)) {
+      sys.gui.addText(0, i, 6, 1, "(can load " + len(fScrBtns) + " items only)", file_scr);
+      break;
     }
   }
 
