@@ -1,0 +1,549 @@
+function scrSpacer {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setYscroll(arg0, 0);
+}
+
+function dbReset {
+  sys.fs.db.new("appdata/podcasts.db");
+  
+  sys.fs.db.newTable("files", 6);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "path", 1);     # full path
+  sys.fs.db.setColumn(2, "duration", 0); # duration in secs
+  sys.fs.db.setColumn(3, "resume", 0);   # resume pos in secs
+  sys.fs.db.setColumn(4, "bookmark", 0); # 1 if bookmarked
+  sys.fs.db.setColumn(5, "played", 0);   # 1 if played in full
+  
+  sys.fs.db.idEnable("id");
+  sys.fs.db.setIndex("id");
+  
+  sys.fs.db.sync();
+}
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  sys.hw.btn.stdbyEn(1);
+  sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()) + "/icons");
+  
+  scrSpacer(scr);
+  
+  sys.gui.addText(0, 0, 5, 1, "SDA Podcasts", scr);
+  
+  bPrev = sys.gui.addButton(0, 12, 1, 1, "", scr);
+  sys.gui.setIcon(bPrev, "back.sic");
+  sys.gui.setYOffset(bPrev, 3);
+  sys.gui.setXOffset(bPrev, 3);
+  
+  bPlay = sys.gui.addButton(1, 12, 1, 1, "", scr);
+  sys.gui.setIcon(bPlay, "play.sic");
+  sys.gui.setYOffset(bPlay, 3);
+  sys.gui.setXOffset(bPlay, 3);
+  
+  #bPause = sys.gui.addButton(1, 12, 1, 1, "Pause", scr);
+  
+  bStop = sys.gui.addButton(2, 12, 1, 1, "", scr);
+  sys.gui.setIcon(bStop, "stop.sic");
+  sys.gui.setYOffset(bStop, 3);
+  sys.gui.setXOffset(bStop, 3);
+  
+  bNext = sys.gui.addButton(3, 12, 1, 1, "", scr);
+  sys.gui.setIcon(bNext, "next.sic");
+  sys.gui.setYOffset(bNext, 3);
+  sys.gui.setXOffset(bNext, 3);
+  
+  tName = sys.gui.addText(0, 10, 9, 1, "", scr);
+  #sys.gui.setSelect(tName, 1);
+  
+  slider = sys.gui.addSliderH(0, 11, 9, 1, 1000, 0, scr);
+  
+  scrollBar = sys.gui.addSliderV(8, 1, 1, 8, 1000, 0, scr);
+  
+  tDur = sys.gui.addText(4, 12, 5, 1, "0:00", scr);
+  sys.gui.setTxtAlign(tDur, ALIGN_RIGHT);
+  
+  inScr = sys.gui.addScreen();
+  
+  fInScr = sys.gui.addFrame(0, 1, 8, 9, inScr, scr);
+  
+  file = "";
+
+  duration = 0;
+  
+  fname = "";
+  
+  sys.fs.chDir("");
+  
+  if(sys.fs.exists("appdata/podcasts.db")) {
+    sys.fs.db.open("appdata/podcasts.db");  
+  } else {
+    dbReset();
+  }
+  
+  array bList[100];
+  noFiles = 0;
+  currentFolder = "Podcasts";
+  currentFile = "";
+  currentDbFile = 0;
+  
+  inScrSelect = 0;
+  inScrSelId = 0;
+  
+  loadInScr(currentFolder);
+  
+  playFlag = 0;
+  
+}
+
+
+function loadInScr {
+
+  sys.gui.destroy(inScr);
+  
+  inScr = sys.gui.addScreen();
+  sys.gui.setValue(fInScr, inScr);
+  sys.gui.setYcell(inScr, 16);
+  sys.gui.setXscroll(inScr, -8);
+
+  local folder = arg0;
+  local i = 0;
+  local offset = 0;
+  
+  if (arg0 != "Podcasts") {
+    bUp = sys.gui.addButton(0, 0, 2, 2, "", inScr);    
+    sys.gui.setIcon(bUp, "up_dir.sic");
+    sys.gui.setYOffset(bUp, 4);
+    sys.gui.setXOffset(bUp, 20);
+    offset = 2;
+  }
+  
+  for(local findfil = sys.fs.find("", folder); findfil != ""; findfil = sys.fs.findNext();) {
+    #if(sys.fs.isDir(folder + "/" + findfil)) {
+      if(i == inScrSelect - 1) {
+        inScr2 = sys.gui.addScreen(0, i * 2 + offset, 8, 6, inScr);
+        sys.gui.setYcell(inScr2, 16);
+        sys.gui.setYscroll(inScr2, -6);
+        sys.gui.setXscroll(inScr2, -8);
+        sys.gui.setSpacing(inScr2, 1, 1, 1, 1);
+        sys.gui.setXcell(inScr2, 34);
+        bList[i] = sys.gui.addText(-1, 0, 9, 2, getFname(findfil), inScr2);
+        sys.gui.setXOffset(bList[i], 36);
+        sys.gui.setSelect(bList[i], 1);
+        
+        if(not inScrSelId) {
+          upsertRow(folder + "/" + findfil);
+          inScrSelId = sys.fs.db.getEntry("id");
+        }
+        
+      } else {
+        bList[i] = sys.gui.addButton(0, i * 2 + offset, 8, 2, getFname(findfil), inScr);
+        #print("a: " + getFname(currentFile) + "\nb: " + findfil + "\b");
+        
+        upsertRow(folder + "/" + findfil, 1);
+        
+        if(sys.fs.db.getEntry("bookmark")) {
+          sys.gui.setIcon(bList[i], "bookmark_f.sic");
+          sys.gui.setYOffset(bList[i], 4);
+          sys.gui.setXOffset(bList[i], 9);
+        } else if(sys.fs.db.getEntry("played")) {
+          sys.gui.setIcon(bList[i], "check.sic");
+          sys.gui.setYOffset(bList[i], 1);
+          sys.gui.setXOffset(bList[i], 5);
+        }
+        #print("a:" + sys.fs.db.getEntry("id") + " b: " + currentDbFile);
+        if(sys.fs.db.getEntry("id") == currentDbFile) {
+          sys.gui.setIcon(bList[i], "play_mini.sic");
+          sys.gui.setYOffset(bList[i], 5);
+          sys.gui.setXOffset(bList[i], 4);
+        }
+      }
+      
+      if(i == inScrSelect - 1) {
+        offset += 3;
+        bInPlay = sys.gui.addButton(0, 2, 3, 2, "Play", inScr2);
+        
+        if(sys.fs.db.getEntry("id") == currentDbFile) {
+          sys.gui.setIcon(bInPlay, "pause_mini.sic");
+          sys.gui.setStr(bInPlay, "Pause");
+        } else {
+          sys.gui.setIcon(bInPlay, "play_mini.sic");
+        }
+        sys.gui.setXOffset(bInPlay, 4);
+        sys.gui.setYOffset(bInPlay, 5);
+        
+        
+        bInMark = sys.gui.addButton(6, 2, 1, 2, "", inScr2);
+        if(sys.fs.db.getEntry("bookmark")) {
+          sys.gui.setIcon(bInMark, "bookmark_f.sic");
+        } else {
+          sys.gui.setIcon(bInMark, "bookmark.sic");
+        }
+        
+        sys.gui.setYOffset(bInMark, 4);
+        sys.gui.setXOffset(bInMark, 8);
+        
+        if(sys.fs.db.getEntry("duration")) {
+          tInLen = sys.gui.addText(4, 2, 2, 2, getMin(sys.fs.db.getEntry("duration")), inScr2);
+        }
+        
+        #sys.gui.setTxtAlign(tInLen, ALIGN_RIGHT);
+        iInIco = sys.gui.addImage(3, 2, 1, 2, "check.sic", inScr2);
+        if(not sys.fs.db.getEntry("played")) {
+          sys.gui.setStr(iInIco, "check_e.sic");
+        }
+        sys.gui.setXOffset(iInIco, 4);
+        
+        offset += 1;
+        bInBar = sys.gui.addBar(0, 4, 7, 1, sys.fs.db.getEntry("duration"), sys.fs.db.getEntry("resume"), inScr2);
+
+      }
+      
+      i++;
+    #} else {
+      # add files
+    #  if(substr(findfil, len(findfil) - 2, len(findfil)) == "mp3") {   
+    #    noSongs++;
+    #  }
+    #}
+  }
+  noFiles = i;
+  currentFolder = arg0;
+  sys.gui.setParam(scrollBar, 32*(i + 1));
+  sys.gui.setYscroll(inScr, sys.gui.getValue(scrollBar));
+}
+
+
+function updInScr {
+  for(local i = 0; i < noFiles; i++;) {
+    if(sys.gui.getEventC(bList[i]) == EV_RELEASED) {
+      local s = currentFolder + "/" + sys.gui.getStr(bList[i]);
+      if(sys.fs.isDir(s)) {
+        inScrSelect = 0;
+        inScrSelId = 0;
+        loadInScr(s);
+        return;
+      } else if (substr(s, len(s) - 2, len(s)) == "mp3") {
+        inScrSelect = i + 1;
+        inScrSelId = 0;
+        loadInScr(currentFolder);
+        return;
+        #playFile(s);
+      }
+    }
+  }
+  
+  if (currentFolder != "Podcasts") {
+    if(sys.gui.getEventC(bUp) == EV_RELEASED) {
+      inScrSelect = 0;
+      loadInScr("Podcasts");
+      return;
+    }
+  }
+  
+  if (inScrSelect) {
+    if(sys.gui.getEventC(iInIco) == EV_RELEASED) {
+      sys.fs.db.selectRowId(inScrSelId);
+      if(not sys.fs.db.getEntry("played")) {
+        sys.gui.setStr(iInIco, "check.sic");
+        sys.fs.db.setEntry("played", 1);
+      } else {
+        sys.gui.setStr(iInIco, "check_e.sic");
+        sys.fs.db.setEntry("played", 0);
+      }
+    }
+  
+    if(sys.gui.getEventC(bInMark) == EV_RELEASED) {
+      sys.fs.db.selectRowId(inScrSelId);
+      if(not sys.fs.db.getEntry("bookmark")) {
+        sys.gui.setIcon(bInMark, "bookmark_f.sic");
+        sys.fs.db.setEntry("bookmark", 1);
+      } else {
+        sys.gui.setIcon(bInMark, "bookmark.sic");
+        sys.fs.db.setEntry("bookmark", 0);
+      }
+    }
+    
+    if(sys.gui.getEventC(bInPlay) == EV_RELEASED) {
+      #*if(upsertRow()) {
+        # todo: new row
+      } else {
+      
+      }*#
+      if(sys.gui.getStr(bInPlay) == "Play") {
+        local s = currentFolder + "/" + sys.gui.getStr(bList[inScrSelect - 1]);
+        playFile(s);
+        inScrSelId = 0;
+        loadInScr(currentFolder);
+      } else {
+        sys.gui.setStr(bInPlay, "Play");
+        sys.gui.setIcon(bInPlay, "play_mini.sic");
+        pauseMusic();
+      }
+      
+    }
+  }
+}
+
+
+function getFolder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+  return ".";
+}
+
+function getFname {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, arg2 + 1, len(arg0));
+    }
+  }
+  return arg0;
+}
+
+function lz {
+  if(len("" + arg0) == 1) {
+    return "0" + arg0;
+  }
+  return arg0;
+}
+
+function getMin {
+  if(arg0/3600) {
+    return arg0/3600 + ":" + lz(arg0/60 - (arg0/3600)*60) + ":" + lz(arg0%60);
+  }
+  
+  return arg0/60 + ":" + lz(arg0%60);
+}
+
+
+function playNext {
+  sys.snd.stop();
+  local findfil;
+  
+  for(findfil = sys.fs.find("mp3", "."); findfil != ""; findfil = sys.fs.findNext();) {
+    if (findfil == fname) {
+      findfil = sys.fs.findNext();
+      if (findfil != "") {
+        duration = 0;
+        playFile(findfil);
+        break;
+      }
+      break;
+    }
+  }
+  
+  if(findfil == "") {
+    findfil = sys.fs.find("mp3", ".");
+    if(findfil != "") playFile(findfil);
+  }
+}
+
+function upsertRow {
+  sys.fs.db.selectTable("files");
+  sys.fs.db.selectRow(0);
+  if(sys.fs.db.selectRowStr("path", arg0, 1, 1)) {
+    if(arg1 == 0) {
+      print("UpsertRow: found: " + arg0);
+      print("id: " + sys.fs.db.getEntry("id"));
+      print("ee: " + sys.fs.db.getEntry("path"));
+    }
+    return 0;
+  } else {
+    sys.fs.db.newRow();
+    if(arg1 == 0) {
+      print("UpsertRow: creating: " + arg0);
+    }
+    sys.fs.db.setEntry("path", arg0);
+    sys.fs.db.setEntry("duration", 0);
+    sys.fs.db.setEntry("bookmark", 0);
+    sys.fs.db.setEntry("resume", 0);
+    sys.fs.db.setEntry("played", 0);
+    return 1;
+  }
+}
+
+
+function markPlayed {
+  sys.fs.db.selectRowId(currentDbFile);
+  sys.fs.db.setEntry("played", 1);
+  sys.fs.db.setEntry("resume", sys.fs.db.setEntry("duration"));
+}
+
+
+function playFile {
+  if(arg0 == "") {
+    return;
+  }
+  
+  upsertRow(arg0);
+  
+  if (sys.fs.db.getEntry("duration") == 0) {
+    duration = sys.snd.getDuration(arg0) + 1;
+    sys.fs.db.setEntry("duration", duration);
+  } else {
+    duration = sys.fs.db.getEntry("duration");
+  }
+  
+  currentDbFile = sys.fs.db.getEntry("id");
+    
+  print(
+    "Media info:\nfile: " + arg0 +
+    "\nduration: " + getMin(duration) +
+    "\nbitrate: " + sys.snd.getBitRate(arg0) + "kbps"
+  );
+  
+  sys.gui.setParam(slider, duration);
+  sys.gui.setValue(slider, 0);
+  sys.gui.setStr(tName, getFname(arg0));
+  sys.gui.setStr(tDur, "0:00/" + getMin(duration));
+  sys.snd.play(arg0);
+  fname = arg0;
+  currentFile = arg0;
+  sys.time.setTimer(duration * 1000, &markPlayed);
+  
+  paused = 0;
+  
+  playFlag = 1;
+}
+
+ # call return for FSL
+function callRet {
+  if(arg0 == "") {
+    return;
+  }
+  
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+  
+  print("folder: " + getFolder(arg0) + " (" + arg1 + ") Fname: " + getFname(arg0));
+  inApps = arg1;
+  sys.fs.chDir(inApps);
+  sys.fs.chDir(getFolder(arg0));
+  duration = 0;
+  playFile(getFname(arg0));
+}
+
+function handlePlayB {
+  if(not playFlag) {
+    playFile(fname);
+    playFlag = 1;
+    paused = 0;
+    print("play");
+  } else {
+    paused = 1 - paused;
+    
+    if(paused) {
+      pauseMusic();
+    } else {
+      if(inScrSelId == currentDbFile) {
+        sys.gui.setStr(bInPlay, "Pause");
+        sys.gui.setIcon(bInPlay, "pause_mini.sic");
+      }
+      sys.snd.setPause(0);
+    }
+  }
+}
+
+
+function storePos {
+  sys.fs.db.selectRowId(currentDbFile);
+  if(sys.fs.db.getEntry("resume") > sys.snd.getPos()) {
+    sys.fs.db.setEntry("resume", sys.snd.getPos());
+  }
+}
+
+
+function pauseMusic {
+  sys.time.clearTimer();
+  
+  if(not playFlag) {
+    return;
+  }
+  
+  storePos();
+  
+  if(inScrSelId == currentDbFile) {
+    sys.gui.setStr(bInPlay, "Play");
+    sys.gui.setIcon(bInPlay, "play_mini.sic");
+  }
+  
+  sys.snd.setPause(1);
+  paused = 1;
+}
+
+
+function update {
+  if (sys.gui.getEventC(bPlay) == EV_RELEASED) {
+    handlePlayB();
+  }
+  
+  if (sys.gui.getEventC(bStop) == EV_RELEASED) {
+    duration = 0;
+    playFlag = 0;
+    storePos();
+    currentDbFile = 0;
+    sys.time.clearTimer();
+    sys.snd.stop();
+  }
+  
+  #if(sys.gui.getEventC(bNext) == EV_RELEASED) {
+  #  playNext();
+  #}
+  
+  local p = sys.snd.getPos();
+  
+  if(sys.gui.getValue(slider) != p and sys.gui.getEvent(slider) == EV_NONE) {
+    sys.gui.setStr(tDur, getMin(p) + "/" + getMin(duration));
+    sys.gui.setValue(slider, p);
+  }
+  
+  if(sys.gui.getEvent(slider) == EV_HOLD) {
+    sys.gui.setStr(tDur, getMin((sys.gui.getValue(slider)/16)*16) + "/" + getMin(duration));
+  }
+  
+  if (sys.gui.getEventC(slider) == EV_RELEASED) {
+    sys.snd.seek(sys.gui.getValue(slider));
+    sys.time.clearTimer();
+    sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &markPlayed);
+    print("timer se to " + (duration - sys.gui.getValue(slider)) + "s");
+  }
+  
+  if(sys.gui.getEventC(scrollBar)) {
+    sys.gui.setYscroll(inScr, sys.gui.getValue(scrollBar));
+  }
+  
+  updInScr();
+  
+  # control playback with keyboard when screen is off
+  if(sys.hw.getLcdState()) {
+    sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
+  } else {
+    if(sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
+      #sys.gui.setEvent(bNext, EV_RELEASED);
+    }
+    sys.hw.btn.clrEvent(BTN_RIGHT);
+    
+    if(sys.hw.btn.getEvent(BTN_B) == EV_PRESSED) {
+      pauseMusic();
+    }
+    sys.hw.btn.clrEvent(BTN_B);
+  }
+  
+  if(sys.snd.getDevice() == 1 and oldDevice == 2) {
+    pauseMusic();
+  }
+  
+  oldDevice = sys.snd.getDevice();
+}
+
+
+function exit {
+  sys.snd.stop();
+}
