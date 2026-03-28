@@ -27,7 +27,7 @@ function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr);
-  sys.hw.btn.stdbyEn(1);
+  sys.hw.btn.stdbyEn(0);
   sys.os.setSingular();
   sys.os.setName("SDA Podcasts");
   sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()) + "/icons");
@@ -370,6 +370,8 @@ function markPlayed {
   paused      = 0;
   playFlag    = 0;
   loadInScr(currentFolder);
+  
+  sys.time.setTimer(1*60*1000, &disableBtns);
 }
 
 
@@ -423,6 +425,7 @@ function handlePlayB {
   }
 
   if(not playFlag) {
+    sys.hw.btn.stdbyEn(1);
     playFile(fname);
     playFlag = 1;
     paused = 0;
@@ -476,6 +479,9 @@ function handlePauseB {
   }
 }
 
+function disableBtns {
+  sys.hw.btn.stdbyEn(0);
+}
 
 function update {
   if (sys.gui.getEventC(bPlay) == EV_RELEASED) {
