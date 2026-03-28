@@ -28,6 +28,8 @@ function init {
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr);
   sys.hw.btn.stdbyEn(1);
+  sys.os.setSingular();
+  sys.os.setName("SDA Podcasts");
   sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()) + "/icons");
   
   scrSpacer(scr);
@@ -96,7 +98,7 @@ function init {
   loadInScr(currentFolder);
   
   playFlag = 0;
-  
+  seeker = 0;
 }
 
 
@@ -122,93 +124,87 @@ function loadInScr {
   }
   
   for(local findfil = sys.fs.find("", folder); findfil != ""; findfil = sys.fs.findNext();) {
-    #if(sys.fs.isDir(folder + "/" + findfil)) {
-      if(i == inScrSelect - 1) {
-        inScr2 = sys.gui.addScreen(0, i * 2 + offset, 8, 6, inScr);
-        sys.gui.setYcell(inScr2, 16);
-        sys.gui.setYscroll(inScr2, -6);
-        sys.gui.setXscroll(inScr2, -8);
-        sys.gui.setSpacing(inScr2, 1, 1, 1, 1);
-        sys.gui.setXcell(inScr2, 34);
-        bList[i] = sys.gui.addText(-1, 0, 9, 2, getFname(findfil), inScr2);
-        sys.gui.setXOffset(bList[i], 36);
-        sys.gui.setSelect(bList[i], 1);
-        
-        if(not inScrSelId) {
-          upsertRow(folder + "/" + findfil);
-          inScrSelId = sys.fs.db.getEntry("id");
+    upsertRow(folder + "/" + findfil, 1);
+    
+    if(i == inScrSelect - 1) {
+      inScr2 = sys.gui.addScreen(0, i * 2 + offset, 8, 6, inScr);
+      sys.gui.setYcell(inScr2, 16);
+      sys.gui.setYscroll(inScr2, -6);
+      sys.gui.setXscroll(inScr2, -8);
+      sys.gui.setSpacing(inScr2, 1, 1, 1, 1);
+      sys.gui.setXcell(inScr2, 34);
+      bList[i] = sys.gui.addText(-1, 0, 9, 2, getFname(findfil), inScr2);
+      sys.gui.setXOffset(bList[i], 36);
+      sys.gui.setSelect(bList[i], 1);
+      
+      if(not inScrSelId) {
+        inScrSelId = sys.fs.db.getEntry("id");
+      }
+      
+    } else {
+      bList[i] = sys.gui.addButton(0, i * 2 + offset, 8, 2, getFname(findfil), inScr);
+      
+      if(sys.fs.db.getEntry("bookmark")) {
+        sys.gui.setIcon(bList[i], "bookmark_f.sic");
+        sys.gui.setYOffset(bList[i], 4);
+        sys.gui.setXOffset(bList[i], 9);
+      } else if(sys.fs.db.getEntry("played")) {
+        sys.gui.setIcon(bList[i], "check.sic");
+        sys.gui.setYOffset(bList[i], 1);
+        sys.gui.setXOffset(bList[i], 5);
+      }
+      
+      if(sys.fs.db.getEntry("id") == currentDbFile and playFlag) {
+        if(paused) {
+          sys.gui.setIcon(bList[i], "pause_mini.sic");
+        } else {
+          sys.gui.setIcon(bList[i], "play_mini.sic");  
         }
-        
+        sys.gui.setYOffset(bList[i], 5);
+        sys.gui.setXOffset(bList[i], 4);
+      }
+    }
+    
+    if(i == inScrSelect - 1) {
+      offset += 3;
+      bInPlay = sys.gui.addButton(0, 2, 3, 2, "Play", inScr2);
+      
+      if(sys.fs.db.getEntry("id") == currentDbFile and not paused) {
+        sys.gui.setIcon(bInPlay, "pause_mini.sic");
+        sys.gui.setStr(bInPlay, "Pause");
       } else {
-        bList[i] = sys.gui.addButton(0, i * 2 + offset, 8, 2, getFname(findfil), inScr);
-        #print("a: " + getFname(currentFile) + "\nb: " + findfil + "\b");
-        
-        upsertRow(folder + "/" + findfil, 1);
-        
-        if(sys.fs.db.getEntry("bookmark")) {
-          sys.gui.setIcon(bList[i], "bookmark_f.sic");
-          sys.gui.setYOffset(bList[i], 4);
-          sys.gui.setXOffset(bList[i], 9);
-        } else if(sys.fs.db.getEntry("played")) {
-          sys.gui.setIcon(bList[i], "check.sic");
-          sys.gui.setYOffset(bList[i], 1);
-          sys.gui.setXOffset(bList[i], 5);
-        }
-        #print("a:" + sys.fs.db.getEntry("id") + " b: " + currentDbFile);
-        if(sys.fs.db.getEntry("id") == currentDbFile) {
-          sys.gui.setIcon(bList[i], "play_mini.sic");
-          sys.gui.setYOffset(bList[i], 5);
-          sys.gui.setXOffset(bList[i], 4);
-        }
+        sys.gui.setIcon(bInPlay, "play_mini.sic");
+      }
+      sys.gui.setXOffset(bInPlay, 4);
+      sys.gui.setYOffset(bInPlay, 5);
+      
+      
+      bInMark = sys.gui.addButton(6, 2, 1, 2, "", inScr2);
+      if(sys.fs.db.getEntry("bookmark")) {
+        sys.gui.setIcon(bInMark, "bookmark_f.sic");
+      } else {
+        sys.gui.setIcon(bInMark, "bookmark.sic");
       }
       
-      if(i == inScrSelect - 1) {
-        offset += 3;
-        bInPlay = sys.gui.addButton(0, 2, 3, 2, "Play", inScr2);
-        
-        if(sys.fs.db.getEntry("id") == currentDbFile) {
-          sys.gui.setIcon(bInPlay, "pause_mini.sic");
-          sys.gui.setStr(bInPlay, "Pause");
-        } else {
-          sys.gui.setIcon(bInPlay, "play_mini.sic");
-        }
-        sys.gui.setXOffset(bInPlay, 4);
-        sys.gui.setYOffset(bInPlay, 5);
-        
-        
-        bInMark = sys.gui.addButton(6, 2, 1, 2, "", inScr2);
-        if(sys.fs.db.getEntry("bookmark")) {
-          sys.gui.setIcon(bInMark, "bookmark_f.sic");
-        } else {
-          sys.gui.setIcon(bInMark, "bookmark.sic");
-        }
-        
-        sys.gui.setYOffset(bInMark, 4);
-        sys.gui.setXOffset(bInMark, 8);
-        
-        if(sys.fs.db.getEntry("duration")) {
-          tInLen = sys.gui.addText(4, 2, 2, 2, getMin(sys.fs.db.getEntry("duration")), inScr2);
-        }
-        
-        #sys.gui.setTxtAlign(tInLen, ALIGN_RIGHT);
-        iInIco = sys.gui.addImage(3, 2, 1, 2, "check.sic", inScr2);
-        if(not sys.fs.db.getEntry("played")) {
-          sys.gui.setStr(iInIco, "check_e.sic");
-        }
-        sys.gui.setXOffset(iInIco, 4);
-        
-        offset += 1;
-        bInBar = sys.gui.addBar(0, 4, 7, 1, sys.fs.db.getEntry("duration"), sys.fs.db.getEntry("resume"), inScr2);
-
+      sys.gui.setYOffset(bInMark, 4);
+      sys.gui.setXOffset(bInMark, 8);
+      
+      if(sys.fs.db.getEntry("duration")) {
+        tInLen = sys.gui.addText(4, 2, 2, 2, getMin(sys.fs.db.getEntry("duration")), inScr2);
       }
       
-      i++;
-    #} else {
-      # add files
-    #  if(substr(findfil, len(findfil) - 2, len(findfil)) == "mp3") {   
-    #    noSongs++;
-    #  }
-    #}
+      iInIco = sys.gui.addImage(3, 2, 1, 2, "check.sic", inScr2);
+      if(not sys.fs.db.getEntry("played")) {
+        sys.gui.setStr(iInIco, "check_e.sic");
+      }
+      sys.gui.setXOffset(iInIco, 4);
+      
+      offset += 1;
+      bInBar = sys.gui.addBar(0, 4, 7, 1, sys.fs.db.getEntry("duration"), sys.fs.db.getEntry("resume"), inScr2);
+      print("bar: resume: " + sys.fs.db.getEntry("resume") + " duration:" + sys.fs.db.getEntry("duration"));
+    }
+    
+    i++;
   }
   noFiles = i;
   currentFolder = arg0;
@@ -231,7 +227,6 @@ function updInScr {
         inScrSelId = 0;
         loadInScr(currentFolder);
         return;
-        #playFile(s);
       }
     }
   }
@@ -253,6 +248,8 @@ function updInScr {
       } else {
         sys.gui.setStr(iInIco, "check_e.sic");
         sys.fs.db.setEntry("played", 0);
+        sys.fs.db.setEntry("resume", 0);
+        sys.gui.setValue(bInBar, 0);
       }
     }
   
@@ -268,22 +265,15 @@ function updInScr {
     }
     
     if(sys.gui.getEventC(bInPlay) == EV_RELEASED) {
-      #*if(upsertRow()) {
-        # todo: new row
+      if(playFlag and inScrSelId == currentDbFile) {
+        handlePlayB();
       } else {
-      
-      }*#
-      if(sys.gui.getStr(bInPlay) == "Play") {
         local s = currentFolder + "/" + sys.gui.getStr(bList[inScrSelect - 1]);
         playFile(s);
-        inScrSelId = 0;
-        loadInScr(currentFolder);
-      } else {
-        sys.gui.setStr(bInPlay, "Play");
-        sys.gui.setIcon(bInPlay, "play_mini.sic");
-        pauseMusic();
       }
       
+      inScrSelId = 0;
+      loadInScr(currentFolder);
     }
   }
 }
@@ -373,7 +363,13 @@ function upsertRow {
 function markPlayed {
   sys.fs.db.selectRowId(currentDbFile);
   sys.fs.db.setEntry("played", 1);
-  sys.fs.db.setEntry("resume", sys.fs.db.setEntry("duration"));
+  sys.fs.db.setEntry("resume", sys.fs.db.getEntry("duration"));
+  
+  inScrSelect = 0;
+  inScrSelId  = 0;
+  paused      = 0;
+  playFlag    = 0;
+  loadInScr(currentFolder);
 }
 
 
@@ -383,12 +379,15 @@ function playFile {
   }
   
   upsertRow(arg0);
+  local resume = 0;
+  
   
   if (sys.fs.db.getEntry("duration") == 0) {
     duration = sys.snd.getDuration(arg0) + 1;
     sys.fs.db.setEntry("duration", duration);
   } else {
     duration = sys.fs.db.getEntry("duration");
+    resume = sys.fs.db.getEntry("resume");
   }
   
   currentDbFile = sys.fs.db.getEntry("id");
@@ -396,7 +395,8 @@ function playFile {
   print(
     "Media info:\nfile: " + arg0 +
     "\nduration: " + getMin(duration) +
-    "\nbitrate: " + sys.snd.getBitRate(arg0) + "kbps"
+    "\nbitrate: " + sys.snd.getBitRate(arg0) + "kbps" +
+    "\ndbId: " + currentDbFile
   );
   
   sys.gui.setParam(slider, duration);
@@ -411,26 +411,17 @@ function playFile {
   paused = 0;
   
   playFlag = 1;
+  
+  seeker = resume;
 }
 
- # call return for FSL
-function callRet {
-  if(arg0 == "") {
-    return;
-  }
-  
-  print("argument0: " + arg0);
-  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
-  
-  print("folder: " + getFolder(arg0) + " (" + arg1 + ") Fname: " + getFname(arg0));
-  inApps = arg1;
-  sys.fs.chDir(inApps);
-  sys.fs.chDir(getFolder(arg0));
-  duration = 0;
-  playFile(getFname(arg0));
-}
 
 function handlePlayB {
+  if(seeker) {
+    seeker = 0;
+    sys.snd.setVolume(seekerVol);
+  }
+
   if(not playFlag) {
     playFile(fname);
     playFlag = 1;
@@ -441,20 +432,17 @@ function handlePlayB {
     
     if(paused) {
       pauseMusic();
+      # handlePauseB(); is called from pauseMusic();
     } else {
-      if(inScrSelId == currentDbFile) {
-        sys.gui.setStr(bInPlay, "Pause");
-        sys.gui.setIcon(bInPlay, "pause_mini.sic");
-      }
+      handlePauseB();
       sys.snd.setPause(0);
     }
   }
 }
 
-
 function storePos {
-  sys.fs.db.selectRowId(currentDbFile);
-  if(sys.fs.db.getEntry("resume") > sys.snd.getPos()) {
+  print("StorePos called pos:" + sys.snd.getPos() + "id: " + currentDbFile);
+  if(sys.fs.db.selectRowId(currentDbFile)) {
     sys.fs.db.setEntry("resume", sys.snd.getPos());
   }
 }
@@ -468,14 +456,24 @@ function pauseMusic {
   }
   
   storePos();
-  
-  if(inScrSelId == currentDbFile) {
-    sys.gui.setStr(bInPlay, "Play");
-    sys.gui.setIcon(bInPlay, "play_mini.sic");
-  }
+  handlePauseB();
   
   sys.snd.setPause(1);
   paused = 1;
+}
+
+function handlePauseB {
+  if(inScrSelId == currentDbFile) {
+    if (paused) {
+      sys.gui.setStr(bInPlay, "Play");
+      sys.gui.setIcon(bInPlay, "play_mini.sic");
+    } else {
+      sys.gui.setStr(bInPlay, "Pause");
+      sys.gui.setIcon(bInPlay, "pause_mini.sic");
+    }
+  } else {
+    loadInScr(currentFolder);
+  }
 }
 
 
@@ -487,18 +485,26 @@ function update {
   if (sys.gui.getEventC(bStop) == EV_RELEASED) {
     duration = 0;
     playFlag = 0;
-    storePos();
+    if(sys.fs.db.selectRowId(currentDbFile)) {
+      sys.fs.db.setEntry("resume", 0);
+    }
     currentDbFile = 0;
     sys.time.clearTimer();
     sys.snd.stop();
+    loadInScr(currentFolder);
   }
   
   #if(sys.gui.getEventC(bNext) == EV_RELEASED) {
   #  playNext();
   #}
+  #TODO: skip fwd/skip back
   
   local p = sys.snd.getPos();
-  
+ 
+  if(inScrSelId == currentDbFile and inScrSelId != 0 and not seeker) {
+    sys.gui.setValue(bInBar, p);
+  }
+ 
   if(sys.gui.getValue(slider) != p and sys.gui.getEvent(slider) == EV_NONE) {
     sys.gui.setStr(tDur, getMin(p) + "/" + getMin(duration));
     sys.gui.setValue(slider, p);
@@ -509,10 +515,16 @@ function update {
   }
   
   if (sys.gui.getEventC(slider) == EV_RELEASED) {
-    sys.snd.seek(sys.gui.getValue(slider));
-    sys.time.clearTimer();
-    sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &markPlayed);
-    print("timer se to " + (duration - sys.gui.getValue(slider)) + "s");
+    #sys.snd.seek(sys.gui.getValue(slider));
+    if(not seeker) {
+      seeker = sys.gui.getValue(slider);
+      seekerVol = sys.snd.getVolume();
+      sys.snd.setVolume(0);
+      sys.snd.setPause(1);
+    } else {
+      seeker = 0;
+      sys.snd.setPause(0);
+    }
   }
   
   if(sys.gui.getEventC(scrollBar)) {
@@ -534,10 +546,51 @@ function update {
       pauseMusic();
     }
     sys.hw.btn.clrEvent(BTN_B);
+    
+    if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
+      #sys.gui.setEvent(bNext, EV_RELEASED);
+      if(sys.snd.getVolume() + 100 < 1000) {
+        sys.snd.setVolume(sys.snd.getVolume() + 100);
+      } else {
+        sys.snd.setVolume(1000);
+      }
+    }
+    sys.hw.btn.clrEvent(BTN_UP);
+    
+    if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
+      if(sys.snd.getVolume() - 100 > 0) {
+        sys.snd.setVolume(sys.snd.getVolume() - 100);
+      } else {
+        sys.snd.setVolume(0);
+      }
+    }
+    sys.hw.btn.clrEvent(BTN_DOWN);
   }
   
   if(sys.snd.getDevice() == 1 and oldDevice == 2) {
     pauseMusic();
+  }
+  
+  if(seeker and not sys.os.inSim()) {
+    if(seeker < sys.snd.getPos()) {
+      sys.snd.seek(sys.snd.getPos() - 5);
+    }
+    
+    if(seeker > sys.snd.getPos()) {
+      sys.snd.seek(sys.snd.getPos() + 5);
+    }
+    
+    if((seeker - sys.snd.getPos()) * (seeker - sys.snd.getPos()) <= 25) {
+      sys.snd.seek(seeker);
+      sys.time.clearTimer();
+      sys.time.setTimer((duration - seeker) * 1000, &markPlayed);
+      print("timer se to " + (duration - seeker) + "s");
+      seeker = 0;
+      sys.snd.setVolume(seekerVol);
+      sys.snd.setPause(0);
+    }
+  } else if(sys.os.inSim()) {
+    seeker = 0;
   }
   
   oldDevice = sys.snd.getDevice();
