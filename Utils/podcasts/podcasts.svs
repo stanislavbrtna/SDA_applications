@@ -385,7 +385,12 @@ function playFile {
   
   
   if (sys.fs.db.getEntry("duration") == 0) {
-    duration = sys.snd.getDuration(arg0) + 1;
+    duration = sys.snd.getDuration(arg0);
+    if(duration == 0) {
+      sys.os.error("Failed to load mp3 file.");
+      return;
+    }
+    duration++;
     sys.fs.db.setEntry("duration", duration);
   } else {
     duration = sys.fs.db.getEntry("duration");
@@ -415,6 +420,8 @@ function playFile {
   playFlag = 1;
   
   seeker = resume;
+  
+  sys.hw.btn.stdbyEn(1);
 }
 
 
@@ -435,10 +442,12 @@ function handlePlayB {
     
     if(paused) {
       pauseMusic();
+      sys.hw.btn.stdbyEn(0);
       # handlePauseB(); is called from pauseMusic();
     } else {
       handlePauseB();
       sys.snd.setPause(0);
+      sys.hw.btn.stdbyEn(1);
     }
   }
 }
@@ -463,6 +472,7 @@ function pauseMusic {
   
   sys.snd.setPause(1);
   paused = 1;
+  sys.hw.btn.stdbyEn(0);
 }
 
 function handlePauseB {
@@ -497,6 +507,7 @@ function update {
     currentDbFile = 0;
     sys.time.clearTimer();
     sys.snd.stop();
+    sys.hw.btn.stdbyEn(0);
     loadInScr(currentFolder);
   }
   

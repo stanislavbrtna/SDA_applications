@@ -329,7 +329,7 @@ function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr);
-  sys.hw.btn.stdbyEn(1);
+  sys.hw.btn.stdbyEn(0);
   sys.os.setSingular();
   sys.os.setName("SdaAMP");
   scrSpacer(scr);
@@ -524,6 +524,8 @@ function init {
   #qAdd(8);
   #qAdd(9);
   #qAdd(10);
+  
+  disMins = 3;
 }
 
 import "lib/inc/ddm.svs"
@@ -954,12 +956,14 @@ function playFile { # path, duration
   sys.time.setTimer(duration * 1000, &playNext);
   playFlg = 1;
   pauseFlg = 0;
+  sys.hw.btn.stdbyEn(1);
 }
 
 
 function stopPlayback {
   duration = 0;
   sys.time.clearTimer();
+  sys.time.setTimer(disMins * 60 * 1000, &disableKeys);
   sys.snd.stop();
   playFlg = 0;
   pauseFlg = 0;
@@ -981,7 +985,9 @@ function playPause {
     sys.snd.setPause(pauseFlg);
     if(pauseFlg) {
       sys.time.clearTimer();
+      sys.time.setTimer(disMins * 60 * 1000, &disableKeys);
     } else {
+      sys.hw.btn.stdbyEn(1);
       print("setting timer...");
       sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &playNext);
     } 
@@ -992,6 +998,12 @@ function pausePlayback {
   pauseFlg = 1;
   sys.snd.setPause(pauseFlg);
   sys.time.clearTimer();
+  sys.time.setTimer(60 * 1000, &disableKeys);
+}
+
+function disableKeys {
+  print("keys disabled");
+  sys.hw.btn.stdbyEn(0);
 }
 
 ##=============================================================================
@@ -1408,7 +1420,7 @@ function update {
   
   if(sys.os.gui.getMainScr() == sSearch) {
     updSearch();
-    bkBtn = bSClose();
+    bkBtn = bSClose;
   }
   
   # handle pause on jack remove
