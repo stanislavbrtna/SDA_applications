@@ -235,7 +235,7 @@ function dbAddmp3 #*name, fullPath, folderId*# {
   sys.fs.db.setEntry("name", arg0);
   sys.fs.db.setEntry("path", arg1);
   sys.fs.db.setEntry("folderId", arg2);
-  sys.fs.db.setEntry("len", sys.snd.getDuration(arg1) + 1);
+  sys.fs.db.setEntry("len", sys.pcm.getDuration(arg1) + 1);
 }
 
 function dbCheck {
@@ -243,21 +243,23 @@ function dbCheck {
   
   # check folders
   local rows = sys.fs.db.getRowCount();
-  for(local i = 1; i <= rows; i++;) {
+  for(local i = 0; i < rows; i++;) {
     
     sys.fs.db.selectTable("folders");
-    if (not sys.fs.db.selectRowId(i)) {
-      continue;
+    
+    if (not sys.fs.db.selectRow(i)) {
+      break;
     }
-    print("scanning " + sys.fs.db.getEntry("name"));
-    dbScanFl(i);
+    
+    print("scanning \"" + sys.fs.db.getEntry("name") + "\" id: " + sys.fs.db.getEntry("name"));
+    dbScanFl(sys.fs.db.getEntry("id"));
   }
   
   # check file validity
   sys.fs.db.selectTable("songs");
   rows = sys.fs.db.getRowCount();
   
-  for(local i = 1; i < rows; i++;) {
+  for(local i = 0; i < rows; i++;) {
     
     if (not sys.fs.db.selectRow(i)) {
       break;
@@ -268,6 +270,7 @@ function dbCheck {
       sys.fs.db.dropRow();
       i--;
       rows = sys.fs.db.getRowCount();
+      print("dropDone");
     }
   }
   
@@ -276,7 +279,7 @@ function dbCheck {
   
   # check folders
   local rows = sys.fs.db.getRowCount();
-  for(local i = 1; i < rows; i++;) {
+  for(local i = 0; i < rows; i++;) {
     if (not sys.fs.db.selectRow(i)) {
       continue;
     }
@@ -300,27 +303,33 @@ function dbPrint {
   print("Songs db:");
   sys.fs.db.selectTable("folders");
   
-  for(local i = 1; i < 100; i++;) {
+  for(local i = 0; i < 100; i++;) {
     sys.fs.db.selectTable("folders");
     
-    if (not sys.fs.db.selectRowId(i)) {
+    if (not sys.fs.db.selectRow(i)) {
       break;
     }
     
-    print("Folder: " + sys.fs.db.getEntry("name"));
+    print("Folder: " + sys.fs.db.getEntry("name") + " id: " + sys.fs.db.getEntry("id"));
+    local id = sys.fs.db.getEntry("id");
+    
+    local songs = 0;
     sys.fs.db.selectTable("songs");
     
     sys.fs.db.selectRow(0);
     
     for(local b = 1; b < 300; b++;) {
-      if (not sys.fs.db.selectRowNum("folderId", i)) {
+      if (not sys.fs.db.selectRowNum("folderId", id)) {
         break;
       }
-      
-      print("  " + sys.fs.db.getEntry("name"));
-      sys.fs.db.nextRow();
+      songs++;
+      #print("  " + sys.fs.db.getEntry("name"));
+      if (not sys.fs.db.nextRow()) {
+        break;
+      }
     }
     
+    print("  " + songs + " songs total");
   }
   print("done");
 }
@@ -365,7 +374,7 @@ function init {
   sys.gui.setXOffset(bLoop, 16);
   sys.gui.setGhost(bLoop, 1);
   
-  slVol = sys.gui.addSliderH(5, 8, 4, 1, 1000, sys.snd.getVolume(), scr);
+  slVol = sys.gui.addSliderH(5, 8, 4, 1, 1000, sys.pcm.getVolume(), scr);
   sys.gui.setYOffset(slVol, 0);
   
   sys.gui.setIcon(slVol, "vol-sld.sic");
@@ -526,6 +535,8 @@ function init {
   #qAdd(10);
   
   disMins = 3;
+  
+  mediaId = 0;
 }
 
 import "lib/inc/ddm.svs"
@@ -618,7 +629,7 @@ function ldFolders {
     sys.fs.db.selectTable("folders");
     
     if (not sys.fs.db.selectRowId(i + folderBegin)) {
-      break;
+      continue;
     }
     
     buttons[y] = sys.gui.addButton(0, y, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
@@ -789,7 +800,7 @@ function getRndFrFldr {
 }
 
 function playNext {
-  sys.snd.stop();
+  sys.pcm.stop(mediaId);
   
   if(not sys.gui.getGhost(bLoop)) {
     playNo(currentSong);
@@ -940,10 +951,10 @@ function playFile { # path, duration
   sys.gui.setValue(slider, 0);
   sys.gui.setStr(tName, get_fname(arg0));
   sys.gui.setStr(tDur, "0:00/" + getMin(duration));
-  sys.gui.setStr(tSmplRate, float(sys.snd.getSmplRate(arg0))/1000.0  + "kHz");
+  sys.gui.setStr(tSmplRate, float(sys.pcm.getSmplRate(arg0))/1000.0  + "kHz");
   sys.gui.setVisible(tSmplRate, 1);
   
-  local bitrate = sys.snd.getBitRate(arg0);
+  local bitrate = sys.pcm.getBitRate(arg0);
   if(bitrate) {
     sys.gui.setStr(tBitRate, bitrate + "kbps");
     sys.gui.setVisible(tBitRate, 1);
@@ -951,7 +962,7 @@ function playFile { # path, duration
     sys.gui.setVisible(tBitRate, 0);
   }
   
-  sys.snd.play(arg0);
+  mediaId = sys.pcm.play(arg0);
   fname = arg0;
   sys.time.setTimer(duration * 1000, &playNext);
   playFlg = 1;
@@ -964,13 +975,13 @@ function stopPlayback {
   duration = 0;
   sys.time.clearTimer();
   sys.time.setTimer(disMins * 60 * 1000, &disableKeys);
-  sys.snd.stop();
+  sys.pcm.stop(mediaId);
   playFlg = 0;
   pauseFlg = 0;
 }
 
 function playPause {
-  if (playFlg == 0) {
+  if (playFlg == 0 or sys.pcm.getId() != mediaId) {
     if (currentSong != 0) {
       playNo(currentSong);
       playFlg = 1;
@@ -982,7 +993,7 @@ function playPause {
   } else {
     pauseFlg = 1 - pauseFlg;
     print("pausing: " + pauseFlg);
-    sys.snd.setPause(pauseFlg);
+    sys.pcm.setPause(pauseFlg, mediaId);
     if(pauseFlg) {
       sys.time.clearTimer();
       sys.time.setTimer(disMins * 60 * 1000, &disableKeys);
@@ -996,7 +1007,7 @@ function playPause {
 
 function pausePlayback {
   pauseFlg = 1;
-  sys.snd.setPause(pauseFlg);
+  sys.pcm.setPause(pauseFlg, mediaId);
   sys.time.clearTimer();
   sys.time.setTimer(60 * 1000, &disableKeys);
 }
@@ -1245,7 +1256,7 @@ function updMain {
     ddm_exit();
   }
   
-  local p = sys.snd.getPos();
+  local p = sys.pcm.getPos(mediaId);
   
   if(sys.gui.getValue(slider) != p and not sys.gui.getEvent(slider)) {
     #print("currentPos " + p);
@@ -1255,17 +1266,17 @@ function updMain {
   
   
   if (sys.gui.getEventC(slider) == EV_RELEASED) {
-    sys.snd.seek(sys.gui.getValue(slider));
+    sys.pcm.seek(sys.gui.getValue(slider), mediaId);
     sys.time.clearTimer();
     sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &playNext);
     print("timer se to " + (duration - sys.gui.getValue(slider)) + "s");
   }
   
   if(sys.gui.getEvent(slVol)) {
-    sys.snd.setVolume(sys.gui.getValue(slVol));
+    sys.pcm.setVolume(sys.gui.getValue(slVol));
   } else {
-    if(sys.snd.getVolume() != sys.gui.getValue(slVol)) {
-      sys.gui.setValue(slVol, sys.snd.getVolume());
+    if(sys.pcm.getVolume() != sys.gui.getValue(slVol)) {
+      sys.gui.setValue(slVol, sys.pcm.getVolume());
     }
   }
   sys.gui.setEvent(slVol, EV_NONE);
@@ -1424,11 +1435,11 @@ function update {
   }
   
   # handle pause on jack remove
-  if(sys.snd.getDevice() == 1 and oldDevice == 2) {
+  if(sys.pcm.getDevice() == 1 and oldDevice == 2) {
     pausePlayback();
   }
   
-  oldDevice = sys.snd.getDevice();
+  oldDevice = sys.pcm.getDevice();
   
   # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
   if(sys.hw.getLcdState()) {
@@ -1450,7 +1461,7 @@ function update {
       } else {
         sys.gui.setValue(slVol, 1000);
       }
-      sys.snd.setVolume(sys.gui.getValue(slVol));
+      sys.pcm.setVolume(sys.gui.getValue(slVol));
     }
     sys.hw.btn.clrEvent(BTN_UP);
     
@@ -1460,7 +1471,7 @@ function update {
       } else {
         sys.gui.setValue(slVol, 0);
       }
-      sys.snd.setVolume(sys.gui.getValue(slVol));
+      sys.pcm.setVolume(sys.gui.getValue(slVol));
     }
     sys.hw.btn.clrEvent(BTN_DOWN);
   }
@@ -1468,5 +1479,5 @@ function update {
 
 
 function exit {
-  sys.snd.stop();
+  sys.pcm.stop(mediaId);
 }

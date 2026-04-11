@@ -99,6 +99,8 @@ function init {
   
   playFlag = 0;
   seeker = 0;
+  
+  mediaId = 0;
 }
 
 
@@ -314,7 +316,7 @@ function getMin {
 
 
 function playNext {
-  sys.snd.stop();
+  sys.pcm.stop(mediaId);
   local findfil;
   
   for(findfil = sys.fs.find("mp3", "."); findfil != ""; findfil = sys.fs.findNext();) {
@@ -385,7 +387,7 @@ function playFile {
   
   
   if (sys.fs.db.getEntry("duration") == 0) {
-    duration = sys.snd.getDuration(arg0);
+    duration = sys.pcm.getDuration(arg0);
     if(duration == 0) {
       sys.os.error("Failed to load mp3 file.");
       return;
@@ -402,7 +404,7 @@ function playFile {
   print(
     "Media info:\nfile: " + arg0 +
     "\nduration: " + getMin(duration) +
-    "\nbitrate: " + sys.snd.getBitRate(arg0) + "kbps" +
+    "\nbitrate: " + sys.pcm.getBitRate(arg0) + "kbps" +
     "\ndbId: " + currentDbFile
   );
   
@@ -410,7 +412,7 @@ function playFile {
   sys.gui.setValue(slider, 0);
   sys.gui.setStr(tName, getFname(arg0));
   sys.gui.setStr(tDur, "0:00/" + getMin(duration));
-  sys.snd.play(arg0);
+  mediaId = sys.pcm.play(arg0);
   fname = arg0;
   currentFile = arg0;
   sys.time.setTimer(duration * 1000, &markPlayed);
@@ -428,10 +430,10 @@ function playFile {
 function handlePlayB {
   if(seeker) {
     seeker = 0;
-    sys.snd.setVolume(seekerVol);
+    sys.pcm.setVolume(seekerVol);
   }
 
-  if(not playFlag) {
+  if(not playFlag or sys.pcm.getId() != mediaId) {
     sys.hw.btn.stdbyEn(1);
     playFile(fname);
     playFlag = 1;
@@ -446,16 +448,16 @@ function handlePlayB {
       # handlePauseB(); is called from pauseMusic();
     } else {
       handlePauseB();
-      sys.snd.setPause(0);
+      sys.pcm.setPause(0, mediaId);
       sys.hw.btn.stdbyEn(1);
     }
   }
 }
 
 function storePos {
-  print("StorePos called pos:" + sys.snd.getPos() + "id: " + currentDbFile);
+  print("StorePos called pos:" + sys.pcm.getPos(mediaId) + "id: " + currentDbFile);
   if(sys.fs.db.selectRowId(currentDbFile)) {
-    sys.fs.db.setEntry("resume", sys.snd.getPos());
+    sys.fs.db.setEntry("resume", sys.pcm.getPos(mediaId));
   }
 }
 
@@ -470,7 +472,7 @@ function pauseMusic {
   storePos();
   handlePauseB();
   
-  sys.snd.setPause(1);
+  sys.pcm.setPause(1, mediaId);
   paused = 1;
   sys.hw.btn.stdbyEn(0);
 }
@@ -506,7 +508,7 @@ function update {
     }
     currentDbFile = 0;
     sys.time.clearTimer();
-    sys.snd.stop();
+    sys.pcm.stop(mediaId);
     sys.hw.btn.stdbyEn(0);
     loadInScr(currentFolder);
   }
@@ -516,7 +518,7 @@ function update {
   #}
   #TODO: skip fwd/skip back
   
-  local p = sys.snd.getPos();
+  local p = sys.pcm.getPos(mediaId);
  
   if(inScrSelId == currentDbFile and inScrSelId != 0 and not seeker) {
     sys.gui.setValue(bInBar, p);
@@ -535,12 +537,12 @@ function update {
     #sys.snd.seek(sys.gui.getValue(slider));
     if(not seeker) {
       seeker = sys.gui.getValue(slider);
-      seekerVol = sys.snd.getVolume();
-      sys.snd.setVolume(0);
-      sys.snd.setPause(1);
+      seekerVol = sys.pcm.getVolume();
+      sys.pcm.setVolume(0);
+      sys.pcm.setPause(1, mediaId);
     } else {
       seeker = 0;
-      sys.snd.setPause(0);
+      sys.pcm.setPause(0, mediaId);
     }
   }
   
@@ -566,54 +568,54 @@ function update {
     
     if(sys.hw.btn.getEvent(BTN_UP) == EV_PRESSED) {
       #sys.gui.setEvent(bNext, EV_RELEASED);
-      if(sys.snd.getVolume() + 100 < 1000) {
-        sys.snd.setVolume(sys.snd.getVolume() + 100);
+      if(sys.pcm.getVolume() + 100 < 1000) {
+        sys.pcm.setVolume(sys.pcm.getVolume() + 100);
       } else {
-        sys.snd.setVolume(1000);
+        sys.pcm.setVolume(1000);
       }
     }
     sys.hw.btn.clrEvent(BTN_UP);
     
     if(sys.hw.btn.getEvent(BTN_DOWN) == EV_PRESSED) {
-      if(sys.snd.getVolume() - 100 > 0) {
-        sys.snd.setVolume(sys.snd.getVolume() - 100);
+      if(sys.pcm.getVolume() - 100 > 0) {
+        sys.pcm.setVolume(sys.pcm.getVolume() - 100);
       } else {
-        sys.snd.setVolume(0);
+        sys.pcm.setVolume(0);
       }
     }
     sys.hw.btn.clrEvent(BTN_DOWN);
   }
   
-  if(sys.snd.getDevice() == 1 and oldDevice == 2) {
+  if(sys.pcm.getDevice() == 1 and oldDevice == 2) {
     pauseMusic();
   }
   
   if(seeker and not sys.os.inSim()) {
-    if(seeker < sys.snd.getPos()) {
-      sys.snd.seek(sys.snd.getPos() - 5);
+    if(seeker < sys.pcm.getPos(mediaId)) {
+      sys.pcm.seek(sys.pcm.getPos(mediaId) - 5, mediaId);
     }
     
-    if(seeker > sys.snd.getPos()) {
-      sys.snd.seek(sys.snd.getPos() + 5);
+    if(seeker > sys.pcm.getPos(mediaId)) {
+      sys.pcm.seek(sys.pcm.getPos(mediaId) + 5, mediaId);
     }
     
-    if((seeker - sys.snd.getPos()) * (seeker - sys.snd.getPos()) <= 25) {
-      sys.snd.seek(seeker);
+    if((seeker - sys.pcm.getPos(mediaId)) * (seeker - sys.pcm.getPos(mediaId)) <= 25) {
+      sys.pcm.seek(seeker, mediaId);
       sys.time.clearTimer();
       sys.time.setTimer((duration - seeker) * 1000, &markPlayed);
       print("timer se to " + (duration - seeker) + "s");
       seeker = 0;
-      sys.snd.setVolume(seekerVol);
-      sys.snd.setPause(0);
+      sys.pcm.setVolume(seekerVol);
+      sys.pcm.setPause(0, mediaId);
     }
   } else if(sys.os.inSim()) {
     seeker = 0;
   }
   
-  oldDevice = sys.snd.getDevice();
+  oldDevice = sys.pcm.getDevice();
 }
 
 
 function exit {
-  sys.snd.stop();
+  sys.pcm.stop(mediaId);
 }
