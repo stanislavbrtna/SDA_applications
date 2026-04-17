@@ -52,7 +52,8 @@ function wakeup {
 function beep {
   if(alarmFlag or timerFlag) {
     sys.snd.beepC(1000, 250, &boop);
-  } 
+    sys.snd.haptics(160);
+  }
 }
 
 function boop {
