@@ -1051,10 +1051,12 @@ function handleList {
         dispQueBtn = 1 - dispQueBtn;
         ldFolder(dispFolder);
       }
-
-      if(sys.gui.getEventC(bListBk) == EV_RELEASED) {
-        ldFolders();
-      }
+    }
+  }
+  
+  if(not inFolders) {
+    if(sys.gui.getEventC(bListBk) == EV_RELEASED) {
+      ldFolders();
     }
   }
   
