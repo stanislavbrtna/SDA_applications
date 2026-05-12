@@ -7,15 +7,21 @@ function init {
     grayout = sys.gui.addCheckBox(1, 11, 8, 1,"grayout", screen);
     ghost = sys.gui.addCheckBox(1, 12, 8, 1,"ghost", screen);
     select = sys.gui.addCheckBox(1, 13, 8, 1,"select", screen);
+    
+    bar_w = sys.gui.addSliderH(1, 9, 3, 1, 64, 2, screen);
+    bar_h = sys.gui.addSliderH(1, 10, 3, 1, 64, 3, screen);
+    
+    bar_ws = sys.gui.addSliderH(6, 9, 3, 1, 320, 160, screen);
+    bar_hs = sys.gui.addSliderH(6, 10, 3, 1, 320, 160, screen);
 
     # DUT
     element = sys.gui.addScreen(1, 2, 8, 7, screen);
     
-    sys.gui.addText(1, 0, 6, 1, "Inner screen", element);
-    sys.gui.addCheckBox(1, 1, 7, 1,"inner element", element);
-    sys.gui.addButton(1, 2, 6, 1,"inner element 2", element);
-    sys.gui.addSliderH(1, 3, 6, 1, 100, 50, element);
-    ic = sys.gui.addIcon(3, 4, 2, 3, "Icon", "none2.p16", element);
+    sys.gui.addText(0, 0, 6, 1, "Inner screen", element);
+    sys.gui.addCheckBox(0, 1, 7, 1,"inner element", element);
+    sys.gui.addButton(0, 2, 6, 1,"inner element 2", element);
+    sys.gui.addSliderH(0, 3, 6, 1, 100, 50, element);
+    ic = sys.gui.addIcon(2, 4, 2, 3, "Icon", "none2.p16", element);
     sys.gui.setParam(ic, 1);
     sys.gui.setTexAlign(ic, ALIGN_CENTER);
     
@@ -32,32 +38,49 @@ function init {
 }
 
 function update {
-    # Handle element options
-    if (sys.gui.getEventC(grayout)) {
-        sys.gui.setGrayout(element, sys.gui.getValue(grayout));
-    }
 
-    if (sys.gui.getEventC(ghost)) {
-        sys.gui.setGhost(element, sys.gui.getValue(ghost));
-    }
+  if (sys.gui.getEventC(bar_w)) {
+    sys.gui.setXOffset(element, 2 + sys.gui.getValue(bar_w));
+  }
+  
+  if (sys.gui.getEventC(bar_h)) {
+    sys.gui.setYOffset(element, 2 + sys.gui.getValue(bar_h));
+  }
+  
+  if (sys.gui.getEventC(bar_ws)) {
+    sys.gui.setXscroll(element, sys.gui.getValue(bar_ws) - 160);
+  }
+  
+  if (sys.gui.getEventC(bar_hs)) {
+    sys.gui.setYscroll(element, sys.gui.getValue(bar_hs) - 160);
+  }
 
-    if (sys.gui.getEventC(select)) {
-        sys.gui.setSelect(element, sys.gui.getValue(select));
-    }
+  # Handle element options
+  if (sys.gui.getEventC(grayout)) {
+      sys.gui.setGrayout(element, sys.gui.getValue(grayout));
+  }
 
-    # Handle element events
-    if (sys.gui.getEvent(element) == EV_PRESSED) {
-        print("element pressed");
-    }
+  if (sys.gui.getEventC(ghost)) {
+      sys.gui.setGhost(element, sys.gui.getValue(ghost));
+  }
 
-    if (sys.gui.getEvent(element) == EV_HOLD) {
-        print("element hold");
-    }
+  if (sys.gui.getEventC(select)) {
+      sys.gui.setSelect(element, sys.gui.getValue(select));
+  }
 
-    if (sys.gui.getEvent(element) == EV_RELEASED) {
-        print("element released");
-    }
+  # Handle element events
+  if (sys.gui.getEvent(element) == EV_PRESSED) {
+      print("element pressed");
+  }
 
-    # Clear event
-    sys.gui.setEvent(element, EV_NONE);
+  if (sys.gui.getEvent(element) == EV_HOLD) {
+      print("element hold");
+  }
+
+  if (sys.gui.getEvent(element) == EV_RELEASED) {
+      print("element released");
+  }
+
+  # Clear event
+  sys.gui.setEvent(element, EV_NONE);
 }
