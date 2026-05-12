@@ -11,12 +11,10 @@ function trk_reset {
                + sys.time.getHr() + "-" + sys.time.getMin() + ".gps";
   
   sys.gui.setStr(tTrInfo3, "(" + track_file + ")");
-  
-  #sys.hw.lockSleep(1);
 }
 
 
-function trk_add_point { #lat, lon
+function trk_add_point { #lat, lon, alt, hdop
   if(trk_len != 0) {
     if (arg0 == trk_lat[trk_len - 1] and trk_lon[trk_len - 1] == arg1) {
       return;
@@ -66,10 +64,11 @@ function trk_add_point { #lat, lon
   
   sys.fs.conf.open(track_file);
   
-  sys.fs.conf.write("lat_"  + trk_rlen, "" + arg0);
-  sys.fs.conf.write("lon_"  + trk_rlen, "" + arg1);
-  sys.fs.conf.write("time_" + trk_rlen, "" + sys.time.get());
-  sys.fs.conf.write("alt_"  + trk_rlen, "" + arg2);
+  sys.fs.conf.write("lat_"   + trk_rlen, "" + arg0);
+  sys.fs.conf.write("lon_"   + trk_rlen, "" + arg1);
+  sys.fs.conf.write("time_"  + trk_rlen, "" + sys.time.get());
+  sys.fs.conf.write("alt_"   + trk_rlen, "" + arg2);
+  sys.fs.conf.write("hdop_"  + trk_rlen, "" + arg3);
   
   sys.fs.conf.close();
   

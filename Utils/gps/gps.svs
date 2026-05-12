@@ -33,9 +33,10 @@ function hw_init {
 
  # main init 
 function init {
-  sys.os.checkVer(1310);
+  sys.os.checkVer(10600);
   scr = sys.gui.addScreen();
   sys.hw.lockSleep(1);
+  sys.hw.lockStandby(1);
   sys.os.setSingular();
   
   sys.gui.setRelInit(1);
@@ -619,21 +620,23 @@ function update {
     return;
   }
   
+  
+  #* with suspend mode, this should not be needed.
   if(sys.hw.getLcdState() != lcdPrevState) {
-    
     if (sys.hw.getLcdState() == 1) {
       uart_init_ext();
       uart_rcv_ie();
     } else {
       uart_free_ext();
-    } 
+    }
     
     lcdPrevState = sys.hw.getLcdState();
   }
+  *#
   
   
   # read uart data
-  if (sys.hw.getLcdState() == 1) {
+  if (1) {
     local x = "";
     
     if(sys.os.inSim() == 0) {
@@ -703,26 +706,22 @@ function update {
   
   # periodical update of the tracking
   if (sys.time.getUptime() > updTime + 5 or upd_fix == 1) {
-  
     updTime = sys.time.getUptime();
-    
+    # if(not fix_valid()) sys.snd.beepC(440, 250, ""); else sys.snd.beepC(880, 250, "");
     # tracking
     if (track_enabled and pos_acq) {
       trk_add_point(get_ypos(lat, latS), get_xpos(lon, lonS), alt);
     }
     
-    if (sys.hw.getLcdState() == 1) {
-      if (gps_attempt > 5) {
-        sys.gui.setStr(txt, "GPS communication Failed.\nIs GPS module connected?");
+    if (gps_attempt > 5) {
+      sys.gui.setStr(txt, "GPS communication Failed.\nIs GPS module connected?");
+      pos_acq = 0;
+    } else {
+      if(gps_attempt > 1) {
+        sys.gui.setStr(txt, "No NMEA sentence detected...");
         pos_acq = 0;
-      } else {
-        if(gps_attempt > 1) {
-          sys.gui.setStr(txt, "No NMEA sentence detected...");
-          pos_acq = 0;
-        }
-        
-        gps_attempt++;
-      }     
+      }
+      gps_attempt++;
     }
   }
   
