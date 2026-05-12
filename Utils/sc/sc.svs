@@ -208,10 +208,10 @@ function rldFiles {
     fScrBtns[x] = 0;
   }
 
-  file_scr = sys.gui.addScreen();
+  file_scr = sys.gui.addScreen(0, 2, 9, 9, scr);
 
-  sys.gui.setScreen(file_scr, scr);
-  sys.gui.setXYXY(file_scr, 0, 2, 9, 9);
+  sys.gui.setYOffset(file_scr, 6);
+  sys.gui.setXOffset(file_scr, 3);
 
   i = 0;
 
@@ -299,6 +299,7 @@ function rldFiles {
 
   if (numOfFiles > 8) {
     sys.gui.setParam(scrollbar, 32 * i - 8 * 32);
+    sys.gui.setScrollLim(file_scr, 0, 0, -6, 32 * i - 8 * 32);
     sys.gui.setGrayout(scrollbar, 0);
   } else {
     sys.gui.setGrayout(scrollbar, 1);
@@ -446,9 +447,19 @@ function updFiles {
   }
 }
 
+function scrollBar {
+  if(sys.gui.getEventC(arg1)) {
+    sys.gui.setYscroll(arg0, sys.gui.getValue(arg1));
+  } else if(sys.gui.getYscroll(arg0) != sys.gui.getValue(arg1)) {
+    sys.gui.setValue(arg1, sys.gui.getYscroll(arg0));
+  }
+}
+
 function update {
   updFiles();
-  sys.gui.setYscroll(file_scr, sys.gui.getValue(scrollbar) - 8);
+  
+  scrollBar(file_scr, scrollbar);
+  
   buttonScroll(scrollbar, 16);
 
   if (sys.gui.getEventC(bUp) == EV_RELEASED) {
