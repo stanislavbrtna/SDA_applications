@@ -147,11 +147,17 @@ function load_notes {
     if(not swapped) break;
   }
   
+  sys.gui.setScrollLim(scr_list, 0, 0, -6, (btnCnt - 1) * 32 + 3);
 }
 
 
 function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
-  sys.gui.setYscroll(arg0, num((float(arg3 - arg2)/1024.0)*float(sys.gui.getValue(arg1))) + arg2);
+  if(sys.gui.getEventC(arg1) == EV_HOLD) {
+    sys.gui.setYscroll(arg0, num((float(arg3 - arg2)/1024.0)*float(sys.gui.getValue(arg1))) + arg2);
+  } else {
+    sys.gui.setValue(arg1, num(float(sys.gui.getYscroll(arg0) - arg2) / (float(arg3 - arg2) / 1024.0)));
+  }
+  
 }
 
 
@@ -167,7 +173,6 @@ function update_list {
   }
   
   scrScroller(scr_list, sld_list, -6, (btnCnt - 1) * 32 + 3);
-  
 }
 
 
@@ -212,6 +217,8 @@ function upd_note_sl {
     sys.gui.setXcell(scr_note, 34);
     sys.gui.setXcell(scr_inote, 34);
     sys.gui.setX2(scr_inote, 8);
+    
+    sys.gui.setScrollLim(scr_inote, 0, 0, 0, sys.gui.getTxtHeight(tNoteText, 0) - 15);
     return 1;
   }
   return 0;
