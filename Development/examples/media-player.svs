@@ -1,0 +1,187 @@
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  sys.hw.btn.stdbyEn(1);
+  
+  bFsl = sys.gui.addButton(5, 11, 4, 1, "Choose file", scr);
+
+  bPlay = sys.gui.addButton(1, 6, 2, 2, "Play", scr);  
+  bPause = sys.gui.addButton(3, 6, 2, 2, "Pause", scr);
+  bStop = sys.gui.addButton(7, 6, 2, 2, "Stop", scr);
+  bNext = sys.gui.addButton(5, 6, 2, 2, "Next", scr);
+  
+  tName = sys.gui.addText(1, 2, 8, 1, "", scr);
+  sys.gui.setSelect(tName, 1);
+  
+  slider = sys.gui.addSliderH(1, 4, 8, 1, 1000, 0, scr);
+  
+  tDur = sys.gui.addText(1, 5, 8, 1, "0:00", scr);
+  
+  file = "";
+
+  duration = 0;
+  
+  fname = "";
+  
+  mediaId = 0;
+}
+
+function getFolder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+  return ".";
+}
+
+function getFname {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, arg2 + 1, len(arg0));
+    }
+  }
+  return arg0;
+}
+
+function lz {
+  if(len("" + arg0) == 1) {
+    return "0" + arg0;
+  }
+  return arg0;
+}
+
+function getMin {
+  return arg0/60 + ":" + lz(arg0%60);
+}
+
+
+function playNext {
+  sys.pcm.stop(mediaId);
+  local findfil;
+  for(findfil = sys.fs.find("mp3", "."); findfil != ""; findfil = sys.fs.findNext();) {
+    if (findfil == fname) {
+      findfil = sys.fs.findNext();
+      if (findfil != "") {
+        duration = 0;
+        playFile(findfil);
+        break;
+      }
+      break;
+    }
+  }
+  
+  if(findfil == "") {
+    findfil = sys.fs.find("mp3", ".");
+    if(findfil != "") playFile(findfil);
+  }
+}
+
+
+function playFile {
+  if(arg0 == "") {
+    return;
+  }
+
+  if(duration == 0) {
+    duration = sys.pcm.getDuration(arg0) + 1;
+  }
+    
+  print(
+    "Media info:\nfile: " + arg0 +
+    "\nduration: " + getMin(duration) +
+    "\nbitrate: " + sys.pcm.getBitRate(arg0) + "kbps"
+  );
+  
+  sys.gui.setParam(slider, duration);
+  sys.gui.setValue(slider, 0);
+  sys.gui.setStr(tName, arg0);
+  sys.gui.setStr(tDur, "0:00/" + getMin(duration));
+  mediaId = sys.pcm.play(arg0);
+  fname = arg0;
+  sys.time.setTimer(duration * 1000, &playNext);
+  
+  paused = 0;
+}
+
+ # call return for FSL
+function callRet {
+  if(arg0 == "") {
+    return;
+  }
+  
+  print("argument0: " + arg0);
+  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+  
+  print("folder: " + getFolder(arg0) + " (" + arg1 + ") Fname: " + getFname(arg0));
+  inApps = arg1;
+  sys.fs.chDir(inApps);
+  sys.fs.chDir(getFolder(arg0));
+  duration = 0;
+  playFile(getFname(arg0));
+}
+
+
+function update {
+  # fsl
+  if(sys.gui.getEventC(bFsl) == EV_RELEASED) {
+    sys.os.subProcess("lib/fsl2.svs", &callRet, 0, 0, 0);
+    return;
+  }
+  
+  if (sys.gui.getEventC(bPlay) == EV_RELEASED) {
+    playFile(fname);
+  }
+  
+  if (sys.gui.getEventC(bPause) == EV_RELEASED) {
+    paused = 1 - paused;
+    sys.pcm.setPause(paused, mediaId);
+  }
+  
+  if (sys.gui.getEventC(bStop) == EV_RELEASED) {
+    duration = 0;
+    sys.time.clearTimer();
+    sys.pcm.stop(mediaId);
+  }
+  
+  if(sys.gui.getEventC(bNext) == EV_RELEASED) {
+    playNext();
+  }
+  
+  local p = sys.pcm.getPos(mediaId);
+  
+  if(sys.gui.getValue(slider) != p and not sys.gui.getEvent(slider)) {
+    sys.gui.setStr(tDur, getMin(p) + "/" + getMin(duration));
+    sys.gui.setValue(slider, p);
+  }
+  
+  if (sys.gui.getEventC(slider) == EV_RELEASED) {
+    sys.pcm.seek(sys.gui.getValue(slider), mediaId);
+    sys.time.clearTimer();
+    sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &playNext);
+    print("timer se to " + (duration - sys.gui.getValue(slider)) + "s");
+  }
+  
+  
+  # control playback with keyboard when screen is off
+  if(sys.hw.getLcdState()) {
+    sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);
+  } else {
+    if(sys.hw.btn.getEvent(BTN_RIGHT) == EV_PRESSED) {
+      sys.gui.setEvent(bNext, EV_RELEASED);
+    }
+    sys.hw.btn.clrEvent(BTN_RIGHT);
+    
+    if(sys.hw.btn.getEvent(BTN_B) == EV_PRESSED) {
+      sys.gui.setEvent(bStop, EV_RELEASED);
+    }
+    sys.hw.btn.clrEvent(BTN_B);
+  }
+  
+}
+
+
+function exit {
+  sys.pcm.stop(mediaId);
+}
