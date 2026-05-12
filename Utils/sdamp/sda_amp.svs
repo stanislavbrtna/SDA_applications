@@ -1022,6 +1022,7 @@ function disableKeys {
 
 function setSlider {
   sys.gui.setParam(sLBar, (arg0) * 28 + 8);
+  sys.gui.setScrollLim(sLibIn, 0, 0, -8, (arg0) * 28 + 8);
 }
 
 function handleList {
@@ -1082,8 +1083,10 @@ function handleList {
     }
   }
   
-  if(sys.gui.getEvent(sLBar)) {
+  if(sys.gui.getEventC(sLBar)) {
     sys.gui.setYscroll(sLibIn, sys.gui.getValue(sLBar) - 6);
+  } else if(sys.gui.getValue(sLBar) != sys.gui.getYscroll(sLibIn)) {
+    sys.gui.setValue(sLBar, sys.gui.getYscroll(sLibIn));
   }
 }
 
@@ -1417,23 +1420,25 @@ function updQueue {
 function update {
   local bkBtn = 0;
   
-  if(sys.os.gui.getMainScr() == scr) {
-    updMain();
-  }
-  
-  if(sys.os.gui.getMainScr() == sLib) {
-    updLib();
-    bkBtn = bLBack;
-  }
-  
-  if(sys.os.gui.getMainScr() == sQue) {
-    updQueue();
-    bkBtn = bQBack;
-  }
-  
-  if(sys.os.gui.getMainScr() == sSearch) {
-    updSearch();
-    bkBtn = bSClose;
+  if(sys.hw.getLcdState()) {
+    if(sys.os.gui.getMainScr() == scr) {
+      updMain();
+    }
+    
+    if(sys.os.gui.getMainScr() == sLib) {
+      updLib();
+      bkBtn = bLBack;
+    }
+    
+    if(sys.os.gui.getMainScr() == sQue) {
+      updQueue();
+      bkBtn = bQBack;
+    }
+    
+    if(sys.os.gui.getMainScr() == sSearch) {
+      updSearch();
+      bkBtn = bSClose;
+    }
   }
   
   # handle pause on jack remove
