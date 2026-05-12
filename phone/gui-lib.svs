@@ -1,0 +1,26 @@
+function handleScroll {
+  if(sys.gui.getEventC(arg1)) {
+    sys.gui.setYscroll(arg0, sys.gui.getValue(arg1));
+  } else if(sys.gui.getYscroll(arg0) != sys.gui.getValue(arg1)) {
+    sys.gui.setValue(arg1, sys.gui.getYscroll(arg0));
+  }
+}
+
+
+function scrollBtns #*scr, btnUp, btnDown, frac*# {
+  if(sys.gui.getEventC(arg2) == EV_RELEASED) {
+    if(sys.gui.getYscroll(arg0) + sys.gui.getYScrMax(arg0)/arg3 < sys.gui.getYScrMax(arg0)) {
+      sys.gui.setYscroll(arg0, sys.gui.getYscroll(arg0) + sys.gui.getYScrMax(arg0)/arg3);
+    } else {
+      sys.gui.setYscroll(arg0, sys.gui.getYScrMax(arg0));
+    }
+  }
+  
+  if(sys.gui.getEventC(arg1) == EV_RELEASED) {
+    if(sys.gui.getYscroll(arg0) - sys.gui.getYScrMax(arg0)/arg3 > 0) {
+      sys.gui.setYscroll(arg0, sys.gui.getYscroll(arg0) - sys.gui.getYScrMax(arg0)/arg3);
+    } else {
+      sys.gui.setYscroll(arg0, 0);
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import "~cont-tools.svs"
 import "~msg-lib.svs"
+import "~gui-lib.svs"
 import "lib/inc/com.svs"
 import "lib/inc/ddm.svs"
 
@@ -201,7 +202,7 @@ function load_convs {
     }
   }
   
-  sys.gui.setYscroll(sConvs, -6);
+  sys.gui.setYOffset(sConvs, 6);
   sys.gui.setXscroll(sConvs, -8);
   sys.gui.setXscroll(sConvs, -8);
   
@@ -209,7 +210,10 @@ function load_convs {
   pCount = i;
   
   sys.gui.setValue(pSld, 0);
-  sys.gui.setParam(pSld, (pCount - 2)*34);
+  
+  sys.gui.setYOffset(sConvs, 6);
+  sys.gui.setScrollLim(sConvs, 0, 0, 0, (pCount - 2)*34);
+  sys.gui.setYScrBar(sConvs, pSld);
   
   if(icon_fl) {
     set_icon();
@@ -363,6 +367,10 @@ function load_conv {
     conv_reply(flCSend);
     sys.os.showKbd();
   }
+  
+  sys.gui.setYscroll(sMsgList, scrollMax + scrollAdd);
+  sys.gui.setScrollLim(sMsgList, 0, 0, 0,  scrollMax + scrollAdd);
+  sys.gui.setYScrBar(sMsgList, cScroll);
 }
 
 
@@ -466,15 +474,7 @@ function upd_conv {
     #ld_new_msg(currentNumber, cscr);
   }
   
-  
-  if(sys.gui.getEventC(bScrDn) == EV_RELEASED and sys.gui.getValue(cScroll) <= 1008) {
-    sys.gui.setValue(cScroll, sys.gui.getValue(cScroll) + 16);
-  }
-  
-  if(sys.gui.getEventC(bScrUp) == EV_RELEASED and sys.gui.getValue(cScroll) >= 16) {
-    sys.gui.setValue(cScroll, sys.gui.getValue(cScroll) - 16);
-  }
-  
+  scrollBtns(sMsgList, bScrUp, bScrDn, 4);
   
   for(i = 0; i < len(ctext); i++;) {
     if (
@@ -514,15 +514,18 @@ function upd_conv {
     sys.os.gui.handleText(tCNewMsg);
     local text = sys.gui.getStr(tCNewMsg);
     upd_count(tCCount, rlen(text), len(text));
+    local upd = 0;
     
     if(sys.gui.getTxtHeight(tCNewMsg, 0) > (scrollAdd - (128 + 28) + 32)) {
       scrollAdd += 32;
       sys.gui.setY2(tCNewMsg, sys.gui.getY2(tCNewMsg) + 1);
+      upd = 1;
     }
     
     if(sys.gui.getTxtHeight(tCNewMsg, 0) < (scrollAdd - (128 + 28))) {
       scrollAdd -= 32;
       sys.gui.setY2(tCNewMsg, sys.gui.getY2(tCNewMsg) - 1);
+      upd = 1;
     }
     
     if(not sys.os.kbdGetState()) {
@@ -534,9 +537,16 @@ function upd_conv {
       sys.fs.db.setEntryStr("concept", sys.gui.getStr(tCNewMsg));
       sys.fs.db.sync();
     }
+    
+    if(upd) {
+      conv_scr_rld();
+    }
   }
+}
 
-  scrScroller(sMsgList, cScroll, 0, scrollMax + scrollAdd);
+function conv_scr_rld {
+  sys.gui.setYscroll(sMsgList, scrollMax + scrollAdd);
+  sys.gui.setScrollLim(sMsgList, 0, 0, 0, scrollMax + scrollAdd);
 }
 
 
@@ -582,6 +592,7 @@ function conv_reply {
     sys.gui.setVisible(bCUp, 1);
     scrollAdd = 0;
   }
+  conv_scr_rld();
 }
 
 
@@ -825,17 +836,11 @@ function update {
     }
   }
   
-  sys.gui.setYscroll(sConvs, sys.gui.getValue(pSld) - 6);
-  
   if (sys.gui.getEventC(bNew) == EV_RELEASED) {
     ld_new_msg("", scr);
   }
   
   sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), kbd_back_btn);
-}
-
-function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
-  sys.gui.setYscroll(arg0, num((float(arg3 - arg2)/1024.0)*float(sys.gui.getValue(arg1))) + arg2);
 }
 
 

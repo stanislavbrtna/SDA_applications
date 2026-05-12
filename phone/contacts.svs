@@ -1,4 +1,5 @@
 import "~cont-tools.svs"
+import "~gui-lib.svs"
 import "lib/inc/ddm.svs"
 import "lib/inc/com.svs"
 import "lib/inc/spinner.svs"
@@ -213,6 +214,9 @@ function new_reset {
   sys.gui.setXYXY(b_npic, 1, 15, 6, 1);
   sys.gui.setStr(b_npic, "Select picture");
   sys.gui.setParam(s_nbar, 340);
+  
+  sys.gui.setScrollLim(s_nin, 0, 0, -6, 340);
+  sys.gui.setYScrBar(s_nin, s_nbar);
   
   sys.gui.setStr(i_nimage, "appdata/phone/empty.p16");
 }
@@ -612,8 +616,7 @@ function upd_new {
     sys.gui.setY2(s_nbar, 11);
     sys.gui.setY2(s_nin, 11);
   }
-  
-  sys.gui.setYscroll(s_nin, sys.gui.getValue(s_nbar));
+
 }
 
 function new_add_num {
@@ -647,6 +650,8 @@ function new_add_num {
   sys.gui.setY2(i_nimage, sys.gui.getY2(i_nimage) + 1);
   
   sys.gui.setParam(s_nbar, sys.gui.getParam(s_nbar) + 32);
+  sys.gui.setScrollLim(s_nin, 0, 0, 0, sys.gui.getYScrMax(s_nin) + 32);
+  
   sys.gui.setRelInit(1);
 }
 

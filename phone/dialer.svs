@@ -1,5 +1,6 @@
 import "~cont-tools.svs"
 import "~hist-tools.svs"
+import "~gui-lib.svs"
 
 function init {
   sys.os.setSingular();
@@ -281,7 +282,11 @@ function load_hist {
   # handling down btn and scrolling
   sys.gui.setY1(b_list_dn, (i - 1)*3 + 4 - 1*(not y_add));
   sys.gui.setParam(s_bar, (i - 3) * 30 * 3 + 4 + 32 * y_add);
-  sys.gui.setYscroll(list_scr, sys.gui.getValue(s_bar) - 6);
+  sys.gui.setYscroll(list_scr, sys.gui.getValue(s_bar));
+  sys.gui.setYOffset(list_scr, 6);
+  
+  sys.gui.setScrollLim(list_scr, 0, 0, 0, (i - 3) * 30 * 3 + 4 + 32 * y_add);
+  sys.gui.setYScrBar(list_scr, s_bar);
   
   sys.fs.db.close();
 }
@@ -312,14 +317,15 @@ function upd_hist {
     sys.gui.setValue(s_bar, sys.gui.getParam(s_bar));
   }
   
-  sys.gui.setYscroll(list_scr, sys.gui.getValue(s_bar) - 6);
-
+  handleScroll(list_scr, s_bar);
+  
   if (sys.gui.getEventC(b_dn) == EV_RELEASED) {
     if (sys.gui.getValue(s_bar) + 3*32 < sys.gui.getParam(s_bar)) {
       sys.gui.setValue(s_bar, sys.gui.getValue(s_bar) + 3*32);
     } else {
       sys.gui.setValue(s_bar, sys.gui.getParam(s_bar));
     }
+    sys.gui.setEvent(s_bar, EV_RELEASED);
   }
   
   if (sys.gui.getEventC(b_up) == EV_RELEASED) {
@@ -328,6 +334,7 @@ function upd_hist {
     } else {
       sys.gui.setValue(s_bar, 0);
     }
+    sys.gui.setEvent(s_bar, EV_RELEASED);
   }
 
   for(local i = 0; i < len(btn_list); i++;) {

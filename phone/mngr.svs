@@ -134,7 +134,7 @@ function init {
 function icoButton {
   local id = sys.gui.addButton(arg0, arg1, arg2, arg3, "", arg5);
   sys.gui.setIcon(id, arg4);
-  sys.gui.setParam(id, 2);
+  sys.gui.setXOffset(id, 1);
   return id;
 }
 
