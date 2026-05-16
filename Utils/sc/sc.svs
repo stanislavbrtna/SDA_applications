@@ -209,6 +209,7 @@ function rldFiles {
   }
 
   file_scr = sys.gui.addScreen(0, 2, 9, 9, scr);
+  sys.gui.setBgRedraw(file_scr, 0);
 
   sys.gui.setYOffset(file_scr, 6);
   sys.gui.setXOffset(file_scr, 3);
@@ -299,8 +300,9 @@ function rldFiles {
 
   if (numOfFiles > 8) {
     sys.gui.setParam(scrollbar, 32 * i - 8 * 32);
-    sys.gui.setScrollLim(file_scr, 0, 0, -6, 32 * i - 8 * 32);
+    sys.gui.setScrollLim(file_scr, 0, 0, 0, 32 * i - 8 * 32);
     sys.gui.setGrayout(scrollbar, 0);
+    sys.gui.setBgRedraw(file_scr, 0);
   } else {
     sys.gui.setGrayout(scrollbar, 1);
   }
