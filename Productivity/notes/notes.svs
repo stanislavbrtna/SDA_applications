@@ -8,6 +8,7 @@ function init {
   sys.gui.setRelInit(1);
   sys.os.setSingular();
   sys.os.gui.setMainScr(scr);
+  sys.os.setName("Notes");
   set_spacing(scr);
   sys.gui.setYcell(scr, 17);
   sys.gui.setXscroll(scr, 10);
@@ -80,6 +81,7 @@ function load_notes {
   sys.gui.destroy(scr_list);
   scr_list = sys.gui.addScreen(1, 4, 7, 20, scr);
   set_spacing(scr_list);
+  sys.gui.setBgRedraw(scr_list, 0);
   sys.gui.setXscroll(scr_list, -6);
   sys.gui.setYscroll(scr_list, -6);
   sys.gui.setXcell(scr_list, 37);
@@ -148,6 +150,7 @@ function load_notes {
   }
   
   sys.gui.setScrollLim(scr_list, 0, 0, -6, (btnCnt - 1) * 32 + 3);
+  sys.gui.setYScrBar(scr_list, sld_list);
 }
 
 
@@ -172,7 +175,6 @@ function update_list {
     }
   }
   
-  scrScroller(scr_list, sld_list, -6, (btnCnt - 1) * 32 + 3);
 }
 
 
