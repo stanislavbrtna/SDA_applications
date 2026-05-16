@@ -73,6 +73,7 @@ function init {
   sys.os.setSingular();
   sys.gui.setRelInit(1);
   sys.os.gui.setMainScr(scr);
+  sys.os.setName("Clock");
   
   sys.gui.setSpacing(scr, 1, 1, 1, 1);
   sys.gui.setXcell(scr, 34);
@@ -440,7 +441,7 @@ function reloadAlarmScr {
   
   local count = sys.fs.db.getRowCount();
   
-  if(count < 5) {
+  if(count < 6) {
     sAlList = sys.gui.addScreen(0, 0, 9, 10, sAlarm);
     sys.gui.setX1(bAlNew, 8);
     sys.gui.setVisible(slScroll, 0);
@@ -449,11 +450,13 @@ function reloadAlarmScr {
     sAlList = sys.gui.addScreen(0, 0, 8, 10, sAlarm);
     sys.gui.setX1(bAlNew, 7);
     sys.gui.setVisible(slScroll, 1);
+    
   }
-  
+
+  sys.gui.setYScrBar(sAlList, slScroll);
   sys.gui.setSpacing(sAlList, 0, 2, 0, 2);
   sys.gui.setXscroll(sAlList, 2);
-  sys.gui.setYscroll(sAlList, -2);
+  sys.gui.setYOffset(sAlList, 2);
   
   alListMax = 0;
   
@@ -575,7 +578,10 @@ function reloadAlarmScr {
       }
     }
     
-    sys.gui.setParam(slScroll, (l - 2)*32 - 2);
+    if(count > 5) {
+      sys.gui.setScrollLim(sAlList, 0, 0, 0, (l - 2)*32 - 2);
+    }
+    
     alListMax = x;
   } else {
     sys.gui.addText(0, 0, 8, 1, lp("No alarms.", "Žádné budíky."), sAlList);
@@ -1004,8 +1010,6 @@ function updateAlarm {
       reloadAlarmScr();
     }
   }
-  
-  sys.gui.setYscroll(sAlList, sys.gui.getValue(slScroll) - 2);
 }
 
 
