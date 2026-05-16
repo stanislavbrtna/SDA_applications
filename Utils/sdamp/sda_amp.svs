@@ -110,12 +110,12 @@ function dbScanFl { # todo: arg0 - folder id
   local total = 0;
   
   if(sys.fs.db.getEntry("scanAt") != 0) {
-    print("Already scanned...");
+    print("dbScanFl: Already scanned: rescan");
     dbRescanFl(arg0);
     return;
   }
   
-  print("fname:" + fname);
+  print("dbScanFl:" + fname);
 
   for(local findfil = sys.fs.find("", fname); findfil != ""; findfil = sys.fs.findNext();) {
     print("found: " + findfil);
@@ -134,6 +134,15 @@ function dbScanFl { # todo: arg0 - folder id
       }
     }
   }
+  
+  if(noSongs == 0) {
+    sys.fs.db.selectTable("folders");
+    sys.fs.db.selectRowId(arg0);
+    sys.fs.db.dropRow();
+    print("no songs, dropping");
+    return;
+  }
+  
   sys.fs.db.selectTable("folders");
   sys.fs.db.selectRowId(arg0);
   sys.fs.db.setEntry("scanAt", sys.time.get());
@@ -155,7 +164,7 @@ function dbRescanFl { # todo: arg0 - folder id
   # check file count...
   
   for(local findfil = sys.fs.find("", fname); findfil != ""; findfil = sys.fs.findNext();) {
-    #print("found: " + findfil);
+    #print("dbRescanFl: found: " + findfil);
     spinner();
     # add sub-dirs, to be sure
     if(sys.fs.isDir(fname + "/" + findfil)) {
@@ -171,31 +180,33 @@ function dbRescanFl { # todo: arg0 - folder id
   }
   
   if(total == sys.fs.db.getEntry("total") and noSongs == sys.fs.db.getEntry("files")) {
-    print("Nothing new in folder id: " + arg0 + "");
+    print("dbRescanFl: Nothing new in folder id: " + arg0 + "");
     return;
   }
   
   noSongs = 0;
   
   for(local findfil = sys.fs.find("", fname); findfil != ""; findfil = sys.fs.findNext();) {
-    print("found: " + findfil);
-    # add sub-dirs
-    if(sys.fs.isDir(fname + "/" + findfil)) {
-      dbAddFl(fname + "/" + findfil);
-    } else {
-      # add files
-      if(substr(findfil, len(findfil) - 2, len(findfil)) == "mp3") {
-        #print("mp3: " + fname + "/" + findfil);
-        sys.fs.db.selectTable("songs");
-        if(sys.fs.db.selectRowStr("path", fname + "/" + findfil, 0, 0)) {
-          #print("File already exists...");
-        } else {
-          dbAddmp3(findfil, fname + "/" + findfil, arg0);
-        }
-        total += getsize(fname + "/" + findfil);
-        noSongs++;
+    # add files
+    if(not sys.fs.isDir(fname + "/" + findfil) and substr(findfil, len(findfil) - 2, len(findfil)) == "mp3") {
+      #print("mp3: " + fname + "/" + findfil);
+      sys.fs.db.selectTable("songs");
+      if(sys.fs.db.selectRowStr("path", fname + "/" + findfil, 0, 0)) {
+        #print("File already exists...");
+      } else {
+        dbAddmp3(findfil, fname + "/" + findfil, arg0);
       }
+      total += getsize(fname + "/" + findfil);
+      noSongs++;
     }
+  }
+  
+  if(noSongs == 0) {
+    sys.fs.db.selectTable("folders");
+    sys.fs.db.selectRowId(arg0);
+    sys.fs.db.dropRow();
+    print("dbRescanFl: no songs, dropping");
+    return;
   }
   
   sys.fs.db.selectTable("folders");
@@ -209,14 +220,14 @@ function dbRescanFl { # todo: arg0 - folder id
 
 
 function dbAddFl {
-  print("adding folder: " + arg0);
+  print("dbAddFl: adding: " + arg0);
   sys.fs.db.selectTable("folders");
   
   if(sys.fs.db.getRowCount() > 0) {
     sys.fs.db.selectRow(0);
     # ignore existing entries
     if(sys.fs.db.selectRowStr("name", arg0, 0, 0)) {
-      print("Folder already exists...");
+      print("dbAddFl: Folder already exists...");
       return;
     }
   }
@@ -242,18 +253,40 @@ function dbCheck {
   sys.fs.db.selectTable("folders");
   
   # check folders
-  local rows = sys.fs.db.getRowCount();
-  for(local i = 0; i < rows; i++;) {
+  
+  while(1) {
+    local rows = sys.fs.db.getRowCount();
     
-    sys.fs.db.selectTable("folders");
-    
-    if (not sys.fs.db.selectRow(i)) {
-      break;
+    for(local i = 0; i < rows; i++;) { 
+      sys.fs.db.selectTable("folders");
+      
+      if (not sys.fs.db.selectRow(i)) {
+        break;
+      }
+      
+      print("dbCheck: scanning \"" + sys.fs.db.getEntry("name") + "\" id: " + sys.fs.db.getEntry("id"));
+      dbScanFl(sys.fs.db.getEntry("id"));
     }
     
-    print("scanning \"" + sys.fs.db.getEntry("name") + "\" id: " + sys.fs.db.getEntry("name"));
-    dbScanFl(sys.fs.db.getEntry("id"));
+    local contScan = 0;
+    local rows = sys.fs.db.getRowCount();
+    
+    for(local i = 0; i < rows; i++;) {
+      if (not sys.fs.db.selectRow(i)) {
+        break;
+      }
+      
+      if(sys.fs.db.getEntry("scanAt") == 0) {
+        print("scan did not finish, continue");
+        contScan = 1;
+      }
+    }
+    
+    if(not contScan) {
+      break;
+    }
   }
+  
   
   # check file validity
   sys.fs.db.selectTable("songs");
@@ -273,7 +306,7 @@ function dbCheck {
       print("dropDone");
     }
   }
-  
+    
   # remove empty folders
   sys.fs.db.selectTable("folders");
   
@@ -548,6 +581,8 @@ function clrLibScr {
   
   sLibIn = sys.gui.addScreen(1, 0, 8, 11, arg0);
   scrSpacer(sLibIn);
+  sys.gui.setYscroll(sLibIn, 0);
+  sys.gui.setYOffset(sLibIn, 8);
   sys.gui.setXcell(sLibIn, 38);
   sys.gui.setXscroll(sLibIn, -2);
 }
@@ -653,9 +688,7 @@ function ldFolder { # folder_id
   local y = 0;
   local yadd = 0;
   sys.gui.setVisible(bLQueue, 1);
-  sys.fs.db.selectTable("songs");
-    
-  sys.fs.db.selectRow(0);
+  
   
   inFolders = 0;
   bListBk = sys.gui.addButton(0, 0, 4, 1, "", sLibIn);
@@ -672,6 +705,15 @@ function ldFolder { # folder_id
     sys.gui.setXOffset(bListPrev, 110);
     yadd += 2;
   }
+  
+  sys.fs.db.selectTable("folders");
+  sys.fs.db.selectRowId(arg0);
+  
+  sys.gui.addText(0, 1 + yadd, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
+  yadd++;
+  
+  sys.fs.db.selectTable("songs");
+  sys.fs.db.selectRow(0);
   
   for(local b = 1; b < 250; b++;) {
     if (not sys.fs.db.selectRowNum("folderId", arg0)) {
@@ -1021,8 +1063,8 @@ function disableKeys {
 ##========================= GUI updates =======================================
 
 function setSlider {
-  sys.gui.setParam(sLBar, (arg0) * 28 + 8);
-  sys.gui.setScrollLim(sLibIn, 0, 0, -8, (arg0) * 28 + 8);
+  sys.gui.setParam(sLBar, (arg0) * 28);
+  sys.gui.setScrollLim(sLibIn, 0, 0, 0, (arg0) * 28);
 }
 
 function handleList {
@@ -1084,7 +1126,7 @@ function handleList {
   }
   
   if(sys.gui.getEventC(sLBar)) {
-    sys.gui.setYscroll(sLibIn, sys.gui.getValue(sLBar) - 6);
+    sys.gui.setYscroll(sLibIn, sys.gui.getValue(sLBar));
   } else if(sys.gui.getValue(sLBar) != sys.gui.getYscroll(sLibIn)) {
     sys.gui.setValue(sLBar, sys.gui.getYscroll(sLibIn));
   }
@@ -1316,6 +1358,7 @@ function updLib {
     if (i == 1) {
       spinnerInit();
       dbCheck();
+      ldFolders();
       sys.os.setRedraw();
     }
     if (i == 2) {      
