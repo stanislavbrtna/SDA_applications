@@ -651,6 +651,7 @@ function ldFolders {
   sys.fs.db.selectTable("folders");
   
   local y = 0;
+  local yadd = 0;
   
   inFolders = 1;
   sys.gui.setValue(sLBar, folderScroll);
@@ -660,26 +661,39 @@ function ldFolders {
   bListNext = 0;
   bListPrev = 0;
   
-  for(local i = 1; i < 100; i++;) {
+  if(folderBegin != 0) {
+    bListPrev = sys.gui.addButton(0, 0, 7, 2,"", sLibIn);
+    sys.gui.setIcon(bListPrev, "up.sic");
+    sys.gui.setYOffset(bListPrev, 5);
+    sys.gui.setXOffset(bListPrev, 110);
+    yadd += 2;
+  }
+  
+  for(local i = 1; i < 250; i++;) {
     sys.fs.db.selectTable("folders");
     
     if (not sys.fs.db.selectRowId(i + folderBegin)) {
       continue;
     }
     
-    buttons[y] = sys.gui.addButton(0, y, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
+    buttons[y] = sys.gui.addButton(0, yadd, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
     ids[y] = sys.fs.db.getEntry("id");
     #print("Folder: " + sys.fs.db.getEntry("name"));
     y++;
+    yadd++;
     
     if(y == len(ids)) {
-      bListNext = sys.gui.addButton(0, y + 1, 7, 1,"\\/", sLibIn);
+      bListNext = sys.gui.addButton(0, yadd, 7, 2,"", sLibIn);
+      sys.gui.setIcon(bListNext, "down.sic");
+      sys.gui.setYOffset(bListNext, 5);
+      sys.gui.setXOffset(bListNext, 110);
+      yadd++;
       break;
     }
   }
   
   libLen = y;
-  setSlider(y);
+  setSlider(yadd);
 }
 
 
@@ -1105,8 +1119,13 @@ function handleList {
   
   if(bListNext) {
     if(sys.gui.getEventC(bListNext) == EV_RELEASED) {
-      filesBegin += len(buttons);
-      ldFolder(dispFolder);
+      if(not inFolders) {
+        filesBegin += len(buttons);
+        ldFolder(dispFolder);
+      } else {
+        folderBegin += len(buttons);
+        ldFolders();
+      }
       sys.gui.setValue(sLBar, 0);
       sys.gui.setEvent(sLBar, EV_PRESSED);
     }
@@ -1114,12 +1133,20 @@ function handleList {
   
   if(bListPrev) {
     if(sys.gui.getEventC(bListPrev) == EV_RELEASED) {
-      filesBegin -= len(buttons);
-      if(filesBegin < 0) {
-        filesBegin = 0;
+      print("in folders: " + inFolders);
+      if(not inFolders) {
+        filesBegin -= len(buttons);
+        if(filesBegin < 0) {
+          filesBegin = 0;
+        }
+        ldFolder(dispFolder);
+      } else {
+        folderBegin -= len(buttons);
+        if(folderBegin < 0) {
+          folderBegin = 0;
+        }
+        ldFolders();
       }
-      ldFolder(dispFolder);
-      
       sys.gui.setValue(sLBar, sys.gui.getParam(sLBar));
       sys.gui.setEvent(sLBar, EV_PRESSED);
     }
