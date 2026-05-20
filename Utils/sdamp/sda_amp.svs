@@ -585,6 +585,7 @@ function clrLibScr {
   sys.gui.setYOffset(sLibIn, 8);
   sys.gui.setXcell(sLibIn, 38);
   sys.gui.setXscroll(sLibIn, -2);
+  sys.gui.setBgRedraw(sLibIn, 0);
 }
 
 
@@ -669,10 +670,10 @@ function ldFolders {
     yadd += 2;
   }
   
-  for(local i = 1; i < 250; i++;) {
+  for(local i = 0; i < 250; i++;) {
     sys.fs.db.selectTable("folders");
     
-    if (not sys.fs.db.selectRowId(i + folderBegin)) {
+    if (not sys.fs.db.selectRow(i + folderBegin)) {
       continue;
     }
     
@@ -706,6 +707,7 @@ function ldFolder { # folder_id
   
   inFolders = 0;
   bListBk = sys.gui.addButton(0, 0, 4, 1, "", sLibIn);
+  sys.gui.addText(4, 0, 3, 1, "", sLibIn);
   sys.gui.setIcon(bListBk, "up_dir.sic");
   sys.gui.setYOffset(bListBk, 5);
   sys.gui.setXOffset(bListBk, 64);
@@ -781,6 +783,124 @@ function ldFolder { # folder_id
 }
 
 
+function sorter { # sorter(targetArray, from, to, sortstring, level, maxLevel)
+  local sorted;
+  local i;
+  local b;
+  local sortchar;
+  local target = arg0;
+  sorted = arg1;
+  local sortPre;
+  for(i = 1; i < len(arg3); i++;) {
+    sortPre = sorted;
+    sortchar = getcp(arg3, i);
+    for(b = sorted; b < arg2; b++;) {
+      if (getcp(target[b], arg4) == sortchar) {
+        local prac;
+        local pracId;
+        
+        pracId = ids[b];
+        ids[b] = ids[sorted];
+        ids[sorted] = pracId;
+        
+        prac = target[b];
+        target[b] = target[sorted];
+        target[sorted] = prac;
+        sorted++;
+      }
+    }
+    
+    if (arg4 < arg5) {
+      sorter(target, sortPre, sorted, arg3, arg4 + 1, arg5);
+    }
+  }
+}
+
+
+function duplMp3 { # duplMp3(songId)
+  sys.fs.db.selectTable("songs");
+  sys.fs.db.selectRowId(arg0);
+  print("duplicating: " + arg0);
+  local name = sys.fs.db.getEntry("name");
+  local path = sys.fs.db.getEntry("path");
+  local folderId = sys.fs.db.getEntry("folderId");
+  local lenght = sys.fs.db.getEntry("len");
+  sys.fs.db.dropRow();
+  sys.fs.db.newRow();
+  sys.fs.db.setEntry("name", name);
+  sys.fs.db.setEntry("path", path);
+  sys.fs.db.setEntry("folderId", folderId);
+  sys.fs.db.setEntry("len", lenght);
+}
+
+
+function orderFolder {
+  local flen = 0;
+  
+  # load files and ids
+  sys.fs.db.selectTable("songs");
+  sys.fs.db.selectRow(0);
+  
+  for(local b = 0; b < len(buttons); b++;) {
+    if (not sys.fs.db.selectRowNum("folderId", arg0)) {
+      break;
+    }
+    
+    buttons[b] = get_fname(sys.fs.db.getEntry("name"));
+    ids[b] = sys.fs.db.getEntry("id");
+    
+    sys.fs.db.nextRow();
+  }
+  
+  flen = b;
+  # print("Pre:");
+  # for(i = 0; i < flen; i++;) {
+  #   print(i + ": " + buttons[i]);
+  # }
+  
+  sortstring = "0123456789"; #"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  # order by first numbers
+  sorter(buttons, 0, flen, sortstring, 1, 4);
+  
+  # print("After:"); 
+  # for(i = 0; i < flen; i++;) {
+  #   print(i + ": " + buttons[i]);
+  # }
+  
+  # write new ordered entries, remove old
+  for(local i = 0; i < flen; i++;) {
+    duplMp3(ids[i]);
+  }
+  
+  sys.fs.db.sync();
+}
+
+
+function queFolder {
+  local flen = 0;
+  
+  # load files and ids
+  sys.fs.db.selectTable("songs");
+  sys.fs.db.selectRow(0);
+  
+  for(local b = 0; b < len(buttons); b++;) {
+    if (not sys.fs.db.selectRowNum("folderId", arg0)) {
+      break;
+    }
+    
+    ids[b] = sys.fs.db.getEntry("id");
+    
+    sys.fs.db.nextRow();
+  }
+  
+  flen = b;
+
+  for(local i = 0; i < flen; i++;) {
+    qAdd(ids[i]);
+  }
+  
+}
+
 function getFolder {
   for(arg2 = len(arg0); arg2 > 0; arg2--;) {
     if (getcp(arg0, arg2) == "/") {
@@ -816,6 +936,11 @@ function get_fname {
 ##========================= Queue Functions ===================================
 
 function qAdd {
+  if(queueL + 1 >= len(queue)) {
+    #sys.os.error("Queue full.");
+    return;
+  }
+  
   queue[queueL] = arg0;
   queueL++;
 }
@@ -1373,7 +1498,10 @@ function updLib {
     ddm_width = 6;
     ddm_add_btn("Rescan library");
     ddm_add_btn("Show current");
-    ddm_add_btn("Queue all");
+    if(not inFolders) {
+      ddm_add_btn("Queue all");
+      ddm_add_btn("Sort");
+    } 
     
     if(currentSong == 0) {
       ddm_gray(2, 1);
@@ -1423,7 +1551,13 @@ function updLib {
       
     }
     if (i == 3) {
-      # TODO: queue all?  
+      queFolder(dispFolder);
+      ldFolder(dispFolder);
+    }
+    if (i == 4) {
+      # Sort
+      orderFolder(dispFolder);
+      ldFolder(dispFolder);
     }
     ddm_exit();
   }
