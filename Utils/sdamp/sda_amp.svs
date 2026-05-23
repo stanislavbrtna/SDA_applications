@@ -101,6 +101,10 @@ function getsize {
   return x;
 }
 
+function getSuppFile {
+  return substr(arg0, len(arg0) - 2, len(arg0)) == "mp3" or substr(arg0, len(arg0) - 3, len(arg0)) == "flac";
+}
+
 function dbScanFl { # todo: arg0 - folder id
   sys.fs.db.selectTable("folders");
   sys.fs.db.selectRowId(arg0);
@@ -124,8 +128,8 @@ function dbScanFl { # todo: arg0 - folder id
       dbAddFl(fname + "/" + findfil);
     } else {
       # add files
-      if(substr(findfil, len(findfil) - 2, len(findfil)) == "mp3") {
-        print("mp3: " + fname + "/" + findfil);
+      if(getSuppFile(findfil)) {
+        print("file: " + fname + "/" + findfil);
         dbAddmp3(findfil, fname + "/" + findfil, arg0);
         total += getsize(fname + "/" + findfil);
         noSongs++;
@@ -171,7 +175,7 @@ function dbRescanFl { # todo: arg0 - folder id
       dbAddFl(fname + "/" + findfil);
     } else {
       # add files
-      if(substr(findfil, len(findfil) - 2, len(findfil)) == "mp3") {
+      if(getSuppFile(findfil)) {
         #print("mp3: " + fname + "/" + findfil);
         total += getsize(fname + "/" + findfil);
         noSongs++;
@@ -188,7 +192,7 @@ function dbRescanFl { # todo: arg0 - folder id
   
   for(local findfil = sys.fs.find("", fname); findfil != ""; findfil = sys.fs.findNext();) {
     # add files
-    if(not sys.fs.isDir(fname + "/" + findfil) and substr(findfil, len(findfil) - 2, len(findfil)) == "mp3") {
+    if(not sys.fs.isDir(fname + "/" + findfil) and getSuppFile(findfil)) {
       #print("mp3: " + fname + "/" + findfil);
       sys.fs.db.selectTable("songs");
       if(sys.fs.db.selectRowStr("path", fname + "/" + findfil, 0, 0)) {
@@ -782,37 +786,86 @@ function ldFolder { # folder_id
   setSlider(y + yadd + 1);
 }
 
+function swap #(array, *a, *b)
+{
+  local a = arg1;
+  local b = arg2;
+  
+  local temp = arg0[a];
+  arg0[a] = arg0[b];
+  arg0[b] = temp;
+  
+  local temp2 = ids[a];
+  ids[a] = ids[b];
+  ids[b] = temp2;
+}
 
-function sorter { # sorter(targetArray, from, to, sortstring, level, maxLevel)
-  local sorted;
-  local i;
-  local b;
-  local sortchar;
-  local target = arg0;
-  sorted = arg1;
-  local sortPre;
-  for(i = 1; i < len(arg3); i++;) {
-    sortPre = sorted;
-    sortchar = getcp(arg3, i);
-    for(b = sorted; b < arg2; b++;) {
-      if (getcp(target[b], arg4) == sortchar) {
-        local prac;
-        local pracId;
-        
-        pracId = ids[b];
-        ids[b] = ids[sorted];
-        ids[sorted] = pracId;
-        
-        prac = target[b];
-        target[b] = target[sorted];
-        target[sorted] = prac;
-        sorted++;
-      }
+function partition #(int *L, int left, int right, sortstring)
+{
+  local L     = arg0;
+  local left  = arg1;
+  local right = arg2;
+  
+  local pivot = left;
+  local p_val = L[pivot];
+  
+  while (left < right) {
+    if(arg3 == "") {
+      while (L[left] <= p_val)
+        left++;
+      while (L[right] > p_val)
+        right--;
+    } else {
+      while (left < arg2 and strcmp(L[left], p_val, arg3) <= 0)
+        left++;
+      while (right > arg1 and strcmp(L[right], p_val, arg3) > 0)
+        right--;
     }
     
-    if (arg4 < arg5) {
-      sorter(target, sortPre, sorted, arg3, arg4 + 1, arg5);
+    if (left < right)
+      swap(L, left, right);
+  }
+  
+  swap(L, pivot, right);
+  return right;
+}
+
+function quicksort #(int *L, int start, int end)
+{
+  local L       = arg0;
+  local start   = arg1;
+  local ende    = arg2;
+  local sortStr = "";
+  
+  if(arg3 + "" != "0") {
+    sortStr = arg3;
+  }
+  
+  if (start >= ende) return;
+  local splitPoint = partition(L, start, ende, sortStr);
+  quicksort(L, start, splitPoint - 1, sortStr);
+  quicksort(L, splitPoint + 1, ende, sortStr);
+}
+
+function charcmp {
+  local v = instr(arg1, arg0);
+  if(v) return v;
+  return len(arg1);
+}
+
+function strcmp { # str0 str1 sortsr
+  local l = 0;
+  if(len(arg0) > len(arg1)) {
+    l = len(arg0);
+  } else {
+    l = len(arg1);
+  }
+  
+  for(local i = 1; i <= l; i++;) {
+    if(getcp(arg0, i) == getcp(arg1, i)) {
+      continue;
     }
+    return charcmp(getcp(arg0, i), arg2) - charcmp(getcp(arg1, i), arg2);
   }
 }
 
@@ -853,14 +906,9 @@ function orderFolder {
   }
   
   flen = b;
-  # print("Pre:");
-  # for(i = 0; i < flen; i++;) {
-  #   print(i + ": " + buttons[i]);
-  # }
   
-  sortstring = "0123456789"; #"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  # order by first numbers
-  sorter(buttons, 0, flen, sortstring, 1, 4);
+  sortstring = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  quicksort(buttons, 0, flen - 1, sortstring);
   
   # print("After:"); 
   # for(i = 0; i < flen; i++;) {
@@ -1107,7 +1155,13 @@ function playNo { # song id
     }
   }
   
-  playFile(sys.fs.db.getEntry("path"), sys.fs.db.getEntry("len"));
+  local dur = sys.fs.db.getEntry("len");
+  
+  if (dur > 0) {
+    dur--;
+  }
+  
+  playFile(sys.fs.db.getEntry("path"), dur);
   
   if(prevSongs[0] == arg0) {
     return;
