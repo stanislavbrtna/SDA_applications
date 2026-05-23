@@ -1,0 +1,58 @@
+function random_str {
+  local new_str;
+  local x;
+  new_str = "";
+
+  for(x = 0; x < arg0; x++;) {
+    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
+                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
+  }
+
+  return new_str;
+}
+
+function getFolder {
+  for(i = len(arg0); i > 0; i--;) {
+    if (getcp(arg0, i) == "/") {
+      arg0 = substr(arg0, 0, i);
+      break;
+    }
+  }
+  
+  return arg0;
+}
+
+function scrSpacer {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6);
+  sys.gui.setYscroll(arg0, -6);
+}
+
+function getMonthName {
+  if(arg0 == 1)  return "January";
+  if(arg0 == 2)  return "February";
+  if(arg0 == 3)  return "March";
+  if(arg0 == 4)  return "April";
+  if(arg0 == 5)  return "May";
+  if(arg0 == 6)  return "June";
+  if(arg0 == 7)  return "July";
+  if(arg0 == 8)  return "August";
+  if(arg0 == 9)  return "September";
+  if(arg0 == 10) return "October";
+  if(arg0 == 11) return "November";
+  if(arg0 == 12) return "December";
+  
+  return "";
+}
+
+function getDayName {
+  if (arg0 == 1) return "Monday";
+  if (arg0 == 2) return "Tuesday";
+  if (arg0 == 3) return "Wednesday";
+  if (arg0 == 4) return "Thursday";
+  if (arg0 == 5) return "Friday";
+  if (arg0 == 6) return "Saturday";
+  if (arg0 == 7) return "Sunday";
+}

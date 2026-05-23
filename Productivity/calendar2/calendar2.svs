@@ -13,64 +13,14 @@
 import "lib/inc/ddm.svs"
 import "lib/inc/com.svs"
 
-function random_str {
-  local new_str;
-  local x;
-  new_str = "";
-
-  for(x = 0; x < arg0; x++;) {
-    new_str = new_str + getcp("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*",
-                    sys.os.rnd() % len("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_!@$%&*"));
-  }
-
-  return new_str;
-}
-
-function getFolder {
-  for(i = len(arg0); i > 0; i--;) {
-    if (getcp(arg0, i) == "/") {
-      arg0 = substr(arg0, 0, i);
-      break;
-    }
-  }
-  
-  return arg0;
-}
-
-function scrSpacer {
-  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
-  sys.gui.setXcell(arg0, 34);
-  sys.gui.setYcell(arg0, 34);
-  sys.gui.setXscroll(arg0, -6);
-  sys.gui.setYscroll(arg0, -6);
-}
-
-function getMonthName {
-  if(arg0 == 1)  return "January";
-  if(arg0 == 2)  return "February";
-  if(arg0 == 3)  return "March";
-  if(arg0 == 4)  return "April";
-  if(arg0 == 5)  return "May";
-  if(arg0 == 6)  return "June";
-  if(arg0 == 7)  return "July";
-  if(arg0 == 8)  return "August";
-  if(arg0 == 9)  return "September";
-  if(arg0 == 10) return "October";
-  if(arg0 == 11) return "November";
-  if(arg0 == 12) return "December";
-  
-  return "";
-}
-
-function getDayName {
-  if (arg0 == 1) return "Monday";
-  if (arg0 == 2) return "Tuesday";
-  if (arg0 == 3) return "Wednesday";
-  if (arg0 == 4) return "Thursday";
-  if (arg0 == 5) return "Friday";
-  if (arg0 == 6) return "Saturday";
-  if (arg0 == 7) return "Sunday";
-}
+#*
+  random_str
+  getFolder
+  scrSpacer
+  getMonthName
+  getDayName
+*#
+import "~utils.svs"
 
 function init {
   scr = sys.gui.addScreen();
@@ -89,8 +39,8 @@ function init {
   bMonBack = sys.gui.addButton(7, 0, 1, 1, "", scr);
   sys.os.gui.setIcon(bMonFwd, ICON_FORWARD);
   sys.os.gui.setIcon(bMonBack, ICON_BACK);
-  sys.gui.setParam(bMonFwd, 0);
-  sys.gui.setParam(bMonBack, 0);
+  sys.gui.setXOffset(bMonFwd, 0);
+  sys.gui.setXOffset(bMonBack, 0);
   
   sys.w.cal.highlight(1);
   cal = sys.w.cal.init(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay());
@@ -206,7 +156,7 @@ function editInit {
   
   bEClose = sys.gui.addButton(0, 12, 2, 1, "", sEdit);
   sys.os.gui.setIcon(bEClose, ICON_BACK);
-  sys.gui.setParam(bEClose, 28);
+  sys.gui.setXOffset(bEClose, 16);
   
   bECancel = sys.gui.addButton(6, 12, 3, 1, "Cancel", sEdit);
   sys.gui.setVisible(bECancel, 0);
@@ -865,7 +815,7 @@ function getNextAlTime {
       );
     }
     
-    if(retval > evRepEnd and evRepEnd != 0) {
+    if((retval > evRepEnd and evRepEnd != 0) or retval == eventStart) {
       return 0;
     }
   }
@@ -959,7 +909,6 @@ function loadEvent {
   txUpdNotify(tVNotify, iVNotify);
   
   editUpdRep(tVRepeat);
-  
 }
 
 
@@ -985,7 +934,7 @@ function viewInit {
   
   bVClose = sys.gui.addButton(0, 12, 2, 1, "", sView);
   sys.os.gui.setIcon(bVClose, ICON_BACK);
-  sys.gui.setParam(bVClose, 28);
+  sys.gui.setXOffset(bVClose, 16);
   
   bVEdit = sys.gui.addButton(7, 12, 2, 1, "Edit", sView);
   
@@ -1187,6 +1136,7 @@ function dayReload {
   if(y > 11) {
     sys.gui.setVisible(slDay, 1);
     sys.gui.setX2(sDayList, 8);
+    sys.gui.setScrollLim(sDayList, 0, 0, 0, (y - 2)*32);
     sys.gui.setParam(slDay, (y - 2)*32);
     sys.gui.setValue(slDay, 0);
   } else {
@@ -1196,9 +1146,9 @@ function dayReload {
 
 function getDTS {
   local timeStart = arg0;
-  local timeEnd = arg1;
-  local dayStart = arg2;
-  local dayEnd = arg3;
+  local timeEnd   = arg1;
+  local dayStart  = arg2;
+  local dayEnd    = arg3;
   
   if(dayStart > timeStart) {
     return getFmTime(timeStart) + " " + getFmDate(timeStart) + " - " + getFmTime(timeEnd);
@@ -1233,12 +1183,12 @@ function dayInit {
   bDayBack = sys.gui.addButton(7, 0, 1, 1, "", sDay);
   sys.os.gui.setIcon(bDayFwd, ICON_FORWARD);
   sys.os.gui.setIcon(bDayBack, ICON_BACK);
-  sys.gui.setParam(bDayFwd, 0);
-  sys.gui.setParam(bDayBack, 0);
+  sys.gui.setXOffset(bDayFwd, 0);
+  sys.gui.setXOffset(bDayBack, 0);
   
   bDayClose = sys.gui.addButton(0, 12, 2, 1, "", sDay);
   sys.os.gui.setIcon(bDayClose, ICON_BACK);
-  sys.gui.setParam(bDayClose, 28);
+  sys.gui.setXOffset(bDayClose, 16);
   
   bDayNew = sys.gui.addButton(7, 12, 2, 1, "+", sDay);
   sys.gui.setTxtAlign(bDayNew, ALIGN_CENTER);
@@ -1287,13 +1237,21 @@ function updateDay {
   }
   
   if(sys.gui.getVisible(slDay)) {
-    sys.gui.setYscroll(sDayList, sys.gui.getValue(slDay));
+    scrollBar(sDayList, slDay);
   }
   
   #*TODO: remove after testing
   if(sys.gui.getEventC(events[0]) == EV_RELEASED) {
     sys.os.gui.setMainScr(sView);
   }*#
+}
+
+function scrollBar {
+  if(sys.gui.getEventC(arg1)) {
+    sys.gui.setYscroll(arg0, sys.gui.getValue(arg1));
+  } else if(sys.gui.getYscroll(arg0) != sys.gui.getValue(arg1)) {
+    sys.gui.setValue(arg1, sys.gui.getYscroll(arg0));
+  }
 }
 
 
