@@ -25,6 +25,10 @@ function init {
   fname = "";
   
   mediaId = 0;
+  
+  if(typeof(arg0) == TYPE_STR) {
+    callRet(arg0, arg1);
+  }
 }
 
 function getFolder {
