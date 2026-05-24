@@ -41,8 +41,9 @@ sys.heatmapStart();
 function init_main {
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
+  sys.os.setName("Reader");
 
-  mainBar = sys.gui.addSliderV(9, 3, 10, 12, (48) * bkCnt, 0, scr);
+  mainBar = sys.gui.addSliderV(9, 3, 10, 12, (48) * (bkCnt + 1), 0, scr);
 
   scrS = sys.gui.addScreen();
 
@@ -67,6 +68,8 @@ function init_main {
 
 function init_sel {
   scr1 = sys.gui.addScreen();
+  sys.gui.setXOffset(scr1, -16);
+  sys.gui.setYOffset(scr1, -16);
   sel_txt = sys.gui.addText(1, 1, 9, 2, "None", scr1);
   if (sys.os.getLang() == SVP_LANG_CZ) {
     sel_back = sys.gui.addButton(1, 11, 4, 12, "Zpět", scr1);
@@ -195,6 +198,7 @@ function upd_sel {
 function read_prep {
   sys.fs.open(sys.fs.conf.read("file" + sel_id));
   line = sys.fs.conf.readInt("line" + sel_id, 0);
+  sys.os.setName(namP[sel_id]);
 }
 
 function read {
@@ -212,6 +216,7 @@ function upd_rd {
 
   if (sys.gui.getEventC(rd_back) == EV_RELEASED) {
     sys.os.gui.setMainScr(scr);
+    sys.os.setName("Reader");
     mode = 0;
     sys.fs.close();
     sys.fs.conf.write("active" + sel_id, "0");
