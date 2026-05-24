@@ -215,49 +215,46 @@ function swap #(array, *a, *b)
 
 function partition #(int *L, int left, int right, sortstring)
 {
-  local L     = arg0;
-  local left  = arg1;
-  local right = arg2;
+  arg4 = arg1; # left - arg4
+  arg5 = arg2; # right - arg5
   
-  local pivot = left;
-  local p_val = L[pivot];
+  arg6  = arg4; # pivot - arg6 
+  arg7 = arg0[arg6 ]; # p_val arg7
   
-  while (left < right) {
+  while (arg4 < arg5) {
     if(arg3 == "") {
-      while (L[left] <= p_val)
-        left++;
-      while (L[right] > p_val)
-        right--;
+      while (arg0[arg4] <= arg7)
+        arg4++;
+      while (arg0[arg5] > arg7)
+        arg5--;
     } else {
-      while (left < arg2 and strcmp(L[left], p_val, arg3) <= 0)
-        left++;
-      while (right > arg1 and strcmp(L[right], p_val, arg3) > 0)
-        right--;
+      while (arg4 < arg2 and strcmp(arg0[arg4], arg7, arg3) <= 0)
+        arg4++;
+      while (arg5 > arg1 and strcmp(arg0[arg5], arg7, arg3) > 0)
+        arg5--;
     }
     
-    if (left < right)
-      swap(L, left, right);
+    if (arg4 < arg5)
+      swap(arg0, arg4, arg5);
   }
   
-  swap(L, pivot, right);
-  return right;
+  swap(arg0, arg6, arg5);
+  return arg5;
 }
 
 function quicksort #(int *L, int start, int end)
 {
-  local L       = arg0;
-  local start   = arg1;
-  local ende    = arg2;
-  local sortStr = "";
+
+  arg4 = "";
   
   if(arg3 + "" != "0") {
-    sortStr = arg3;
+    arg4 = arg3;
   }
   
-  if (start >= ende) return;
-  local splitPoint = partition(L, start, ende, sortStr);
-  quicksort(L, start, splitPoint - 1, sortStr);
-  quicksort(L, splitPoint + 1, ende, sortStr);
+  if (arg1 >= arg2) return;
+  arg5 = partition(arg0, arg1, arg2, arg4); # split point
+  quicksort(arg0, arg1, arg5 - 1, arg4);
+  quicksort(arg0, arg5 + 1, arg2, arg4);
 }
 
 function charcmp {
@@ -271,18 +268,18 @@ function strcmp { # str0 str1 sortsr
     return charcmp(getcp(arg0, 1), arg2) - charcmp(getcp(arg1, 1), arg2);
   }
   
-  local l = 0;
+  arg3 = 0;
   if(len(arg0) > len(arg1)) {
-    l = len(arg0);
+    arg3 = len(arg0);
   } else {
-    l = len(arg1);
+    arg3 = len(arg1);
   }
   
-  for(local i = 1; i <= l; i++;) {
-    if(getcp(arg0, i) == getcp(arg1, i)) {
+  for(arg4 = 1; arg4 <= arg3; arg4++;) {
+    if(getcp(arg0, arg4) == getcp(arg1, arg4)) {
       continue;
     }
-    return charcmp(getcp(arg0, i), arg2) - charcmp(getcp(arg1, i), arg2);
+    return charcmp(getcp(arg0, arg4), arg2) - charcmp(getcp(arg1, arg4), arg2);
   }
 }
 
