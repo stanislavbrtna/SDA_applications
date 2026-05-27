@@ -351,6 +351,98 @@ function init_oscr {
   }
 }
 
+ # Sortas ===============================================================
+ 
+function swap #(array, *a, *b)
+{
+  arg3 = arg0[arg1];
+  arg0[arg1] = arg0[arg2];
+  arg0[arg2] = arg3;
+  
+  return;
+}
+
+function partition #(int *L, int left, int right, sortstring)
+{
+  arg4 = arg1; # left - arg4
+  arg5 = arg2; # right - arg5
+  
+  arg6  = arg4; # pivot - arg6 
+  arg7 = arg0[arg6 ]; # p_val arg7
+  
+  while (arg4 < arg5) {
+    if(arg3 == "") {
+      while (arg0[arg4] <= arg7)
+        arg4++;
+      while (arg0[arg5] > arg7)
+        arg5--;
+    } else {
+      while (arg4 < arg2 and strcmp(arg0[arg4], arg7, arg3) <= 0)
+        arg4++;
+      while (arg5 > arg1 and strcmp(arg0[arg5], arg7, arg3) > 0)
+        arg5--;
+    }
+    
+    if (arg4 < arg5)
+      swap(arg0, arg4, arg5);
+  }
+  
+  swap(arg0, arg6, arg5);
+  return arg5;
+}
+
+function quicksort #(int *L, int start, int end)
+{
+
+  arg4 = "";
+  
+  if(arg3 + "" != "0") {
+    arg4 = arg3;
+  }
+  
+  if (arg1 >= arg2) return;
+  arg5 = partition(arg0, arg1, arg2, arg4); # split point
+  quicksort(arg0, arg1, arg5 - 1, arg4);
+  quicksort(arg0, arg5 + 1, arg2, arg4);
+}
+
+function charcmp {
+  arg3 = instr(arg1, arg0);
+  if(arg3) return arg3;
+  return len(arg1);
+}
+
+function strcmp { # str0 str1 sortsr
+  if(strcmpFast) {
+    return charcmp(getcp(arg0, 1), arg2) - charcmp(getcp(arg1, 1), arg2);
+  }
+  
+  arg3 = 0;
+  if(len(arg0) > len(arg1)) {
+    arg3 = len(arg0);
+  } else {
+    arg3 = len(arg1);
+  }
+  
+  for(arg4 = 1; arg4 <= arg3; arg4++;) {
+    if(getcp(arg0, arg4) == getcp(arg1, arg4)) {
+      continue;
+    }
+    return charcmp(getcp(arg0, arg4), arg2) - charcmp(getcp(arg1, arg4), arg2);
+  }
+}
+
+function  dump_list {
+  print(arg0);
+  
+  for (local i = 0; i < len(arg1); i++;) {
+    print(i + ": " + arg1[i]);
+  }
+}
+
+ # /Sortas ===============================================================
+ 
+
 
 function rldFiles {
   sys.gui.setVisible(tReplace, 0);
@@ -380,17 +472,18 @@ function rldFiles {
         i++;
       }
     }
-    if(i >= len(fScrBtns)) {
+    
+    if(i >= len(fScrBtns) or (i > 100)) {
       sys.gui.addText(0, i, 6, 1, "(can load " + len(fScrBtns) + " items only)", file_scr);
       break;
     }
   }
 
-  numOfFiles = i;
+  local myFiles = i;
 
   #sortOutDirs
   lastdir = 0;
-  for(i = 0; i < numOfFiles; i++;) {
+  for(i = 0; i < myFiles; i++;) {
     if (sys.fs.isDir(fScrBtns[i])) {
       prac = fScrBtns[lastdir];
 
@@ -403,51 +496,24 @@ function rldFiles {
   }
 
   sortstring = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-  # alphabetical sort dirs
-  {
-    local sorted;
-    local i;
-    local b;
-    local sortchar;
-    sorted = 0;
-    for(i = 1; i < len(sortstring); i++;) {
-      sortchar = getcp(sortstring, i);
-      for(b = sorted; b < lastdir; b++;) {
-        if (getcp(fScrBtns[b], 1) == sortchar) {
-          local prac;
-          prac = fScrBtns[b];
-          fScrBtns[b] = fScrBtns[sorted];
-          fScrBtns[sorted] = prac;
-          sorted++;
-        }
-      }
+  
+  if(myFiles < 100) {
+    if(myFiles > 60) {
+      strcmpFast = 1;
+    } else {
+      strcmpFast = 0;
     }
-  }
-
-  # alphabetical sort files
-  {
-    local sorted;
-    local i;
-    local b;
-    local sortchar;
-    sorted = lastdir;
-    for(i = 1; i < len(sortstring); i++;) {
-      sortchar = getcp(sortstring, i);
-      for(b = sorted; b < numOfFiles; b++;){
-        if (getcp(fScrBtns[b], 1) == sortchar) {
-          local prac;
-          prac = fScrBtns[b];
-          fScrBtns[b] = fScrBtns[sorted];
-          fScrBtns[sorted] = prac;
-          sorted++;
-        }
-      }
-    }
+    
+    #print("fast: " + strcmpFast);
+  
+    if(lastdir)
+      quicksort(fScrBtns, 0, lastdir - 1, sortstring);
+      
+    quicksort(fScrBtns, lastdir, myFiles - 1, sortstring);
   }
 
   #load sorted buttons
-  for(i = 0; i < numOfFiles; i++;) {
+  for(i = 0; i < myFiles; i++;) {
     findfil =  fScrBtns[i];
     fScrBtns[i] = sys.gui.addButton(0, i, 6, 1, findfil, file_scr);
 
@@ -460,12 +526,21 @@ function rldFiles {
       sys.gui.addText(6, i, 4, 1, "" + humanSize(getsize(findfil)) + "B", file_scr);
     }
   }
+  
+  numOfFiles = i;
 
   sys.gui.setValue(scrollbar, 0);
 
-  if (i > 9) {
+  if (arg0 == 0) {
+    sys.gui.setValue(scrollbar, 0);
+  }
+
+  if (numOfFiles > 9) {
     sys.gui.setParam(scrollbar, 32 * i - 8 * 32);
+    sys.gui.setScrollLim(file_scr, 0, 0, 0, 32 * (i - 9));
+    sys.gui.setYScrBar(file_scr, scrollbar);
     sys.gui.setGrayout(scrollbar, 0);
+    sys.gui.setBgRedraw(file_scr, 0);
   } else {
     sys.gui.setGrayout(scrollbar, 1);
   }
@@ -551,16 +626,16 @@ function updFiles {
       }
     }
     
-    if (sys.gui.getSelect(fScrBtns[x]) and sys.os.gui.btnGetSel(scr) != 0) {
+    if (sys.os.gui.btnGetSel(scr) != 0 and sys.gui.getSelect(fScrBtns[x])) {
       if (sys.gui.getValue(scrollbar)/32 + 8  < x) {
-        sys.gui.setValue(scrollbar, sys.gui.getValue(scrollbar) + 32);
+        sys.gui.setYscroll(file_scr, sys.gui.getValue(scrollbar) + 32);
       }
       
       if (sys.gui.getValue(scrollbar)/32 + 1  > x) {
         if (sys.gui.getValue(scrollbar) >= 32) {
-          sys.gui.setValue(scrollbar, sys.gui.getValue(scrollbar) - 32);
+          sys.gui.setYscroll(file_scr, sys.gui.getValue(scrollbar) - 32);
         } else {
-          sys.gui.setValue(scrollbar, 0);
+          sys.gui.setYscroll(file_scr, 0);
         }  
       }
     }
@@ -622,8 +697,6 @@ function update {
   }
   
   updFiles();
-
-  sys.gui.setYscroll(file_scr, sys.gui.getValue(scrollbar) - 8);
 
   if (sys.gui.getEventC(bUp) == EV_RELEASED) {
     sys.fs.chDir("..");
