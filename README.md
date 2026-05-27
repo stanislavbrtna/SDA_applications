@@ -8,5 +8,4 @@ This repo also contains .mnu files and icons, so you can just clone it to the *A
 
 ## Work in progress
 This is still work in progress, some apps are only in czech language and some of them need specific config files in *DATA* folder. This will be fixed over time.
-> Written with [StackEdit](https://stackedit.io/).
 
