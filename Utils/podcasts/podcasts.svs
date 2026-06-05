@@ -221,7 +221,7 @@ function loadInScr {
   #load files in an array
   if(folder != oldfolder) {
     for(local findfil = sys.fs.find("", folder); findfil != ""; findfil = sys.fs.findNext();) {
-      upsertRow(folder + "/" + findfil, 1);
+      #upsertRow(folder + "/" + findfil, 1);
       fList[i] = getFname(findfil);
       i++;
     }
@@ -239,7 +239,8 @@ function loadInScr {
   i = 0;
   
   for(i = 0; i < max; i++;) {
-   
+    upsertRow(folder + "/" + fList[i], 1);
+    
     if(i == inScrSelect - 1) {
       inScr2 = sys.gui.addScreen(0, i * 2 + offset, 8, 6, inScr);
       sys.gui.setYcell(inScr2, 16);
