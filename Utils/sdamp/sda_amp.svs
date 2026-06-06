@@ -400,7 +400,7 @@ function init {
   sys.gui.setTxtAlign(bLibrary, ALIGN_CENTER);
   
   bRandom = sys.gui.addButton(1, 8, 2, 1, "", scr);
-  sys.gui.setIcon(bRandom, "shuffle.sic");
+  sys.gui.setIcon(bRandom, "icons/rnd-off.sic");
   sys.gui.setYOffset(bRandom, 3);
   sys.gui.setXOffset(bRandom, 16);
   sys.gui.setGhost(bRandom, 1);
@@ -1486,10 +1486,16 @@ function updMain {
   
   if (sys.gui.getEventC(bRandom) == EV_RELEASED) {
     mRandom = ddm_create(bRandom);
-    ddm_width = 4;
+    ddm_width = 5;
     ddm_add_btn("All songs");
+    sys.gui.setIcon(ddm_get_id(1), "icons/shuffle-mini.sic");
+    sys.gui.setYOffset(ddm_get_id(1), 3);
     ddm_add_btn("Folder");
+    sys.gui.setIcon(ddm_get_id(2), "icons/rnd-folder.sic");
+    sys.gui.setYOffset(ddm_get_id(2), 3);
     ddm_add_btn("Off");
+    sys.gui.setIcon(ddm_get_id(3), "icons/rnd-off.sic");
+    sys.gui.setYOffset(ddm_get_id(3), 3);
   }
   
   i = ddm_handle(mRandom);
@@ -1497,14 +1503,17 @@ function updMain {
     if (i == 1) {
       random = 2;
       sys.gui.setGhost(bRandom, 0);
+      sys.gui.setIcon(bRandom, "shuffle.sic");
     }
     if (i == 2) {
       random = 1;
       sys.gui.setGhost(bRandom, 0);
+      sys.gui.setIcon(bRandom, "icons/rnd-folder.sic");
     }
     if (i == 3) {
       random = 0;
       sys.gui.setGhost(bRandom, 1);
+      sys.gui.setIcon(bRandom, "icons/rnd-off.sic");
     }
     ddm_exit();
   }
