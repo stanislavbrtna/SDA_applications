@@ -637,6 +637,8 @@ function ldQueue {
         sys.gui.setXOffset(bQPlay, 6);
         sys.gui.setYOffset(bQPlay, 5);
         
+        sys.gui.addText(5, y, 1, 1,"", sLibIn);
+        
         bQClose = sys.gui.addButton(6, y, 1, 1, "X", sLibIn);
         sys.gui.setXOffset(bQClose, 12);
       }
@@ -647,6 +649,7 @@ function ldQueue {
   }
   
   sys.gui.setParam(sQBar, (y) * 28 + 8);
+  sys.gui.setScrollLim(sLibIn, 0, 0, 0, y * 28);
 }
 
 
@@ -1344,15 +1347,12 @@ function callRet {
     return;
   }
   
-  print("argument0: " + arg0);
-  sys.gui.setStr(btn, "-> " + arg0 + "(" + arg1 + ")");
+  print("argument0: " + "music/" + arg0);
   
-  print("folder: " + getFolder(arg0) + " (" + arg1 + ") Fname: " + get_fname(arg0));
-  inApps = arg1;
-  sys.fs.chDir(inApps);
-  sys.fs.chDir(getFolder(arg0));
-  duration = 0;
-  playFile(get_fname(arg0));
+  dbAddFl("music/" + arg0);
+  dbRescanFl(sys.fs.db.getEntry("id"));
+  
+  ldFolder(dispFolder);
 }
 
 function ldSearch {
@@ -1560,14 +1560,16 @@ function updLib {
     mFolder = ddm_create(bLfolder);
     ddm_width = 6;
     ddm_add_btn("Rescan library");
+    ddm_add_btn("Add folder");
     ddm_add_btn("Show current");
+    
     if(not inFolders) {
       ddm_add_btn("Queue all");
       ddm_add_btn("Sort");
-    } 
+    }
     
     if(currentSong == 0) {
-      ddm_gray(2, 1);
+      ddm_gray(3, 1);
     }
   }
   
@@ -1579,7 +1581,7 @@ function updLib {
       ldFolders();
       sys.os.setRedraw();
     }
-    if (i == 2) {      
+    if (i == 3) {      
       dispFolder = currentFolder;
       inFolders = 0;
       
@@ -1613,11 +1615,15 @@ function updLib {
       sys.gui.setEvent(sLBar, EV_PRESSED);
       
     }
-    if (i == 3) {
+    if (i == 2) {
+      sys.os.subProcess("lib/fsl2.svs", &callRet, "music", 0, "-folder");
+    }
+    
+    if (i == 4) {
       queFolder(dispFolder);
       ldFolder(dispFolder);
     }
-    if (i == 4) {
+    if (i == 5) {
       # Sort
       orderFolder(dispFolder);
       ldFolder(dispFolder);
@@ -1627,6 +1633,7 @@ function updLib {
   
   handleList();
 }
+
 
 function updQueue {
   if (sys.gui.getEventC(bQBack) == EV_RELEASED) {
