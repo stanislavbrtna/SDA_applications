@@ -79,6 +79,10 @@ function ddm_gray #*ddm id, val*# {
   sys.gui.setGrayout(ddm_options[arg0 - 1], arg1);
 }
 
+function ddm_get_id #*ddm id*# {
+  return ddm_options[arg0 - 1];
+}
+
 
 function ddm_handle #* ddm id *# {
 
