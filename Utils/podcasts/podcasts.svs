@@ -58,6 +58,12 @@ function init {
   sys.gui.setYOffset(bNext, 3);
   sys.gui.setXOffset(bNext, 3);
   
+  bFol = sys.gui.addButton(4, 12, 1, 1, "", scr);
+  sys.gui.setIcon(bFol, "follow.sic");
+  sys.gui.setYOffset(bFol, 3);
+  sys.gui.setXOffset(bFol, 2);
+  sys.gui.setGhost(bFol, 1);
+  
   tName = sys.gui.addText(0, 10, 9, 1, "", scr);
   #sys.gui.setSelect(tName, 1);
   
@@ -65,7 +71,7 @@ function init {
   
   scrollBar = sys.gui.addSliderV(8, 1, 1, 8, 1000, 0, scr);
   
-  tDur = sys.gui.addText(4, 12, 5, 1, "0:00", scr);
+  tDur = sys.gui.addText(5, 12, 4, 1, "0:00", scr);
   sys.gui.setTxtAlign(tDur, ALIGN_RIGHT);
   
   inScr = sys.gui.addScreen();
@@ -478,13 +484,21 @@ function markPlayed {
   sys.fs.db.setEntry("played", 1);
   sys.fs.db.setEntry("resume", sys.fs.db.getEntry("duration"));
   
-  inScrSelect = 0;
-  inScrSelId  = 0;
   paused      = 0;
   playFlag    = 0;
-  loadInScr(currentFolder);
   
-  sys.time.setTimer(1*60*1000, &disableBtns);
+  if (not sys.gui.getGhost(bFol) and inScrSelect) {
+    if(inScrSelect < noFiles) {
+      inScrSelect++;
+      local s = currentFolder + "/" + sys.gui.getStr(bList[inScrSelect - 1]);
+      playFile(s);
+    }
+  } else {
+    inScrSelect = 0;
+    inScrSelId  = 0;
+    sys.time.setTimer(1*60*1000, &disableBtns);
+  }
+  loadInScr(currentFolder);
 }
 
 
@@ -526,7 +540,8 @@ function playFile {
   mediaId = sys.pcm.play(arg0);
   fname = arg0;
   currentFile = arg0;
-  sys.time.setTimer(duration * 1000, &markPlayed);
+  # add few seconds to let the playback fully end
+  sys.time.setTimer((duration + 5) * 1000, &markPlayed);
   
   paused = 0;
   
@@ -627,6 +642,12 @@ function update {
   #if(sys.gui.getEventC(bNext) == EV_RELEASED) {
   #  playNext();
   #}
+  
+  
+  if(sys.gui.getEventC(bFol) == EV_RELEASED) {
+    sys.gui.setGhost(bFol, 1 - sys.gui.getGhost(bFol));
+  }
+  
   #TODO: skip fwd/skip back
   
   local p = sys.pcm.getPos(mediaId);
