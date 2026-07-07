@@ -491,7 +491,7 @@ function markPlayed {
     if(inScrSelect < noFiles) {
       inScrSelect++;
       local s = currentFolder + "/" + sys.gui.getStr(bList[inScrSelect - 1]);
-      playFile(s);
+      playFile(s, 1);
     }
   } else {
     inScrSelect = 0;
@@ -521,7 +521,9 @@ function playFile {
     sys.fs.db.setEntry("duration", duration);
   } else {
     duration = sys.fs.db.getEntry("duration");
-    resume = sys.fs.db.getEntry("resume");
+    if (arg1 == 0) {
+      resume = sys.fs.db.getEntry("resume");
+    }
   }
   
   currentDbFile = sys.fs.db.getEntry("id");
