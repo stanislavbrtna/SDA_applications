@@ -73,6 +73,8 @@ function init {
   dmenu = 0;
   
   kbdStateOld = 0;
+  
+  resize_bar();
 }
 
 function ui_transform {
@@ -126,8 +128,10 @@ function cfg_load {
   
   if(def_font) {
     sys.gui.setTxtSize(txt, 12);
+    sys.gui.setTxtSize(liner, 12);
   } else {
     sys.gui.setTxtSize(txt, 13);
+    sys.gui.setTxtSize(liner, 13);
   }
 }
 
@@ -157,8 +161,11 @@ function resize_bar {
   *#
   cnt = (sys.ds.getTextHeight(program)/18);
   
-  sys.gui.setParam(sld, cnt*13 + 50);
+  #sys.gui.setParam(sld, cnt*13 + 50);
   sys.gui.setY2(txt, cnt/2 + 14);
+  
+  sys.gui.setScrollLim(textscreen, 0, 0, 0, cnt*13 + 50);
+  sys.gui.setYScrBar(textscreen, sld);
 }
 
 
@@ -196,15 +203,25 @@ function update {
       }
   }
   
-  if (sys.gui.getEventC(btn_up) == EV_RELEASED) {
+  if (
+    sys.gui.getEvent(btn_up) == EV_RELEASED or
+    (sys.gui.getEvent(btn_up) == EV_HOLD and scrollDeb == 0)
+  ) {
     if (sys.gui.getValue(sld) > 16) {
       sys.gui.setValue(sld, sys.gui.getValue(sld) - 16);
     } else {
       sys.gui.setValue(sld, 0);
     }
+    
+    if(not scrollDeb) {
+      scrollDeb = 10;
+    }
   }
+  sys.gui.setEvent(btn_up, EV_NONE);
   
-  if (sys.gui.getEventC(btn_dn) == EV_RELEASED) {
+  if (sys.gui.getEvent(btn_dn) == EV_RELEASED or
+    (sys.gui.getEvent(btn_dn) == EV_HOLD and scrollDeb == 0)
+  ) {
     if (sys.gui.getValue(sld) < sys.gui.getParam(sld)) {
       sys.gui.setValue(sld, sys.gui.getValue(sld) + 16);
     } else {
@@ -212,6 +229,15 @@ function update {
       sys.gui.setY2(txt, sys.gui.getY2(txt) + 1);
       sys.gui.setValue(sld, sys.gui.getParam(sld));
     }
+    
+    if(not scrollDeb) {
+      scrollDeb = 10;
+    }
+  }
+  sys.gui.setEvent(btn_dn, EV_NONE);
+  
+  if(scrollDeb) {
+    scrollDeb--;
   }
 
   sys.gui.setYscroll(textscreen, sys.gui.getValue(sld));
