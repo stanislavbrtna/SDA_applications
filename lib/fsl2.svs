@@ -144,7 +144,7 @@ function init {
     sys.fs.chDir(getFolder(arg0));
     updatePath(getFolder(arg0));
     upCount = getUpCount(arg0);
-    
+
     if (upCount > 0) {
       sys.gui.setGrayout(bUp, 0);
     }
@@ -188,7 +188,7 @@ function initNewF {
     sys.gui.setStr(tNewFD, "Nová složka:");
     sys.gui.setStr(tNewCa, "Zrušit");
   }
-  bUpPrev = 1;
+  bUpPrev = sys.gui.getGrayout(bUp);
   showNewF(0);
 }
 
@@ -611,7 +611,7 @@ function updFiles {
             sys.gui.setGrayout(bUp, 0);
             upCount++;
           } else {
-            print ("clicked:" + sys.gui.getStr(fScrBtns[x]));
+            #print("clicked:" + sys.gui.getStr(fScrBtns[x]));
             tryOpen(sys.gui.getStr(fScrBtns[x]));
             sys.gui.setVisible(tReplace, 0);
           }
