@@ -34,6 +34,7 @@ function init {
   menu2 = 0;
   
   dispArchived = 0;
+  dispEncr = 0;
   
   fs_confPath("notes");
   
@@ -74,6 +75,30 @@ function init {
   textActO = 0;
   
   backBtn = 0;
+  
+  sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()));
+}
+
+
+function getFolder {
+  for(arg2 = len(arg0); arg2 > 0; arg2--;) {
+    if (getcp(arg0, arg2) == "/") {
+      return substr(arg0, 0, arg2);
+    }
+  }
+  return ".";
+}
+
+function get_note_name() {
+  local e = sys.fs.conf.read("encrypted", "0");
+  
+  if(e == "0") {
+    return sys.fs.conf.read("name", "Unnamed");
+  } else if(sys.cr.getLock()) {
+    return sys.cr.decryptStr(sys.fs.conf.read("name", "Unnamed"))
+  } else {
+    sys.os.error("Crypto not unlocked.");
+  }
 }
 
 
@@ -99,10 +124,18 @@ function load_notes {
     sys.fs.conf.open(findfil);
     # read name, add button
     local archived = sys.fs.conf.read("archived", "0");
-    if ((dispArchived == 1 and archived == "1") or ((dispArchived == 0 and archived == "0"))) {
-      btns[foundCnt] = sys.gui.addButton(0, foundCnt, 6, 1, sys.fs.conf.read("name", "Unnamed"), scr_list);
+    local encrypted = sys.fs.conf.read("encrypted", "0");
+    if ((dispArchived + "" == archived) and (dispEncr == 1 or (dispEncr == 0 and (encrypted == "0")))) {
+      btns[foundCnt] = sys.gui.addButton(0, foundCnt, 6, 1, get_note_name(), scr_list);
       modifs[foundCnt] = num(sys.fs.conf.read("modified", "0"));
       files[foundCnt] = findfil;
+      
+      if(encrypted == "1") {
+        sys.gui.setIcon(btns[foundCnt], "encr.sic");
+        sys.gui.setYOffset(btns[foundCnt], 2);
+        sys.gui.setXOffset(btns[foundCnt], 20);
+      }
+      
       #print("adding: " + sys.fs.conf.read("name", "Unnamed"));
       foundCnt++;
     }
@@ -160,7 +193,6 @@ function scrScroller { # screen, slider (0 - 1024), scroll_min, scroll_max
   } else {
     sys.gui.setValue(arg1, num(float(sys.gui.getYscroll(arg0) - arg2) / (float(arg3 - arg2) / 1024.0)));
   }
-  
 }
 
 
@@ -191,6 +223,16 @@ function handle_main {
     } else {
       ddm_add_btn("Show active");
     }
+    
+    if (dispEncr == 0) {
+      ddm_add_btn("Unlock encrypted");
+    } else {
+      ddm_add_btn("Lock encrypted");
+    }
+    
+    if(not sys.cr.enabled()) {
+      ddm_gray(2, 1);
+    }
   }
   
   if(com_handle(c_new) == 1) {
@@ -208,7 +250,27 @@ function handle_main {
       sys.gui.setVisible(tArch, dispArchived);
       load_notes();
     }
+    
+    if(i == 2) {
+      if(dispEncr) {
+        sys.cr.lock();
+        dispEncr = 0;
+        load_notes();
+      } else {
+        oUnlock = sys.cr.unLockInit();
+        return;
+      }
+    }
     ddm_exit();
+  }
+  
+  sys.cr.update(oUnlock);
+  
+  if(sys.cr.getOk(oUnlock) == 1) {
+    dispEncr = 1;
+    sys.cr.clrOk(oUnlock);
+    sys.cr.setKey(2);
+    load_notes();
   }
 }
 
@@ -290,8 +352,17 @@ function update_notes {
     } else {
       ddm_add_btn("Make active");
     }
+    if (noteEncrypted == 0) {
+      ddm_add_btn("Encrypt");
+    } else {
+      ddm_add_btn("Decrypt");
+    }
     ddm_add_btn("Save");
     ddm_add_btn("Delete");
+    
+    if(not sys.cr.enabled() or not sys.cr.getLock()) {
+      ddm_gray(3, 1);
+    }
   }
   
   
@@ -310,11 +381,23 @@ function update_notes {
       sys.os.gui.setMainScr(scr);
       return;
     }
+    
     if(i == 3) {
+      ddm_exit();
+      print("encrypting");
+      noteEncrypted = not noteEncrypted;
+      save_note();
+      load_notes();
+      backBtn = 0;
+      sys.os.gui.setMainScr(scr);
+      return;
+    }
+    
+    if(i == 4) {
       ddm_exit();
       save_note();
     }
-    if(i == 4) {
+    if(i == 5) {
       ddm_exit();
       c_del = com_new("Delete note?", 0);
       return;
@@ -346,16 +429,24 @@ function update {
 function open_note {
   currentFile = arg0;
   sys.fs.conf.open(currentFile);
-  sys.gui.setStr(tNoteName, sys.fs.conf.read("name"));
+  sys.gui.setStr(tNoteName, get_note_name());
   currentText = sys.fs.conf.read("text");
   #print("Openning: " + currentFile + " " + currentText);
+  
+  noteEncrypted = num(sys.fs.conf.read("encrypted", "0"));
+  
   if (sys.fs.exists(currentText)) {
     noteString = sys.fs.readStr(currentText);
+    
+    if(noteEncrypted) {
+      noteString = sys.cr.decryptStr(noteString);
+    }
   } else {
     noteString = "";
   }
   
   noteArchived = num(sys.fs.conf.read("archived", "0"));
+  
   
   sys.fs.conf.close();
   
@@ -373,9 +464,19 @@ function open_note {
 
 function save_note {
   sys.fs.conf.open(currentFile);
-  sys.fs.conf.write("name", sys.gui.getStr(tNoteName));
+  
+  local name = sys.gui.getStr(tNoteName);
+  
+  if(noteEncrypted) {
+    noteString = sys.cr.encryptStr(noteString);
+    name = sys.cr.encryptStr(name);
+  }
+  
+  sys.fs.conf.write("name", name);
+  
   sys.fs.writeStr(noteString, currentText);
   sys.fs.conf.write("archived", "" + noteArchived);
+  sys.fs.conf.write("encrypted", "" + noteEncrypted);
   sys.fs.conf.write("modified", "" + sys.time.get());
   sys.fs.conf.close();
 }
