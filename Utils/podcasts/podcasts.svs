@@ -209,6 +209,8 @@ function loadInScr {
   sys.gui.setValue(fInScr, inScr);
   sys.gui.setYcell(inScr, 16);
   sys.gui.setXscroll(inScr, -8);
+  
+  sys.gui.setYScrBar(inScr, scrollBar);
 
   local folder = arg0;
   local i = 0;
@@ -327,8 +329,13 @@ function loadInScr {
   }
   noFiles = i;
   currentFolder = arg0;
-  sys.gui.setParam(scrollBar, 32*(i + 1));
-  sys.gui.setYscroll(inScr, sys.gui.getValue(scrollBar));
+  
+  sys.gui.setScrollLim(inScr, 0, 0, 0, 32*(i + 1));
+  sys.gui.setYScrBar(inScr, scrollBar);
+  if(32*(i + 1) > sys.gui.getValue(scrollBar)) {
+    sys.gui.setYscroll(inScr, sys.gui.getValue(scrollBar));
+  }
+  
 }
 
 
@@ -429,29 +436,6 @@ function getMin {
   }
   
   return arg0/60 + ":" + lz(arg0%60);
-}
-
-
-function playNext {
-  sys.pcm.stop(mediaId);
-  local findfil;
-  
-  for(findfil = sys.fs.find("mp3", "."); findfil != ""; findfil = sys.fs.findNext();) {
-    if (findfil == fname) {
-      findfil = sys.fs.findNext();
-      if (findfil != "") {
-        duration = 0;
-        playFile(findfil);
-        break;
-      }
-      break;
-    }
-  }
-  
-  if(findfil == "") {
-    findfil = sys.fs.find("mp3", ".");
-    if(findfil != "") playFile(findfil);
-  }
 }
 
 function upsertRow {
@@ -556,7 +540,7 @@ function playFile {
 
 
 function handlePlayB {
-  if(seeker) {
+  if (seeker) {
     seeker = 0;
     sys.pcm.setVolume(seekerVol);
   }
@@ -629,6 +613,11 @@ function update {
   }
   
   if (sys.gui.getEventC(bStop) == EV_RELEASED) {
+    if(seeker) {
+      seeker = 0;
+      sys.pcm.setVolume(seekerVol);
+    }
+    
     duration = 0;
     playFlag = 0;
     if(sys.fs.db.selectRowId(currentDbFile)) {
@@ -641,9 +630,10 @@ function update {
     loadInScr(currentFolder);
   }
   
-  #if(sys.gui.getEventC(bNext) == EV_RELEASED) {
-  #  playNext();
-  #}
+  
+  if(sys.gui.getEventC(bNext) == EV_RELEASED) {
+    sys.pcm.seek(sys.pcm.getPos(mediaId) + 15, mediaId);
+  }
   
   
   if(sys.gui.getEventC(bFol) == EV_RELEASED) {
@@ -678,10 +668,6 @@ function update {
       seeker = 0;
       sys.pcm.setPause(0, mediaId);
     }
-  }
-  
-  if(sys.gui.getEventC(scrollBar)) {
-    sys.gui.setYscroll(inScr, sys.gui.getValue(scrollBar));
   }
   
   updInScr();
@@ -726,7 +712,8 @@ function update {
   
   if(seeker and not sys.os.inSim()) {
     if(seeker < sys.pcm.getPos(mediaId)) {
-      sys.pcm.seek(sys.pcm.getPos(mediaId) - 5, mediaId);
+      sys.pcm.seek(0, mediaId);
+      return;
     }
     
     if(seeker > sys.pcm.getPos(mediaId)) {
