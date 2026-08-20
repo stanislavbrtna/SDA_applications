@@ -1,0 +1,41 @@
+import "~/db.svs"
+
+function scrSpacer {
+  sys.gui.setSpacing(arg0, 1, 1, 1, 1);
+  sys.gui.setXcell(arg0, 34);
+  sys.gui.setYcell(arg0, 34);
+  sys.gui.setXscroll(arg0, -6 + 16);
+  sys.gui.setYscroll(arg0, -6 - 8);
+}
+
+import "~/libscan.svs"
+
+function init {
+  scr = sys.gui.addScreen();
+  sys.gui.setRelInit(1);
+  sys.os.gui.setMainScr(scr);
+  
+  sys.os.setName("SdaAMP Scanner");
+  
+  
+  if(sys.fs.exists("appdata/sdamp.db")) {
+    sys.fs.db.open("appdata/sdamp.db");  
+    
+    if(sys.os.inSim()) {
+      dbPrint();
+    }
+  } else {
+    dbReset();
+  }
+  
+  scnInit(scr);
+}
+
+
+function update {
+  scnUpd(); 
+}
+
+function exit {
+  sys.fs.db.close();
+}

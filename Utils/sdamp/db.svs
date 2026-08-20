@@ -1,0 +1,341 @@
+
+function dbReset {
+  sys.fs.db.new("appdata/sdamp.db");
+  
+  sys.fs.db.newTable("meta", 2);
+  sys.fs.db.setColumn(0, "name", 1);
+  sys.fs.db.setColumn(1, "val", 1);
+  
+  sys.fs.db.newTable("songs", 5);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);
+  sys.fs.db.setColumn(2, "path", 1); # full path
+  sys.fs.db.setColumn(3, "folderId", 0);
+  sys.fs.db.setColumn(4, "len", 0);
+  
+  sys.fs.db.idEnable("id");
+  sys.fs.db.setIndex("id");
+  
+  sys.fs.db.newTable("folders", 7);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "name", 1);   # path
+  sys.fs.db.setColumn(2, "scanAt", 0); # timestamp
+  sys.fs.db.setColumn(3, "files", 0);  # number of files
+  sys.fs.db.setColumn(4, "total", 0);  # total size of all files in bytes
+  sys.fs.db.setColumn(5, "parent", 0); # parent folder id (0 - none);
+  sys.fs.db.setColumn(6, "folders", 0); # parent folder id (0 - none);
+  
+  sys.fs.db.idEnable("id");
+  sys.fs.db.setIndex("id");
+  
+  dbAddFold("music", 0);
+  
+  sys.fs.db.sync();
+}
+
+function spinnerInit {
+  local siz = 32;
+  sys.ds.setArea(160 - siz, 220 - siz, 160 + siz, 220 + siz);
+  
+  sys.ds.fillRect(0, 0, siz * 2, siz * 2, sys.gui.getColor(COL_BACKGROUND));
+  sys.ds.drawRect(1, 1, siz * 2 - 1, siz * 2 - 1, sys.gui.getColor(COL_BORDER));
+  sys.ds.drawRect(0, 0, siz * 2, siz * 2, sys.gui.getColor(COL_BORDER));
+  sys.ds.fillCircle(siz, siz, siz - 5, sys.gui.getColor(COL_FILL));
+}
+
+function spinner {
+  local siz = 32;
+  local spin = (sys.time.getAppUptime() % 1000) / 250;
+  local spinOld = spin - 1;
+  
+  if (spinOld == -1) spinOld = 2;
+  
+  if(spin == 3) {
+    spin = 2;
+    spinOld = 3;
+  } else if (spin == 2) {
+    spin = 3;
+    spinOld = 1;
+  }
+  
+  sys.ds.fillCPart(siz, siz, siz - 5, spinOld, sys.gui.getColor(COL_FILL));
+  sys.ds.fillCPart(siz, siz, siz - 5, spin, sys.gui.getColor(COL_ACTIVE));  
+}
+
+function getsize {
+  local x;
+  sys.fs.open(arg0);
+  x = sys.fs.size();
+  sys.fs.close();
+  return x;
+}
+
+function getSuppFile {
+  return substr(arg0, len(arg0) - 2, len(arg0)) == "mp3" or substr(arg0, len(arg0) - 3, len(arg0)) == "flac";
+}
+
+function dbScanFl { # todo: arg0 - folder id
+  sys.fs.db.selectTable("folders");
+  sys.fs.db.selectRowId(arg0);
+  
+  local fname = sys.fs.db.getEntryStr("name", "");
+  local noSongs = 0;
+  local noSubf = 0;
+  local total = 0;
+  
+  if(sys.fs.db.getEntry("scanAt") != 0) {
+    print("dbScanFl: Already scanned: rescan");
+    dbRescanFl(arg0);
+    return;
+  }
+  
+  print("dbScanFl:" + fname);
+
+  for(local findfil = sys.fs.find("", fname); findfil != ""; findfil = sys.fs.findNext();) {
+    print("found: " + findfil);
+    # add sub-dirs
+    if(sys.fs.isDir(fname + "/" + findfil)) {
+      dbAddFold(fname + "/" + findfil, arg0);
+      noSubf++;
+    } else {
+      # add files
+      if(getSuppFile(findfil)) {
+        print("file: " + fname + "/" + findfil);
+        dbAddmp3(findfil, fname + "/" + findfil, arg0);
+        total += getsize(fname + "/" + findfil);
+        noSongs++;
+        
+        spinner();
+      }
+    }
+  }
+  
+  if(noSongs == 0 and noSubf == 0) {
+    print("crash here? " + arg0);
+    sys.fs.db.selectTable("folders");
+    if (sys.fs.db.selectRowId(arg0)) sys.fs.db.dropRow();
+    print("no songs, dropping " + arg0);
+    return;
+  }
+  
+  sys.fs.db.selectTable("folders");
+  sys.fs.db.selectRowId(arg0);
+  sys.fs.db.setEntry("scanAt", sys.time.get());
+  sys.fs.db.setEntry("files", noSongs);
+  sys.fs.db.setEntry("total", total);
+  sys.fs.db.setEntry("folders", noSubf);
+  
+  print(noSongs + " files total " + total + " bytes");
+}
+
+
+function dbRescanFl { # todo: arg0 - folder id
+  sys.fs.db.selectTable("folders");
+  sys.fs.db.selectRowId(arg0);
+  
+  local fname = sys.fs.db.getEntryStr("name", "");
+  local noSongs = 0;
+  local noSubf = 0;
+  local total = 0;
+  
+  # check file count...
+  
+  for(local findfil = sys.fs.find("", fname); findfil != ""; findfil = sys.fs.findNext();) {
+    #print("dbRescanFl: found: " + findfil);
+    spinner();
+    # add sub-dirs, to be sure
+    if(sys.fs.isDir(fname + "/" + findfil)) {
+      dbAddFold(fname + "/" + findfil, arg0);
+      noSubf++;
+    } else {
+      # add files
+      if(getSuppFile(findfil)) {
+        #print("mp3: " + fname + "/" + findfil);
+        total += getsize(fname + "/" + findfil);
+        noSongs++;
+      }
+    }
+  }
+  
+  if(total == sys.fs.db.getEntry("total") and noSongs == sys.fs.db.getEntry("files")) {
+    print("dbRescanFl: Nothing new in folder id: " + arg0 + "");
+    return;
+  }
+  
+  noSongs = 0;
+  
+  for(local findfil = sys.fs.find("", fname); findfil != ""; findfil = sys.fs.findNext();) {
+    # add files
+    if(not sys.fs.isDir(fname + "/" + findfil) and getSuppFile(findfil)) {
+      #print("mp3: " + fname + "/" + findfil);
+      sys.fs.db.selectTable("songs");
+      if(sys.fs.db.selectRowStr("path", fname + "/" + findfil, 0, 0)) {
+        #print("File already exists...");
+      } else {
+        dbAddmp3(findfil, fname + "/" + findfil, arg0);
+      }
+      total += getsize(fname + "/" + findfil);
+      noSongs++;
+    }
+  }
+  
+  if(noSongs == 0 and noSubf == 0) {
+    sys.fs.db.selectTable("folders");
+    sys.fs.db.selectRowId(arg0);
+    sys.fs.db.dropRow();
+    print("dbRescanFl: no songs, dropping");
+    return;
+  }
+  
+  sys.fs.db.selectTable("folders");
+  sys.fs.db.selectRowId(arg0);
+  sys.fs.db.setEntry("scanAt", sys.time.get());
+  sys.fs.db.setEntry("files", noSongs);
+  sys.fs.db.setEntry("total", total);
+  sys.fs.db.setEntry("folders", noSubf);
+  
+  print("Rescan:" + noSongs + " files total " + total + " bytes");
+}
+
+
+function dbAddFold(path, parentId) {
+  print("dbAddFold: adding: " + path);
+  sys.fs.db.selectTable("folders");
+  
+  if(sys.fs.db.getRowCount() > 0) {
+    sys.fs.db.selectRow(0);
+    # ignore existing entries
+    if(sys.fs.db.selectRowStr("name", path, 0, 0)) {
+      print("dbAddFold: Folder already exists...");
+      return;
+    }
+  }
+  
+  sys.fs.db.newRow();
+  sys.fs.db.setEntry("scanAt", 0);
+  sys.fs.db.setEntry("name", path);
+  sys.fs.db.setEntry("files", 0);
+  sys.fs.db.setEntry("total", 0);
+  sys.fs.db.setEntry("parent", parentId);
+  sys.fs.db.setEntry("folders", 0);
+}
+
+function dbAddmp3 #*name, fullPath, folderId*# {
+  print("adding song: " + arg0);
+  sys.fs.db.selectTable("songs");
+  sys.fs.db.newRow();
+  sys.fs.db.setEntry("name", arg0);
+  sys.fs.db.setEntry("path", arg1);
+  sys.fs.db.setEntry("folderId", arg2);
+  sys.fs.db.setEntry("len", 0);
+}
+
+function dbCheck {
+  sys.fs.db.selectTable("folders");
+  
+  # check folders
+  
+  while(1) {
+    local rows = sys.fs.db.getRowCount();
+    
+    for(local i = 0; i < rows; i++;) { 
+      sys.fs.db.selectTable("folders");
+      
+      if (not sys.fs.db.selectRow(i)) {
+        break;
+      }
+      
+      print("dbCheck: scanning \"" + sys.fs.db.getEntry("name") + "\" id: " + sys.fs.db.getEntry("id"));
+      dbScanFl(sys.fs.db.getEntry("id"));
+    }
+    
+    local newRows = sys.fs.db.getRowCount();
+    
+    if(newRows == rows) {
+      break;
+    } else {
+      rows = sys.fs.db.getRowCount();
+      print("scan did not finish, continue");
+    }
+  }
+  
+  # check file validity
+  sys.fs.db.selectTable("songs");
+  rows = sys.fs.db.getRowCount();
+  
+  for(local i = 0; i < rows; i++;) {
+    
+    if (not sys.fs.db.selectRow(i)) {
+      break;
+    }
+    
+    if (not sys.fs.exists(sys.fs.db.getEntry("path"))) {
+      print("Song not found, dropping: " + sys.fs.db.getEntry("path"));
+      sys.fs.db.dropRow();
+      i--;
+      rows = sys.fs.db.getRowCount();
+      print("dropDone");
+    }
+  }
+    
+  # remove empty folders
+  if(0) {
+    sys.fs.db.selectTable("folders");
+    
+    # check folders
+    local rows = sys.fs.db.getRowCount();
+    for(local i = 0; i < rows; i++;) {
+      if (not sys.fs.db.selectRow(i)) {
+        continue;
+      }
+      
+      if(sys.fs.db.getEntry("total") == 0 and sys.fs.db.getEntry("scanAt") != 0) {
+        print("Removing empty: " + sys.fs.db.getEntry("name"));
+        sys.fs.db.dropRow();
+        i--;
+        rows--;
+      }
+    }
+  }
+  
+  # print info
+  sys.fs.db.selectTable("folders");
+  print("Total folders: " + sys.fs.db.getRowCount());
+  sys.fs.db.selectTable("songs");
+  print("Total songs: " + sys.fs.db.getRowCount());
+}
+
+function dbPrint {
+  print("Songs db:");
+  sys.fs.db.selectTable("folders");
+  
+  for(local i = 0; i < 100; i++;) {
+    sys.fs.db.selectTable("folders");
+    
+    if (not sys.fs.db.selectRow(i)) {
+      break;
+    }
+    
+    print("Folder: " + sys.fs.db.getEntry("name") + " id: " + sys.fs.db.getEntry("id"));
+    local id = sys.fs.db.getEntry("id");
+    
+    local songs = 0;
+    sys.fs.db.selectTable("songs");
+    
+    sys.fs.db.selectRow(0);
+    
+    for(local b = 1; b < 300; b++;) {
+      if (not sys.fs.db.selectRowNum("folderId", id)) {
+        break;
+      }
+      songs++;
+      #print("  " + sys.fs.db.getEntry("name"));
+      if (not sys.fs.db.nextRow()) {
+        break;
+      }
+    }
+    
+    print("  " + songs + " songs total");
+  }
+  print("done");
+}

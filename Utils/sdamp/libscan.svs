@@ -1,0 +1,207 @@
+
+function ftime(t) {
+  local out = "";
+  if(t/3600 > 24) {
+    out += (t/60)/60 + " days ";
+    out += (t%(3600*24))/3600 + " hours";
+  } else {
+    out += t/3600 + " hours ";
+    out += (t%3600)/60 + " minutes";
+  }
+  
+  return out;
+}
+
+function upd_stats(force) {
+  sys.fs.db.selectTable("folders");
+  local folders = sys.fs.db.getRowCount();
+  
+  sys.fs.db.selectTable("songs");
+  local files = sys.fs.db.getRowCount();
+  
+  sys.gui.setStr(tCount, files + " songs in " + folders + " folders");
+  
+  local duration = 0;
+  
+  if(force) {
+    for(local i = 0; i < 500; i++;) {
+      sys.fs.db.selectTable("songs");
+      
+      if (not sys.fs.db.selectRow(i)) {
+        continue;
+      }
+      duration += sys.fs.db.getEntry("len");
+    }
+    
+    sys.fs.db.selectTable("meta");
+    sys.fs.db.selectRow(0);
+    if (sys.fs.db.selectRowStr("name", "duration", 0, 0)) {
+      sys.fs.db.setEntry("val", duration + "");
+    } else {
+      sys.fs.db.newRow();
+      sys.fs.db.setEntry("val", duration + "");
+      sys.fs.db.setEntry("name", "duration");
+    }
+  } else {
+    sys.fs.db.selectTable("meta");
+    sys.fs.db.selectRow(0);
+    if (sys.fs.db.selectRowStr("name", "duration", 0, 0)) {
+      duration = num(sys.fs.db.getEntry("val"));
+    }
+  }
+  
+  
+  sys.gui.setStr(tDuration, ftime(duration) + " total");
+}
+
+function scnInit(scr) {
+  scrSpacer(scr);
+  
+  sys.gui.setTxtSize(sys.gui.addText(1, 0, 8, 2, "Music Library", scr), FONT_32);
+  
+  tCount = sys.gui.addText(1, 2, 8, 1, "xx songs in yx folders", scr);
+  
+  tDuration = sys.gui.addText(1, 3, 8, 1, "xx days x hours total", scr);
+  
+  bAdd = sys.gui.addButton(1, 5, 4, 1, "Add folder", scr);
+  
+  bRescan = sys.gui.addButton(5, 5, 4, 1, "Full Rescan", scr);
+  
+  prog = sys.gui.addBar(1, 6, 8, 1, 100, 0, scr);
+  
+  bPause = sys.gui.addButton(6, 8, 3, 1, "Pause", scr);
+  sys.gui.setVisible(bPause, 0);
+  
+  tProgress = sys.gui.addText(1, 7, 8, 1, "", scr);
+  
+  # update library stats
+  upd_stats();
+  
+  checkDb = 0;
+  paused = 0;
+}
+
+
+function scnUpd {
+  if(sys.gui.getEventC(bRescan) == EV_RELEASED) {
+    checkInit();
+  }
+  
+  if(sys.gui.getEventC(bPause) == EV_RELEASED) {
+    paused = 1 - paused;
+    
+    if(paused) {
+      sys.gui.setStr(bPause, "Continue");
+      sys.hw.lockStandby(0);
+      sys.fs.db.sync();
+    } else {
+      sys.hw.lockStandby(1);
+      sys.gui.setStr(bPause, "Pause");
+    }
+    
+    sys.os.setRedraw();
+  }
+
+  if(paused) return;
+  
+  if(checkDb == 1) {
+    sys.fs.db.selectTable("folders"); 
+    if (not sys.fs.db.selectRow(counter)) {
+      checkDb = 2;
+      return;
+    }
+    
+    print("dbCheck: scanning \"" + sys.fs.db.getEntry("name") + "\" id: " + sys.fs.db.getEntry("id"));
+    spinnerInit();
+    dbScanFl(sys.fs.db.getEntry("id"));
+    counter++;
+    progress++;
+    sys.gui.setValue(prog, progress);
+  }
+  
+  if(checkDb == 2) {
+    if(rows != sys.fs.db.getRowCount()) {
+      rows = sys.fs.db.getRowCount();
+      counter = 0;
+      checkDb = 1;
+      pass++;
+      sys.gui.setStr(tProgress, "Looking for new files..." + pass);
+    } else {
+      checkDb = 3;
+      progress = waypoint;
+      sys.os.setRedraw();
+      songRows = sys.fs.db.getRowCount();
+      sys.fs.db.selectTable("songs");
+      sys.gui.setStr(tProgress, "Checking current songs...");
+    }
+    sys.gui.setValue(prog, progress);
+  }
+  
+  # check file validity
+  if(checkDb == 3) {
+    spinnerInit();
+    for(local i = 0; i < 10; i++;) {
+      if (not sys.fs.db.selectRow(counter)) {
+        checkDb = 4;
+        return;
+      }
+      
+      if (sys.fs.db.getEntry("len") == 0) {
+        sys.fs.db.setEntry("len", sys.pcm.getDuration(sys.fs.db.getEntry("path")) + 1);
+        counter++;
+        progress++;
+        break;
+      }
+      
+      if (not sys.fs.exists(sys.fs.db.getEntry("path"))) {
+        print("Song not found, dropping: " + sys.fs.db.getEntry("path"));
+        sys.fs.db.dropRow();
+        counter--;
+        print("dropDone");
+      }
+      counter++;
+      progress++;
+      spinner();
+      sys.gui.setValue(prog, progress);
+    }
+  }
+  
+  if(checkDb == 4) {
+    sys.gui.setStr(tProgress, "Done");
+    sys.gui.setValue(prog, sys.gui.getParam(prog));
+    sys.gui.setVisible(bPause, 0);
+    sys.gui.setGrayout(bRescan, 0);
+    sys.gui.setGrayout(bAdd, 0);
+    upd_stats(1);
+    sys.os.setRedraw();
+    sys.hw.lockStandby(0);
+    checkDb = 0;
+  }
+}
+
+function checkInit {
+  sys.fs.db.selectTable("folders");
+  local folders = sys.fs.db.getRowCount();
+  
+  sys.fs.db.selectTable("songs");
+  local files = sys.fs.db.getRowCount();
+
+  sys.fs.db.selectTable("folders"); 
+  rows = sys.fs.db.getRowCount();
+  checkDb = 1;
+  progress = 0;
+  counter = 0;
+  paused = 0;
+  pass = 0;
+  
+  
+  waypoint = folders*3;
+  sys.gui.setParam(prog, folders*3 + files);
+  sys.gui.setStr(tProgress, "Looking for new files...");
+  sys.gui.setVisible(bPause, 1);
+  sys.gui.setGrayout(bRescan, 1);
+  sys.gui.setGrayout(bAdd, 1);
+  sys.hw.lockStandby(1);
+}
+
+
