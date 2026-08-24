@@ -132,8 +132,8 @@ function load_notes {
       
       if(encrypted == "1") {
         sys.gui.setIcon(btns[foundCnt], "encr.sic");
-        sys.gui.setYOffset(btns[foundCnt], 2);
-        sys.gui.setXOffset(btns[foundCnt], 20);
+        sys.gui.setYOffset(btns[foundCnt], 4);
+        sys.gui.setXOffset(btns[foundCnt], 8);
       }
       
       #print("adding: " + sys.fs.conf.read("name", "Unnamed"));
@@ -385,11 +385,7 @@ function update_notes {
     if(i == 3) {
       ddm_exit();
       print("encrypting");
-      noteEncrypted = not noteEncrypted;
-      save_note();
-      load_notes();
-      backBtn = 0;
-      sys.os.gui.setMainScr(scr);
+      noteEncrypted = not noteEncrypted;     
       return;
     }
     
@@ -466,15 +462,17 @@ function save_note {
   sys.fs.conf.open(currentFile);
   
   local name = sys.gui.getStr(tNoteName);
+  local text = noteString;
+  
   
   if(noteEncrypted) {
-    noteString = sys.cr.encryptStr(noteString);
+    text = sys.cr.encryptStr(text);
     name = sys.cr.encryptStr(name);
   }
   
   sys.fs.conf.write("name", name);
   
-  sys.fs.writeStr(noteString, currentText);
+  sys.fs.writeStr(text, currentText);
   sys.fs.conf.write("archived", "" + noteArchived);
   sys.fs.conf.write("encrypted", "" + noteEncrypted);
   sys.fs.conf.write("modified", "" + sys.time.get());
