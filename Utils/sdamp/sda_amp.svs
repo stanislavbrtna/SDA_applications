@@ -171,7 +171,7 @@ function init {
   if(sys.fs.exists("appdata/sdamp.db")) {
     sys.fs.db.open("appdata/sdamp.db");  
     if(sys.os.inSim()) {
-      dbPrint();
+      #dbPrint();
     }
   } else {
     dbReset();
@@ -349,6 +349,11 @@ function ldFolders {
     sys.gui.setYOffset(bListPrev, 5);
     sys.gui.setXOffset(bListPrev, 110);
     yadd += 2;
+  } else {
+    buttons[y] = sys.gui.addButton(0, yadd, 7, 1, "Unsorted Tracks", sLibIn);
+    ids[y] = 1;
+    y++;
+    yadd++;
   }
   
   for(local i = 0; i < 250; i++;) {
@@ -409,12 +414,16 @@ function ldFolder { # folder_id
   
   sys.fs.db.selectTable("folders");
   sys.fs.db.selectRowId(arg0);
+  if(arg0 != 1) {
+    sys.gui.addText(0, 1 + yadd, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
+  } else {
+    sys.gui.addText(0, 1 + yadd, 7, 1, "Unsorted Tracks", sLibIn);
+  }
   
-  sys.gui.addText(0, 1 + yadd, 7, 1, get_fname(sys.fs.db.getEntry("name")), sLibIn);
   yadd++;
   
   #load sub-folders
-  if(filesBegin == 0) {
+  if(filesBegin == 0 and arg0 != 1) {
     sys.fs.db.selectTable("folders");
     sys.fs.db.selectRow(0);
     for(local i = 0; i < 250; i++;) {
@@ -1013,8 +1022,7 @@ function handleList {
       sys.fs.db.selectTable("folders");
       sys.fs.db.selectRowId(dispFolder);
       local parent = sys.fs.db.getEntry("parent");
-      print("parent" + parent);
-      if(parent == 1) {
+      if(parent == 1 or parent == 0) {
         ldFolders();
       } else {
         switchFolder(parent);
