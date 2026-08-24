@@ -578,8 +578,8 @@ function reloadAlarmScr {
       }
     }
     
-    if(count > 5) {
-      sys.gui.setScrollLim(sAlList, 0, 0, 0, (l - 2)*32 - 2);
+    if(l > 10) {
+      sys.gui.setScrollLim(sAlList, 0, 0, 0, (l - 10)*32 - 2);
     }
     
     alListMax = x;
@@ -604,10 +604,6 @@ function initAlarm {
   sys.gui.setVisible(slScroll, 0);
   
   local count = sys.fs.db.getRowCount();
-  
-  if(count >= 5) {
-    
-  }
   
   array bAlChecks[20];
   array bAlOpts[20];
