@@ -64,19 +64,25 @@ function init {
   sys.gui.setXOffset(bFol, 2);
   sys.gui.setGhost(bFol, 1);
   
-  tName = sys.gui.addText(0, 10, 9, 1, "", scr);
-  #sys.gui.setSelect(tName, 1);
+  bTim = sys.gui.addButton(8, 12, 1, 1, "", scr);
+  sys.gui.setIcon(bTim, "timer.sic");
+  sys.gui.setYOffset(bTim, 3);
+  sys.gui.setXOffset(bTim, 3);
+  sys.gui.setGhost(bTim, 1);
   
-  slider = sys.gui.addSliderH(0, 11, 9, 1, 1000, 0, scr);
+  tName = sys.gui.addText(0, 9, 9, 1, "", scr);
+  sys.gui.setTxtAlign(tName, ALIGN_CENTER);
+  
+  slider = sys.gui.addSliderH(0, 10, 9, 1, 1000, 0, scr);
   
   scrollBar = sys.gui.addSliderV(8, 1, 1, 8, 1000, 0, scr);
   
-  tDur = sys.gui.addText(5, 12, 4, 1, "0:00", scr);
-  sys.gui.setTxtAlign(tDur, ALIGN_RIGHT);
+  tDur = sys.gui.addText(0, 11, 8, 1, "0:00", scr);
+  sys.gui.setTxtAlign(tDur, ALIGN_CENTER);
   
   inScr = sys.gui.addScreen();
   
-  fInScr = sys.gui.addFrame(0, 1, 8, 9, inScr, scr);
+  fInScr = sys.gui.addFrame(0, 1, 8, 8, inScr, scr);
   
   file = "";
 
@@ -110,7 +116,11 @@ function init {
   seeker = 0;
   
   mediaId = 0;
+  
+  ddm_init();
 }
+
+import "lib/inc/ddm.svs"
 
  #========================= qs
 
@@ -206,6 +216,7 @@ function loadInScr {
   sys.gui.destroy(inScr);
   
   inScr = sys.gui.addScreen();
+  sys.gui.setBgRedraw(inScr, 0);
   sys.gui.setValue(fInScr, inScr);
   sys.gui.setYcell(inScr, 16);
   sys.gui.setXscroll(inScr, -8);
@@ -221,6 +232,7 @@ function loadInScr {
     sys.gui.setIcon(bUp, "up_dir.sic");
     sys.gui.setYOffset(bUp, 4);
     sys.gui.setXOffset(bUp, 20);
+    sys.gui.addText(2, 0, 8, 2, "", inScr);
     offset = 2;
   }
   
@@ -242,7 +254,6 @@ function loadInScr {
   } else {
     max = noFiles;
   }
-  
   
   i = 0;
   
@@ -476,6 +487,8 @@ function markPlayed {
       inScrSelect++;
       local s = currentFolder + "/" + sys.gui.getStr(bList[inScrSelect - 1]);
       playFile(s, 1);
+    } else {
+      hndlStop();
     }
   } else {
     inScrSelect = 0;
@@ -494,7 +507,6 @@ function playFile {
   upsertRow(arg0);
   local resume = 0;
   
-  
   if (sys.fs.db.getEntry("duration") == 0) {
     duration = sys.pcm.getDuration(arg0);
     if(duration == 0) {
@@ -510,13 +522,21 @@ function playFile {
     }
   }
   
+  if (duration) {
+    if (duration -1 <= resume) {
+      resume = 0;
+      print("skipping resume");
+    }
+  }
+  
   currentDbFile = sys.fs.db.getEntry("id");
     
   print(
-    "Media info:\nfile: " + arg0 +
-    "\nduration: " + getMin(duration) +
-    "\nbitrate: " + sys.pcm.getBitRate(arg0) + "kbps" +
-    "\ndbId: " + currentDbFile
+    "Media info:" +
+    "\n  file: " + arg0 +
+    "\n  duration: " + getMin(duration) +
+    "\n  bitrate: " + sys.pcm.getBitRate(arg0) + "kbps" +
+    "\n  dbId: " + currentDbFile
   );
   
   sys.gui.setParam(slider, duration);
@@ -526,8 +546,6 @@ function playFile {
   mediaId = sys.pcm.play(arg0);
   fname = arg0;
   currentFile = arg0;
-  # add few seconds to let the playback fully end
-  sys.time.setTimer((duration + 5) * 1000, &markPlayed);
   
   paused = 0;
   
@@ -575,8 +593,6 @@ function storePos {
 
 
 function pauseMusic {
-  sys.time.clearTimer();
-  
   if(not playFlag) {
     return;
   }
@@ -607,37 +623,72 @@ function disableBtns {
   sys.hw.btn.stdbyEn(0);
 }
 
+function hndlAutoPause {
+  print("Pause called");
+  sys.gui.setGhost(bTim, 1);
+  pauseMusic();
+}
+
+function hndlStop {
+  if(seeker) {
+    seeker = 0;
+    sys.pcm.setVolume(seekerVol);
+  }
+  
+  duration = 0;
+  playFlag = 0;
+  if(sys.fs.db.selectRowId(currentDbFile)) {
+    sys.fs.db.setEntry("resume", 0);
+  }
+  currentDbFile = 0;
+  sys.pcm.stop(mediaId);
+  sys.hw.btn.stdbyEn(0);
+  loadInScr(currentFolder);
+  sys.gui.setGhost(bTim, 1);
+}
+
 function update {
   if (sys.gui.getEventC(bPlay) == EV_RELEASED) {
     handlePlayB();
   }
   
   if (sys.gui.getEventC(bStop) == EV_RELEASED) {
-    if(seeker) {
-      seeker = 0;
-      sys.pcm.setVolume(seekerVol);
-    }
-    
-    duration = 0;
-    playFlag = 0;
-    if(sys.fs.db.selectRowId(currentDbFile)) {
-      sys.fs.db.setEntry("resume", 0);
-    }
-    currentDbFile = 0;
-    sys.time.clearTimer();
-    sys.pcm.stop(mediaId);
-    sys.hw.btn.stdbyEn(0);
-    loadInScr(currentFolder);
+    hndlStop();
   }
-  
   
   if(sys.gui.getEventC(bNext) == EV_RELEASED) {
     sys.pcm.seek(sys.pcm.getPos(mediaId) + 15, mediaId);
   }
   
-  
   if(sys.gui.getEventC(bFol) == EV_RELEASED) {
     sys.gui.setGhost(bFol, 1 - sys.gui.getGhost(bFol));
+  }
+  
+  if (sys.gui.getEventC(bTim) == EV_RELEASED) {
+    mTim = ddm_create(bTim);
+    ddm_width = 5;
+    ddm_add_btn("1h");
+    ddm_add_btn("3h");
+    ddm_add_btn("Off");
+  }
+  
+  i = ddm_handle(mTim);
+  if (i > 0) {
+    if (i == 1) {
+      sys.time.clearTimer();
+      sys.time.setTimer((60) * 1000 * 60, &hndlAutoPause);
+      sys.gui.setGhost(bTim, 0);
+    }
+    if (i == 2) {
+      sys.time.clearTimer();
+      sys.time.setTimer((3 * 60) * 1000 * 60, &hndlAutoPause);
+      sys.gui.setGhost(bTim, 0);
+    }
+    if (i == 3) {
+      sys.time.clearTimer();
+      sys.gui.setGhost(bTim, 1);
+    }
+    ddm_exit();
   }
   
   #TODO: skip fwd/skip back
@@ -722,15 +773,16 @@ function update {
     
     if((seeker - sys.pcm.getPos(mediaId)) * (seeker - sys.pcm.getPos(mediaId)) <= 25) {
       sys.pcm.seek(seeker, mediaId);
-      sys.time.clearTimer();
-      sys.time.setTimer((duration - seeker) * 1000, &markPlayed);
-      print("timer se to " + (duration - seeker) + "s");
       seeker = 0;
       sys.pcm.setVolume(seekerVol);
       sys.pcm.setPause(0, mediaId);
     }
   } else if(sys.os.inSim()) {
     seeker = 0;
+  }
+  
+  if(sys.pcm.getState(mediaId) == 4 and playFlag) {
+    markPlayed();
   }
   
   oldDevice = sys.pcm.getDevice();
