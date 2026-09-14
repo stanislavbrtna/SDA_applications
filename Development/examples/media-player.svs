@@ -104,7 +104,6 @@ function playFile {
   sys.gui.setStr(tDur, "0:00/" + getMin(duration));
   mediaId = sys.pcm.play(arg0);
   fname = arg0;
-  sys.time.setTimer(duration * 1000, &playNext);
   
   paused = 0;
 }
@@ -162,9 +161,6 @@ function update {
   
   if (sys.gui.getEventC(slider) == EV_RELEASED) {
     sys.pcm.seek(sys.gui.getValue(slider), mediaId);
-    sys.time.clearTimer();
-    sys.time.setTimer((duration - sys.gui.getValue(slider)) * 1000, &playNext);
-    print("timer se to " + (duration - sys.gui.getValue(slider)) + "s");
   }
   
   
@@ -181,6 +177,13 @@ function update {
       sys.gui.setEvent(bStop, EV_RELEASED);
     }
     sys.hw.btn.clrEvent(BTN_B);
+  }
+  
+  #print("media status:" + sys.pcm.getState(mediaId));
+  
+  if(sys.pcm.getState(mediaId) == 4) {
+    print("finished, next");
+    playNext();
   }
   
 }
