@@ -224,10 +224,15 @@ function initTimer {
   
   l++;
   
-  tTimTime = sys.gui.addText(2, l, 7, 2, "00:00:00", sTimer);
+  tTimTime = sys.gui.addText(0, l, 10, 2, "00:00:00", sTimer);
   sys.gui.setTxtSize(tTimTime, FONT_70);
+   sys.gui.setTxtAlign(tTimTime, ALIGN_CENTER);
   
   l += 2;
+  
+  tTimTimeF = sys.gui.addText(0, l, 10, 2, "00:00:00", sTimer);
+  sys.gui.setTxtAlign(tTimTimeF, ALIGN_CENTER);
+  sys.gui.setVisible(tTimTimeF, 0);
   
   bTmh = sys.gui.addButton(3, l, 1, 1, "-", sTimer);
   
@@ -350,6 +355,11 @@ function updateTimer {
     }
   }
   
+  if(sys.gui.getVisible(tTimTimeF)) {
+    local tim = sys.time.get() - timerStopTime;
+    timerUpdStr3(tim);
+  }
+  
   if(sys.gui.getEventC(bTpReset) == EV_RELEASED) {
     timerHour = 0;
     timerMin = 0;
@@ -373,6 +383,7 @@ function timerClb {
   sys.gui.setVisible(bTpBtn, 1);
   sys.gui.setGrayout(bTpStart, 1);
   sys.gui.setStr(tTimTime, "00:00:00");
+  sys.gui.setVisible(tTimTimeF, 1);
   sys.gui.setEvent(bTimer, EV_RELEASED);
   freeIcon();
 }
@@ -388,6 +399,7 @@ function timerReset {
   timerRunning = 0;
   timerHideBtns(1);
   timerUpStr();
+  sys.gui.setVisible(tTimTimeF, 0);
   sys.gui.setVisible(tTpMsg, 0);
   sys.gui.setVisible(bTpBtn, 0);
   sys.gui.setGrayout(bTpStart, 0);
@@ -413,7 +425,19 @@ function timerUpdStr2 {
   );
 }
 
+function timerUpdStr3 {
+  if(arg0 < 0) arg0 *= -1;
 
+ sys.gui.setStr(
+    tTimTimeF,
+    lz(arg0/(60*60))
+    + ":" 
+    + lz((arg0%(60*60)) / 60) 
+    + ":" 
+    + lz(arg0%60)
+  );
+  
+}
 
 function timerHideBtns {
   sys.gui.setVisible(bTph, arg0);
