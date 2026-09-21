@@ -117,6 +117,8 @@ function init {
   
   mediaId = 0;
   
+  timeBudget = -1;
+  
   ddm_init();
 }
 
@@ -492,9 +494,10 @@ function markPlayed {
     }
   } else {
     inScrSelect = 0;
-    inScrSelId  = 0;
     sys.time.setTimer(1*60*1000, &disableBtns);
   }
+  
+  inScrSelId  = 0;
   loadInScr(currentFolder);
 }
 
@@ -643,6 +646,7 @@ function hndlStop {
   currentDbFile = 0;
   sys.pcm.stop(mediaId);
   sys.hw.btn.stdbyEn(0);
+  inScrSelId = 0;
   loadInScr(currentFolder);
   sys.gui.setGhost(bTim, 1);
 }
@@ -676,16 +680,22 @@ function update {
   if (i > 0) {
     if (i == 1) {
       sys.time.clearTimer();
-      sys.time.setTimer((60) * 1000 * 60, &hndlAutoPause);
+      if(sys.os.inSim()) {
+        timeBudget = (2) * 60;
+        #sys.time.setTimer((2) * 1000 * 60, &hndlAutoPause);
+      } else {
+        timeBudget = 60 * 60;
+        #sys.time.setTimer((60) * 1000 * 60, &hndlAutoPause);
+      }
+      
       sys.gui.setGhost(bTim, 0);
     }
     if (i == 2) {
-      sys.time.clearTimer();
-      sys.time.setTimer((3 * 60) * 1000 * 60, &hndlAutoPause);
+      timeBudget = 3 * 60 * 60;
       sys.gui.setGhost(bTim, 0);
     }
     if (i == 3) {
-      sys.time.clearTimer();
+      timeBudget = -1;
       sys.gui.setGhost(bTim, 1);
     }
     ddm_exit();
@@ -760,6 +770,21 @@ function update {
   if(sys.pcm.getDevice() == 1 and oldDevice == 2) {
     pauseMusic();
   }
+  
+  if(timeBudget != -1) {
+    if(sys.pcm.getPos(mediaId) != prevPos) {
+      timeBudget--;
+      #print("TimeBudget: " + timeBudget);
+    }
+    
+    if(timeBudget == 0) {
+      hndlAutoPause();
+      timeBudget = -1;
+    }
+    
+    prevPos = sys.pcm.getPos(mediaId); 
+  }
+  
   
   if(seeker and not sys.os.inSim()) {
     if(seeker < sys.pcm.getPos(mediaId)) {
