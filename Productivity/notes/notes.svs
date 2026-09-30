@@ -319,10 +319,16 @@ function update_notes {
   
   if (sys.gui.getTxtAct(tNoteText) != textActO) {
     upd_note_tx();
+    noteChanged = 1;
     sys.gui.setModif(scr_note);
   }
   
+  if(sys.gui.getTxtAct(tNoteName) != textActN) {
+    noteChanged = 1;
+  }
+  
   textActO = sys.gui.getTxtAct(tNoteText);
+  textActN = sys.gui.getTxtAct(tNoteText);
     
   #TODO: better long file handling
   if(sys.gui.getVisible(slNote)) {
@@ -424,6 +430,7 @@ function update {
 
 function open_note {
   currentFile = arg0;
+  noteChanged = 0;
   sys.fs.conf.open(currentFile);
   sys.gui.setStr(tNoteName, get_note_name());
   currentText = sys.fs.conf.read("text");
@@ -442,7 +449,6 @@ function open_note {
   }
   
   noteArchived = num(sys.fs.conf.read("archived", "0"));
-  
   
   sys.fs.conf.close();
   
@@ -475,7 +481,11 @@ function save_note {
   sys.fs.writeStr(text, currentText);
   sys.fs.conf.write("archived", "" + noteArchived);
   sys.fs.conf.write("encrypted", "" + noteEncrypted);
-  sys.fs.conf.write("modified", "" + sys.time.get());
+  
+  if(noteChanged) {
+    sys.fs.conf.write("modified", "" + sys.time.get());
+  }
+  
   sys.fs.conf.close();
 }
 
@@ -519,6 +529,8 @@ function new_note {
   sys.fs.conf.write("archived", "0");
   
   noteArchived = 0;
+  noteChanged = 1;
+  
   sys.fs.conf.close();
   
   return (currentFile);
