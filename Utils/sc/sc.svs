@@ -199,7 +199,10 @@ function ls {
 }
 
 function wakeup {
-  rldFiles(1);
+  # TODO: fix scroll change on reload
+  local scroll = sys.gui.getYscroll(file_scr);
+  rldFiles(0);
+  sys.gui.setYscroll(file_scr, scroll);
 }
 
  # Sortas ===============================================================
