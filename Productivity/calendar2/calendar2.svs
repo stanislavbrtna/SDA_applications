@@ -34,7 +34,7 @@ function init {
   scrSpacer(scr);
   sys.gui.setYscroll(scr, -4);
   
-  sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()));
+  sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()) + "/img" );
    
   # main screen
   bToday = sys.gui.addButton(0, 0, 3, 1, "Today", scr);
