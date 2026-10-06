@@ -1,0 +1,705 @@
+function taskEdInit {
+  sTEdit = sys.gui.addScreen();
+  scrSpacer(sTEdit);
+  sys.gui.setYscroll(sTEdit, -4);
+  
+  sys.gui.addText(0, 0, 5, 1, "Task name:", sTEdit);
+  bTaMore = sys.gui.addButton(7, 0, 2, 1, "...", sTEdit);
+  
+  tTaName = sys.gui.addText(0, 1, 9, 1, "", sTEdit);
+  sys.gui.setTxtEd(tTaName, 1);
+  
+  bTEvDate1 = sys.gui.addButton(5, 2, 4, 1, "00. 00. 0000", sTEdit);
+  bTEvTime1 = sys.gui.addButton(3, 2, 2, 1, "00:00", sTEdit);
+  
+  bTaCheck = sys.gui.addButton(0, 2, 1, 1, "", sTEdit);
+  sys.gui.setIcon(bTaCheck, "check_e.sic");
+  sys.gui.setXOffset(bTaCheck, 0);
+  
+  sys.gui.addText(0, 3, 4, 1, "Note:", sTEdit);
+  
+  tTaDescr = sys.gui.addText(0, 4, 9, 7, "", sTEdit);
+  sys.gui.setTxtEd(tTaDescr, 1);
+  
+  iTEvNotify = sys.gui.addImage(0, 11, 1, 1, "alarm.sic", sTEdit);
+  tTEvNotify = sys.gui.addText(1, 11, 5, 1, "10 min before", sTEdit);
+  tTEvRepeat = sys.gui.addText(6, 11, 4, 1, "Weekly", sTEdit);
+  
+  bTEClose = sys.gui.addButton(0, 12, 2, 1, "", sTEdit);
+  sys.os.gui.setIcon(bTEClose, ICON_BACK);
+  sys.gui.setXOffset(bTEClose, 16);
+  
+  bTECancel = sys.gui.addButton(6, 12, 3, 1, "Cancel", sTEdit);
+  sys.gui.setVisible(bTECancel, 0);
+  sys.gui.setTxtAlign(bTECancel, ALIGN_CENTER);
+  
+}
+
+function taskUpdate {
+  sys.os.gui.handleText(tTaName);
+  sys.os.gui.handleText(tTaDescr);
+  
+  if (sys.gui.getEventC(bTECancel) == EV_RELEASED) {
+    dayReload();
+    sys.os.gui.setMainScr(sDay);
+  }
+  
+  if (sys.gui.getEventC(bTaCheck) == EV_RELEASED) {
+    taStDone = not taStDone;
+    taHandleDone();
+  }
+  
+  if (sys.gui.getEventC(bTEClose) == EV_RELEASED) {
+    if (sys.gui.getStr(tTaName) != "") {
+      saveTask();
+    }
+    
+    dayReload();
+    sys.os.gui.setMainScr(sDay);
+  }
+  
+  # Date handling
+  if (sys.gui.getEventC(bTEvDate1) == EV_RELEASED) {
+    edDateOv1 = sys.o.date.add(edStYear1, edStMon1, edStDay1);
+  }
+  
+  if (sys.o.date.getOk(edDateOv1)) {
+    edStDay1 = sys.o.date.getDay(edDateOv1);
+    edStMon1 = sys.o.date.getMon(edDateOv1);
+    edStYear1 = sys.o.date.getYr(edDateOv1);
+    sys.o.date.clrOk(edDateOv1);
+    
+    editUpdateDT(bTEvDate1, bTEvTime1, 0, 0);
+    ed_changed = 1;
+  }
+  
+  # Time handling
+  if (sys.gui.getEventC(bTEvTime1) == EV_RELEASED) {
+    edTimeOv1 = sys.o.time.add();
+    sys.o.time.set(edTimeOv1, EdStHour1, EdStMin1);
+  }
+  
+  if(sys.o.time.getOk(edTimeOv1)) {
+    EdStHour1 = sys.o.time.getHr(edTimeOv1);
+    EdStMin1 = sys.o.time.getMin(edTimeOv1);
+    
+    if (EdStHour1 > EdStHour2 and EdStHour1 < 22 and not EdStMultiDay) {
+      EdStHour2 = EdStHour1 + 1;
+    }
+    sys.o.time.clrOk(edTimeOv1);
+    editUpdateDT(bTEvDate1, bTEvTime1, 0, 0);
+  }
+  
+  #Todo: handle ts
+  #eventStart
+  #eventStop
+  
+  if (sys.gui.getEventC(bTaMore) == EV_RELEASED) {
+    menu1 = ddm_create(bTaMore);
+    ddm_width = 6; # width override, otherwise button width is used
+    ddm_add_btn("Set Time");
+    ddm_add_btn("Repeating");
+    ddm_add_btn("Notify");
+    ddm_add_btn("Add Occurence");
+    if(currentTask != -1) ddm_add_btn("Delete Task");
+  }
+  
+  i = ddm_handle(menu1);
+  if (i > 0) {
+    if (i == 1) {
+      # all day
+      EdStAllDay = not EdStAllDay;
+      sys.gui.setVisible(bTEvTime1, not EdStAllDay);
+      ddm_exit();
+    }
+    
+    if (i == 2) {
+      # repeating
+      menuRep = ddm_create_sub(i);
+      ddm_add_btn(repeatsN[0], "check.sic");
+      setCheck(1, evRepDay);
+      ddm_add_btn(repeatsN[1], "check.sic");
+      setCheck(2, evRepWkDay);
+      ddm_add_btn(repeatsN[2], "check.sic");
+      setCheck(3, evRepMon);
+      ddm_add_btn(repeatsN[3], "check.sic");
+      setCheck(4, evRepYear);
+      ddm_add_btn("Set end date");
+      ddm_add_btn("Clear repeats");
+    }
+    
+    if (i == 3) {
+      # Notifications
+      menuNotif = ddm_create_sub(i);
+      ddm_add_btn(notifTimesN[0]);
+      ddm_add_btn(notifTimesN[1]);
+      ddm_add_btn(notifTimesN[2]);
+      ddm_add_btn(notifTimesN[3]);
+      ddm_add_btn(notifTimesN[4]);
+    }
+    
+    if (i == 5) {
+      currentOcc = -1;
+      ddm_exit();
+    }
+    
+    if (i == 6) {
+      ddm_exit();
+      menuDelete = ddm_create_sub(i);
+      ddm_add_btn("This Occurence");
+      ddm_add_btn("All Occurences");
+      delOcc = 0;
+    }
+    
+  }
+  
+  # Handle repeating
+  i = ddm_handle(menuRep);
+  if (i > 0) {
+    if (i == 1) {
+      evRepWkDay = 0;
+      evRepDay   = 1;
+      evRepMon   = 0;
+      evRepYear  = 0;
+      setCheckAll(i);
+    } else if (i == 2) {
+      evRepWkDay = 1;
+      evRepDay   = 0;
+      evRepMon   = 0;
+      evRepYear  = 0;
+      setCheckAll(i);
+    } else if(i == 3) {
+      evRepWkDay = 0;
+      evRepDay   = 0;
+      evRepMon   = 1;
+      evRepYear  = 0;
+      setCheckAll(i);
+    } else if(i == 4) {
+      evRepWkDay = 0;
+      evRepDay   = 0;
+      evRepMon   = 0;
+      evRepYear  = 1;
+      setCheckAll(i);
+    } else if(i == 5) { # Set end date
+      edDateOv3 = sys.o.date.add(edStYear2, edStMon2, edStDay2);
+    } else if(i == 6) { # None
+      evRepWkDay = 0;
+      evRepDay   = 0;
+      evRepMon   = 0;
+      evRepYear  = 0;
+      evRepEnd   = 0;
+      editUpdRep(tEvRepeat);
+      ddm_exit();
+      #sys.gui.setEvent(bEvMore, EV_RELEASED); # Re-open
+    }
+  }
+  
+  # Event deletion
+  i = ddm_handle(menuDelete);
+  if (i > 0) {
+    if (i == 1) {
+      delOcc = 1;
+    }
+    
+    c_del = com_new("Delete event?", 0);
+  }
+  
+  if(com_handle(c_del)) {
+    print("deleting occ " + delOcc);
+    if (delOcc) {
+      deleteOcc();
+    } else {
+      deleteEvent();
+    }
+    
+    dayReload();
+    sys.os.gui.setMainScr(sDay);
+  }
+  
+  # Alarms evNotifTime
+  i = ddm_handle(menuNotif);
+  if (i > 0) {
+    evNotifTime = i - 1;
+    txUpdNotify(tTEvNotify, iTEvNotify);
+    ddm_exit();
+  }
+  
+  if (sys.o.date.getOk(edDateOv3)) {
+    evRepEnd = sys.time.setTs(
+      sys.o.date.getYr(edDateOv3), 
+      sys.o.date.getMon(edDateOv3), 
+      sys.o.date.getDay(edDateOv3), 
+      23, 
+      59, 
+      0
+    );
+    sys.o.date.clrOk(edDateOv3);
+  }
+  
+  sys.o.date.update(edDateOv1);
+  sys.o.date.update(edDateOv2);
+  sys.o.date.update(edDateOv3);
+  sys.o.time.update(edTimeOv1);
+  sys.o.time.update(edTimeOv2);
+  
+  if(grayPre != (sys.gui.getStr(tTaName) == "")) {
+    if (sys.gui.getStr(tTaName) == "") {
+      sys.gui.setVisible(bTECancel, 0);
+    } else {
+      sys.gui.setVisible(bTECancel, 1);
+    }
+  }
+  grayPre = sys.gui.getStr(tTaName) == "";
+}
+
+
+function taHandleDone() {
+  if(taStDone) {
+    sys.gui.setIcon(bTaCheck, "check.sic");
+  } else {
+    sys.gui.setIcon(bTaCheck, "check_e.sic");
+  }
+}
+
+function loadTaEdit {
+  
+  sys.fs.db.selectTable("occs");
+  if(not sys.fs.db.selectRowId(arg0)) {
+    sys.error("occurence " + arg0 + " not found!");
+  }
+  
+  sys.os.gui.setMainScr(sTEdit);
+  
+  taStDone = sys.fs.db.getEntry("meta");
+  
+  taHandleDone();
+  
+  currentOcc = arg0;
+  currentTask = sys.fs.db.getEntry("parent");
+  
+  eventStart = sys.fs.db.getEntryNum("start", 0);
+  eventEnd = sys.fs.db.getEntryNum("end", 0);
+  EdStAllDay = sys.fs.db.getEntryNum("all_day", 0);
+  
+  # Repeats
+  evRepWkDay = sys.fs.db.getEntry("rep_wkday");
+  evRepDay = sys.fs.db.getEntry("rep_day"); 
+  evRepMon = sys.fs.db.getEntry("rep_mon");
+  evRepYear = sys.fs.db.getEntry("rep_year");
+  evRepEnd = sys.fs.db.getEntry("rep_end");
+  
+  evNotifTime = sys.fs.db.getEntryNum("notif_time", 0);
+  
+  sys.fs.db.selectTable("tasks");
+  if(not sys.fs.db.selectRowId(currentTask)) {
+    sys.error("Task " + arg0 + " not found!");
+  }
+  
+  sys.gui.setStr(tTaName, sys.fs.db.getEntry("name"));
+  sys.gui.setStr(tTaDescr, sys.fs.db.getEntry("descr"));
+  
+  EdStMultiDay = eventEnd - eventStart > 24*60*60;
+  
+  edStDay1 = sys.time.getTsDay(eventStart);
+  edStMon1 = sys.time.getTsMonth(eventStart);
+  edStYear1 = sys.time.getTsYear(eventStart);
+  
+  edStDay2 = sys.time.getTsDay(eventEnd);
+  edStMon2 = sys.time.getTsMonth(eventEnd);
+  edStYear2 = sys.time.getTsYear(eventEnd);
+  
+  EdStHour1 = sys.time.getTsHr(eventStart);
+  EdStMin1 = sys.time.getTsMin(eventStart);
+  
+  EdStHour2 = sys.time.getTsHr(eventEnd);
+  EdStMin2 = sys.time.getTsMin(eventEnd);
+  
+  editUpdateDT(bTEvDate1, bTEvTime1, 0, 0);
+  txUpdNotify(tTEvNotify, iTEvNotify);
+  editUpdRep(tTEvRepeat);
+  sys.gui.setVisible(bTECancel, 1);
+}
+
+#*
+ * New Task
+*#
+function newTask {
+  currentOcc  = -1;
+  currentTask = -1;
+  sys.os.gui.setMainScr(sTEdit);
+  
+  taStDone = 0;
+  
+  EdStAllDay = 1;
+  
+  eventStart = sys.time.setTs(mYear, mMon, mDay, 9, 0, 0);
+  eventEnd = sys.time.setTs(mYear, mMon, mDay, 9, 0, 0);
+  
+  evRepWkDay = 0;
+  evRepDay = 0;
+  evRepMon = 0;
+  evRepYear = 0;
+  evRepEnd = 0;
+  
+  evNotifTime = 0;
+  
+  EdStHour1 = 9;
+  EdStMin1 = 0;
+  
+  edStDay1 = mDay;
+  edStMon1 = mMon;
+  edStYear1 = mYear;
+  
+  sys.gui.setStr(tTaName, "");
+  sys.gui.setStr(tTaDescr, "");
+  
+  editUpdateDT(bTEvDate1, bTEvTime1, 0, 0);
+  
+  txUpdNotify(tTEvNotify, iTEvNotify);
+  editUpdRep(tTEvRepeat);
+  
+  taHandleDone();
+}
+
+#*
+ * Save Task
+*#
+function saveTask {
+
+  local newEvFlag = 0;
+  # Store Event Data
+  sys.fs.db.selectTable("tasks");
+  
+  if (currentTask == (-1)) {
+    sys.fs.db.newRow();
+    currentTask = sys.fs.db.getEntry("id");
+    newEvFlag = 1;
+  } else {
+    sys.fs.db.selectRowId(currentTask);
+  }
+
+  sys.fs.db.setEntryStr("name", sys.gui.getStr(tTaName));
+  sys.fs.db.setEntryStr("descr", sys.gui.getStr(tTaDescr));
+  sys.fs.db.setEntryNum("valid", 1);
+  sys.fs.db.setEntryNum("status", 0);
+  
+  if (newEvFlag == 1) {
+    sys.fs.db.setEntryStr("uid", random_str(8));
+    sys.fs.db.setEntryNum("notif_time", evNotifTime);
+  } else {
+    if (
+      sys.fs.db.getEntryNum("notif_time", 0) != evNotifTime and
+      evNotifTime == 0
+    ) {
+      notifRemoved = 1;
+    }
+    
+    if(evNotifTime != 0 and sys.fs.db.getEntryNum("notif_time", 0) == 0) {
+      notifFirst = 1;
+    }
+  }
+  
+  # Store Occurence
+  sys.fs.db.selectTable("occs");
+  
+  if (currentOcc == (-1)) {
+    sys.fs.db.newRow();
+    print("Creating occurence: " + sys.fs.db.getEntry("id"));
+     # type & event id
+    sys.fs.db.setEntryNum("type", 1);
+    sys.fs.db.setEntryNum("parent", currentTask);
+    sys.fs.db.setEntryNum("notif_time", evNotifTime); # Write default notif time
+  } else {
+    sys.fs.db.selectRowId(currentOcc);
+    sys.fs.db.setEntryNum("notif_time", evNotifTime);
+  }
+  
+  sys.fs.db.setEntry("meta", taStDone);
+  
+  print("notif time:" + evNotifTime);
+  
+  if (EdStAllDay) {
+    eventStart = sys.time.setTs(edStYear1, edStMon1, edStDay1, 0, 0, 0);
+    if(EdStMultiDay) {
+      eventEnd = sys.time.setTs(edStYear2, edStMon2, edStDay2, 23, 59, 59);
+    } else {
+      eventEnd = sys.time.setTs(edStYear1, edStMon1, edStDay1, 23, 59, 59);
+    }
+  } else {
+    eventStart = sys.time.setTs(edStYear1, edStMon1, edStDay1, EdStHour1, EdStMin1, 0);
+    if(EdStMultiDay) {
+      eventEnd = sys.time.setTs(edStYear2, edStMon2, edStDay2, EdStHour2, EdStMin2, 0);
+    } else {
+      eventEnd = sys.time.setTs(edStYear1, edStMon1, edStDay1, EdStHour2, EdStMin2, 0);
+    }
+  }
+  
+  local timeChanged = 0;
+  local notifRemoved = 0;
+  local notifFirst = 0;
+  
+  if (currentOcc != -1) {
+    if (
+      sys.fs.db.getEntryNum("start", 0) != eventStart or
+      sys.fs.db.getEntryNum("end", 0) != eventEnd or
+      sys.fs.db.getEntryNum("notif_time", 0) != evNotifTime
+      # TODO: Repeating events...
+    ) {
+      timeChanged = 1;
+    }
+  }
+  
+  currentOcc = sys.fs.db.getEntry("id");
+  
+  print("save occ: " + currentOcc);
+  print("save task: " + currentTask);
+  
+  # dates
+  sys.fs.db.setEntryNum("start", eventStart);
+  sys.fs.db.setEntryNum("end", eventEnd);
+  
+  # Repeats
+  sys.fs.db.setEntryNum("all_day", EdStAllDay);
+  
+  sys.fs.db.setEntryNum("rep_wkday", evRepWkDay);
+  sys.fs.db.setEntryNum("rep_day", evRepDay);
+  sys.fs.db.setEntryNum("rep_mon", evRepMon);
+  sys.fs.db.setEntryNum("rep_year", evRepYear);
+  sys.fs.db.setEntryNum("rep_end", evRepEnd); 
+  sys.fs.db.setEntryNum("rep_enabled", evRepWkDay or evRepDay or evRepMon or evRepYear or evRepEnd);
+  sys.fs.db.setEntryNum("valid", 1);
+  
+  # alarms
+  sys.fs.db.selectTable("tasks");
+  if (not sys.fs.db.selectRowId(currentTask)) {
+    sys.os.error("DB: Invalid task (2).");
+    return;
+  }
+  
+  local nextAlarmTime = getNextAlTime();
+  
+  print(
+    "nextAlarmTime " + nextAlarmTime + "\n" +
+    "evNotifTime " + evNotifTime + "\n" +
+    "notifTimes[evNotifTime] " + notifTimes[evNotifTime] + "\n" +
+    "sys.time.get() " + sys.time.get() + "\n"
+  );
+  
+  if(evNotifTime != 0 and nextAlarmTime - notifTimes[evNotifTime] > sys.time.get()) {
+    if (newEvFlag) {
+      local al = sys.alarm.setFixed(nextAlarmTime - notifTimes[evNotifTime], currentOcc);
+      sys.alarm.setNotify(al, 0);
+      sys.fs.db.setEntryNum("notif_alarm", al);
+      sys.fs.db.setEntryNum("notif_last", eventStart);
+      
+      print("new alarm: " + al);
+      
+    } else if (timeChanged) {
+      if (not notifFirst) {
+        # verify alarm validity
+        if (
+          sys.alarm.getValid(sys.fs.db.getEntryNum("notif_alarm", 0)) and
+          sys.alarm.getParam(sys.fs.db.getEntryNum("notif_alarm", 0)) != currentTask
+        ) {
+          sys.os.error("Alarm id do not match the event id.");
+          return;
+        }
+        
+        # Remove old alarm
+        sys.alarm.destroy(sys.fs.db.getEntryNum("notif_alarm", 0));
+      }
+      
+      # Create new
+      local al = sys.alarm.setFixed(
+                                    nextAlarmTime - notifTimes[evNotifTime],
+                                    currentOcc
+                                    );
+      sys.alarm.setNotify(al, 0);
+      sys.fs.db.setEntryNum("notif_alarm", al);
+      sys.fs.db.setEntryNum("notif_last", eventStart);
+      
+      print("updated alarm: " + al);
+      
+      # TODO: Resolve repeating alarms...
+    }
+  } else if (notifRemoved) {
+    # verify alarm validity
+    if (
+      sys.alarm.getValid(sys.fs.db.getEntryNum("notif_alarm", 0)) #and
+      #sys.alarm.getParam(sys.fs.db.getEntryNum("notif_alarm", 0)) != currentEvent
+    ) {
+      sys.os.error("Alarm id do not match the event id.");
+      return;
+    }
+
+    # Remove old alarm
+    sys.alarm.destroy(sys.fs.db.getEntryNum("notif_alarm", 0));
+    print("alarm removed");
+  }
+  
+  sys.fs.db.sync();
+  
+  print("Task save ok. occ: " + currentOcc + " task: " + currentTask);
+}
+
+function taskFlip(occId) {
+  sys.fs.db.selectTable("occs");
+  sys.fs.db.selectRowId(occId);
+  local i = sys.fs.db.getEntry("meta");
+  
+  i = not i;
+  
+  sys.fs.db.setEntry("meta", i);
+  return i;
+}
+
+function taskSet(occId, state) {
+  sys.fs.db.selectTable("occs");
+  sys.fs.db.selectRowId(occId);
+  sys.fs.db.setEntry("meta", state);
+  return i;
+}
+
+function ttoLoad {
+  sTto = sys.gui.addScreen();
+  scrSpacer(sTto);
+
+  sys.gui.addImage(0, 0, 1, 1, "check.sic", sTto);
+  sys.gui.addText(1, 0, 10, 1, "Tasks for today", sTto);
+
+
+  bTtoOpen = sys.gui.addButton(0, 8, 5, 1, "Open Calendar", sTto);
+  bTtoClose = sys.gui.addButton(5, 8, 3, 1, "Close", sTto);
+  oTto = sys.o.setScr(sTto);
+  local border = 16;
+  
+  sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*10);
+
+  sItto = sys.gui.addScreen(0, 1, 8, 7, sTto);
+  scrSpacer(sItto);
+
+  array bTtoTasks[25];
+
+  sys.fs.db.selectTable("occs");
+
+  local i = 0;
+
+  iTtoLen = 0;
+
+  local dayStart = 0;
+  local dayEnd = sys.time.setTs(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay(), 23, 59, 59);
+
+  if (sys.fs.db.selectRow(0)) {
+    while(1) {
+      local timeStart = sys.fs.db.getEntryNum("start", 0);
+      local timeEnd = sys.fs.db.getEntryNum("end", 0);
+      local allDay = sys.fs.db.getEntryNum("all_day", 0);
+      
+      local repeats = 0;
+      local rWkDay;
+      local rDay;
+      local rMon;
+      local rYear;
+      local rEnd;
+      
+      if (sys.fs.db.getEntryNum("rep_enabled", 0)) {
+        rEnd = sys.fs.db.getEntryNum("rep_end", 0);
+        rWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
+        rDay = sys.fs.db.getEntryNum("rep_day", 0); 
+        rMon = sys.fs.db.getEntryNum("rep_mon", 0);
+        rYear = sys.fs.db.getEntryNum("rep_year", 0);
+        print("End: " + rEnd + " Wk: " + rWkDay + " rDay: " + rDay + " rMon: " + rMon + " rYear: " + rYear);
+        repeats = 1;
+      }
+      
+      print("repeats: " + repeats + " solver: " + solveRepeats());
+
+      if (
+        sys.fs.db.getEntryNum("valid", 0) == 1 and
+        (
+          (timeStart >= dayStart and timeEnd < dayEnd) or 
+          (timeStart >= dayStart and timeStart < dayEnd) or
+          (timeStart <= dayStart and timeEnd > dayEnd) or
+          (timeEnd >= dayStart and timeEnd < dayEnd) or
+          (repeats and solveRepeats())
+        )
+      ) {
+      
+        # Occurence Id
+        local occId = sys.fs.db.getEntry("id");
+        local evId = sys.fs.db.getEntry("parent");
+        print("load occ type: " + sys.fs.db.getEntry("type"));
+
+        if(sys.fs.db.getEntry("type") == 1 and sys.fs.db.getEntry("meta") == 0) {
+          # Type: Task
+          sys.fs.db.selectTable("tasks");
+          sys.fs.db.selectRowId(evId);
+
+          bTtoTasks[i] = sys.gui.addButton(
+            0, 0 + i, 1, 1,
+            "", 
+            sItto
+          );
+
+          sys.gui.setValue(bTtoTasks[i], occId);
+
+          sys.gui.addText(
+            1, 0 + i, 7, 1,
+            sys.fs.db.getEntry("name"), 
+            sItto
+          );      
+          
+          sys.fs.db.selectTable("occs");
+          sys.fs.db.selectRowId(occId);
+
+          if(sys.fs.db.getEntry("meta")) {
+            sys.gui.setIcon(bTtoTasks[i], "check.sic");
+          } else {
+            sys.gui.setIcon(bTtoTasks[i], "check_e.sic");
+          }
+          sys.gui.setXOffset(bTtoTasks[i], 0);
+          i++;
+        }
+        
+      }
+      
+      if(not sys.fs.db.nextRow()) {
+        break;
+      }
+    }
+  }
+
+  iTtoLen = i;
+}
+
+function ttoUpdate {
+  #return;
+  if(sys.o.getId() != oTto or sys.o.getId() == 0) {
+    return;
+  }
+
+  if (sys.gui.getEventC(bTtoOpen) == EV_RELEASED) {
+    sys.o.destroy();
+    sys.os.gui.setMainScr(scr);
+    return;
+  }
+
+  if (sys.gui.getEventC(bTtoClose) == EV_RELEASED) {
+    sys.o.destroy();
+    sys.os.suspend();
+    return;
+  }
+
+  for(local i = 0; i < iTtoLen; i++;) {
+    #print("bTtoTasks[i]=" + bTtoTasks[i] + " i: " + i);
+    if (sys.gui.getEventC(bTtoTasks[i]) == EV_RELEASED) {
+      local f = taskFlip(sys.gui.getValue(bTtoTasks[i]));
+      
+      if(f) {
+        sys.gui.setIcon(bTtoTasks[i], "check.sic");
+      } else {
+        sys.gui.setIcon(bTtoTasks[i], "check_e.sic");
+      }
+    }
+  }
+}

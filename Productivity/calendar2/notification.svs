@@ -1,0 +1,106 @@
+function notifOverlay {
+  #sys.os.gui.setMainScr(0);
+  
+  sys.fs.db.selectTable("occs");
+  sys.fs.db.selectRowId(arg0);
+  
+  print("Loading: " + arg0);
+  
+  sNotif = sys.gui.addScreen();
+  scrSpacer(sNotif);
+  
+  sys.gui.addImage(0, 0, 1, 1, "alarm.sic", sNotif);
+  sys.gui.setTxtSize(
+    sys.gui.addText(1, 0, 10, 1, "Calendar notification", sNotif),
+    FONT_12
+  );
+  
+  tNName = sys.gui.addText(0, 1, 10, 1, "Event Name", sNotif);
+  tNDate = sys.gui.addText(0, 2, 10, 1, "17:30 01.01.2025", sNotif);
+  tNStartsIn = sys.gui.addText(0, 3, 10, 1, "Starts in 29 minutes", sNotif);
+  
+  bNCmpl = sys.gui.addButton(0, 2, 8, 1, "Mark completed", sNotif);
+  sys.gui.setIcon(bNCmpl, "check_e.sic");
+  sys.gui.setXOffset(bNCmpl, 10);
+  
+  bNOpen = sys.gui.addButton(0, 4, 4, 1, "Open Event", sNotif);
+  bNClose = sys.gui.addButton(5, 4, 3, 1, "Close", sNotif);
+  
+  local ev = arg0;
+  notifOcc = arg0;
+  
+  local start = sys.fs.db.getEntryNum("start", 0);
+  local parent = sys.fs.db.getEntry("parent");
+  
+  sys.gui.setStr(tNDate, dateFmt(start)); 
+  
+  if (sys.fs.db.getEntry("type") == 0) {
+    sys.fs.db.selectTable("events");
+    sys.gui.setStr(tNStartsIn, "Starts in " + calcDelta(start) + "");
+    sys.gui.setVisible(bNCmpl, 0);
+    sys.fs.db.selectRowId(parent);
+    sys.gui.setStr(tNName, sys.fs.db.getEntryStr("name", ""));
+  } else {
+
+    if (sys.fs.db.getEntry("meta")) {
+      sys.gui.setIcon(bNCmpl, "check.sic");
+    } else {
+      sys.gui.setIcon(bNCmpl, "check_e.sic");
+    }
+
+    sys.fs.db.selectTable("tasks");
+    sys.gui.setStr(bNOpen, "Open Task");
+    sys.gui.setStr(tNStartsIn, "Date: " + dateFmt(start, 1));
+    sys.gui.setVisible(tNDate, 0);
+    sys.fs.db.selectRowId(parent);
+    sys.gui.setStr(tNName, "Task: " + sys.fs.db.getEntryStr("name", ""));
+  }
+  
+  selfOvr = sys.o.setScr(sNotif);
+  local border = 16;
+  
+  sys.o.setXYXY(border, 32 + border, 320 - border, 32 + border + 32*6);
+    
+  draw_flag = 1;
+}
+
+function updateOv {
+  if(sys.o.getId() != selfOvr or selfOvr == 0) {
+    return;
+  }
+  
+  if(sys.gui.getEventC(bNClose) == EV_RELEASED) {
+    sys.o.destroy();
+    return;
+  }
+
+  if (sys.gui.getEventC(bNCmpl) == EV_RELEASED) {
+    local i = taskFlip(notifOcc);
+
+    if(i) {
+      sys.gui.setIcon(bNCmpl, "check.sic");
+    } else {
+      sys.gui.setIcon(bNCmpl, "check_e.sic");
+    }
+  }
+  
+  if(sys.gui.getEventC(bNOpen) == EV_RELEASED) {
+    sys.o.destroy();
+    currentOcc = notifOcc;
+    sys.fs.db.selectTable("occs");
+    sys.fs.db.selectRowId(notifOcc);
+    if (sys.fs.db.getEntry("type") == 0) {
+      loadEvent(currentOcc);
+      sys.os.gui.setMainScr(sView);
+    }
+    
+    if (sys.fs.db.getEntry("type") == 1) {
+      loadTaEdit(currentOcc);
+    }
+    
+    return;
+  }
+  
+  sys.os.gui.btnCtrl(sNotif, bNClose);
+}
+

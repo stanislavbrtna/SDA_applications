@@ -1,0 +1,76 @@
+function db_init {
+  sys.fs.db.new("appdata/cal2.db");
+  
+  # Events
+  sys.fs.db.newTable("events", 7);
+  
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "valid", 0); 
+  sys.fs.db.setColumn(2, "name", 1);
+  sys.fs.db.setColumn(3, "descr", 1);
+  sys.fs.db.setColumn(4, "uid", 1);
+  sys.fs.db.setColumn(5, "notif_alarm", 0);
+  sys.fs.db.setColumn(6, "notif_time", 0); # default event notif time
+  sys.fs.db.setColumn(7, "notif_last", 0);
+  sys.fs.db.idEnable("id");
+  
+  # Tasks
+  sys.fs.db.newTable("tasks", 8);
+  sys.fs.db.setColumn(0, "id", 0);
+  sys.fs.db.setColumn(1, "valid", 0); 
+  sys.fs.db.setColumn(2, "name", 1);
+  sys.fs.db.setColumn(3, "descr", 1);
+  sys.fs.db.setColumn(4, "uid", 1);
+  sys.fs.db.setColumn(5, "notif_alarm", 0);
+  sys.fs.db.setColumn(6, "notif_time", 0);
+  sys.fs.db.setColumn(7, "notif_last", 0);
+  sys.fs.db.setColumn(8, "status", 0);
+  sys.fs.db.idEnable("id");
+  
+  # Occurences
+  sys.fs.db.newTable("occs", 15);
+  sys.fs.db.setColumn(0,  "id", 0);
+  sys.fs.db.setColumn(1,  "type", 0); # TASK/EVENT
+  sys.fs.db.setColumn(2,  "parent", 0); 
+  sys.fs.db.setColumn(3,  "start", 0);
+  sys.fs.db.setColumn(4,  "end", 0);
+  sys.fs.db.setColumn(5,  "all_day", 0); 
+  sys.fs.db.setColumn(6,  "valid", 0);        ##
+  sys.fs.db.setColumn(7,  "rep_wkday", 0);    ##
+  sys.fs.db.setColumn(8,  "rep_day", 0);      ##
+  sys.fs.db.setColumn(9,  "rep_mon", 0);     ##
+  sys.fs.db.setColumn(10, "rep_year", 0);    ##
+  sys.fs.db.setColumn(11, "rep_end", 0);
+  sys.fs.db.setColumn(12, "rep_enabled", 0); # if repeat is neabled
+  sys.fs.db.setColumn(13, "notif_time", 0);  # duplicate notif time for each occurence
+  sys.fs.db.setColumn(14, "meta", 0);        # metadata: Task: if completed Event: none
+  
+  sys.fs.db.idEnable("id");
+
+  sys.fs.db.newTable("conf", 2);
+  sys.fs.db.setColumn(0, "name", 1);
+  sys.fs.db.setColumn(1, "val", 1);
+}
+
+function getConf(name, default) {
+  sys.fs.db.selectTable("conf");
+  sys.fs.db.selectRow(0);
+  if (sys.fs.db.selectRowStr("name", name, 0, 0)) {
+    return sys.fs.db.getEntry("val");
+  }
+
+  return default;
+}
+
+function setConf(name, val) {
+  sys.fs.db.selectTable("conf");
+  sys.fs.db.selectRow(0);
+  if (sys.fs.db.selectRowStr("name", name, 0, 0)) {
+    return sys.fs.db.setEntry("val", val);
+  }
+
+  sys.fs.db.newRow();
+  return sys.fs.db.setEntry("name", name);
+  return sys.fs.db.setEntry("val", val);
+
+}
