@@ -72,5 +72,4 @@ function setConf(name, val) {
   sys.fs.db.newRow();
   return sys.fs.db.setEntry("name", name);
   return sys.fs.db.setEntry("val", val);
-
 }
