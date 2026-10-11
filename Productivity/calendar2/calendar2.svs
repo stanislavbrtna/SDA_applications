@@ -39,6 +39,9 @@ function init {
   # main screen
   bToday = sys.gui.addButton(0, 0, 3, 1, "Today", scr);
   
+  bConf = sys.gui.addButton(6, 0, 1, 1, "...", scr);
+  sys.gui.setGhost(bConf, 1);
+
   bMonFwd = sys.gui.addButton(8, 0, 1, 1, "", scr);
   bMonBack = sys.gui.addButton(7, 0, 1, 1, "", scr);
   sys.os.gui.setIcon(bMonFwd, ICON_FORWARD);
@@ -59,7 +62,8 @@ function init {
   tMonth = sys.gui.addText(0, 11, 5, 1, getMonthName(sys.time.getMonth()), scr);
   tYear  = sys.gui.addText(7, 11, 3, 1, sys.time.getYear() + "", scr);
   
-  bAgenda = sys.gui.addButton(0, 12, 3, 1, "Agenda", scr);
+  bAgenda = sys.gui.addButton(0, 12, 3, 1, "Tasks", scr);
+
   bMonNew = sys.gui.addButton(7, 12, 2, 1, "+", scr);
   sys.gui.setTxtAlign(bMonNew, ALIGN_CENTER);
    
@@ -67,7 +71,6 @@ function init {
   mYear = sys.time.getYear();
   mMon  = sys.time.getMonth();
   mDay  = sys.time.getDay();
-  
   
   if (sys.fs.exists("appdata/cal2.db")) {
     sys.fs.db.open("appdata/cal2.db");
@@ -122,6 +125,52 @@ function init {
   monthReload();
   
   wakeup();
+  confInit();
+  if (num(getConf("bDailyTasks", "0"))) {
+    tasksGetValid();
+  }
+}
+
+function confInit {
+  sConf = sys.gui.addScreen();
+  scrSpacer(sConf);
+  sys.gui.setYscroll(sConf, -4);
+  sys.gui.addText(0, 0, 4, 1, "Options", sConf);
+  bDailyTasks = sys.gui.addCheckBox(0, 1, 8, 1, "Show daily tasks", sConf);
+
+  bCnfReload = sys.gui.addButton(0, 3, 5, 1, "Reload alarms", sConf);
+
+  bConfClose = sys.gui.addButton(0, 11, 2, 1, "", sConf);
+  sys.os.gui.setIcon(bConfClose, ICON_BACK);
+  sys.gui.setXOffset(bConfClose, 16);
+}
+
+function confOpen {
+  sys.gui.setValue(bDailyTasks, num(getConf("bDailyTasks", "0")));
+  sys.os.gui.setMainScr(sConf);
+}
+
+function confUpdate {
+  if (sys.gui.getEventC(bDailyTasks) == EV_RELEASED) {
+    setConf("bDailyTasks", "" + sys.gui.getValue(bDailyTasks));
+
+    if(sys.gui.getValue(bDailyTasks)) {
+      # add alarm
+      local al = sys.alarm.setRep(9, 0, 0, 0, 0, 0);
+      sys.alarm.setNotify(al, 0);
+      # store in conf
+      setConf("dailyAlarm", "" + al);
+      print("new repeating tasks alarm: " + al);
+
+      tasksGetValid();
+    } else {
+      sys.alarm.destroy(num(getConf("dailyAlarm", "0")));
+    }
+  }
+  
+  if (sys.gui.getEventC(bConfClose) == EV_RELEASED) {
+    sys.os.gui.setMainScr(scr);
+  }
 }
 
 import "~tasks-scr.svs"
@@ -849,8 +898,8 @@ function saveEvent {
       if (not notifFirst) {
         # verify alarm validity
         if (
-          sys.alarm.getValid(sys.fs.db.getEntryNum("notif_alarm", 0)) and
-          sys.alarm.getParam(sys.fs.db.getEntryNum("notif_alarm", 0)) != currentEvent
+          sys.alarm.getValid(sys.fs.db.getEntry("notif_alarm")) and
+          sys.alarm.getParam(sys.fs.db.getEntry("notif_alarm")) != currentEvent
         ) {
           sys.os.error("Alarm id do not match the event id.");
           return;
@@ -1098,20 +1147,20 @@ function solveRepeats {
   
   # To handle multiday repeats
   for(local timeSt = timeStart; timeSt <= timeEnd; timeSt += 24*60*60;) {
-    #print("in loop");
+    #print("in loop " + timeSt);
     if (rDay) {
-      return 1;
+      return dayStart;
     }
     
     if ((sys.time.getTsWkDay(dayStart) == sys.time.getTsWkDay(timeSt) and rWkDay)) {
-      return 1;
+      return dayStart;
     }
     
     if (
       sys.time.getTsDay(dayStart) == sys.time.getTsDay(timeSt) and
       rMon
     ) {
-      return 1;
+      return dayStart;
     }
     
     if (
@@ -1119,7 +1168,7 @@ function solveRepeats {
       sys.time.getTsMonth(dayStart) == sys.time.getTsMonth(timeSt) and
       rYear
     ) {
-      return 1;
+      return dayStart;
     }
   }
   
@@ -1152,6 +1201,12 @@ function dayReload {
   sys.fs.db.selectTable("occs");
   if (sys.fs.db.selectRow(0)) {
     while(1) {
+
+      if(sys.fs.db.getEntry("type") == 2) {
+        if (not sys.fs.db.nextRow()) break;
+        continue;
+      }
+
       local timeStart = sys.fs.db.getEntryNum("start", 0);
       local timeEnd = sys.fs.db.getEntryNum("end", 0);
       local allDay = sys.fs.db.getEntryNum("all_day", 0);
@@ -1170,10 +1225,8 @@ function dayReload {
         rMon = sys.fs.db.getEntryNum("rep_mon", 0);
         rYear = sys.fs.db.getEntryNum("rep_year", 0);
         print("End: " + rEnd + " Wk: " + rWkDay + " rDay: " + rDay + " rMon: " + rMon + " rYear: " + rYear);
-        repeats = 1;
+        repeats = solveRepeats();
       }
-      
-      print("repeats: " + repeats + " solver: " + solveRepeats());
             
       if (
         sys.fs.db.getEntryNum("valid", 0) == 1 and
@@ -1182,12 +1235,13 @@ function dayReload {
           (timeStart >= dayStart and timeStart < dayEnd) or
           (timeStart <= dayStart and timeEnd > dayEnd) or
           (timeEnd >= dayStart and timeEnd < dayEnd) or
-          (repeats and solveRepeats())
+          repeats
         )
       ) {
-      
+
         # Occurence Id
-        occIds[i] = sys.fs.db.getEntry("id");
+        local occId = sys.fs.db.getEntry("id");
+        occIds[i] = occId;
       
         local evId = sys.fs.db.getEntry("parent");
         
@@ -1209,8 +1263,9 @@ function dayReload {
             "alarm.sic", 
             sDayList
           );
-        } else {
+        } else if(sys.fs.db.getEntry("type") == 1) {
           # Type: Task
+          eventDates[i] = repeats; # store repeat counter in eventDates
           sys.fs.db.selectTable("tasks");
           sys.fs.db.selectRowId(evId);
           
@@ -1232,7 +1287,7 @@ function dayReload {
           
           sys.fs.db.selectTable("occs");
           sys.fs.db.selectRowId(occIds[i]);
-          if(sys.fs.db.getEntry("meta")) {
+          if(taskGet(occIds[i], repeats)) {
             sys.gui.setIcon(eventNotifs[i], "check.sic");
           } else {
             sys.gui.setIcon(eventNotifs[i], "check_e.sic");
@@ -1241,7 +1296,7 @@ function dayReload {
         }
         
         sys.fs.db.selectTable("occs");
-        sys.fs.db.selectRowId(occIds[i]);
+        sys.fs.db.selectRowId(occId);
         
         if (sys.fs.db.getEntryNum("notif_time", 0) == 0 and eventTypes[i] != 2) {
           sys.gui.setVisible(eventNotifs[i], 0);
@@ -1455,7 +1510,7 @@ function updateDay {
     if(eventTypes[i] == 2) {
       if(sys.gui.getEventC(eventNotifs[i]) == EV_RELEASED) {
         # Check
-        if(taskFlip(occIds[i])) {
+        if(taskFlip(occIds[i], eventDates[i])) {
           sys.gui.setIcon(eventNotifs[i], "check.sic");
         } else {
           sys.gui.setIcon(eventNotifs[i], "check_e.sic");
@@ -1464,7 +1519,7 @@ function updateDay {
     
       if(sys.gui.getEventC(events[i]) == EV_RELEASED) {
         # edit  
-        loadTaEdit(occIds[i]);
+        loadTaEdit(occIds[i], eventDates[i]);
       }
     } else {
       if(sys.gui.getEventC(events[i]) == EV_RELEASED) {
@@ -1518,6 +1573,12 @@ function monthReload {
   
   if (sys.fs.db.selectRow(0)) {
     while(1) {
+
+      if (sys.fs.db.getEntry("type") == 2) {
+        if(not sys.fs.db.nextRow()) break;
+        continue;
+      }
+
       local timeStart = sys.fs.db.getEntryNum("start", 0);
       local timeEnd = sys.fs.db.getEntryNum("end", 0);
       local allDay = sys.fs.db.getEntryNum("all_day", 0);
@@ -1530,7 +1591,7 @@ function monthReload {
       local rYear;
       local rEnd;
       
-      if (sys.fs.db.setEntryNum("rep_enabled", 0)) {
+      if (sys.fs.db.getEntryNum("rep_enabled", 0)) {
         rEnd = sys.fs.db.getEntryNum("rep_end", 0);
         rWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
         rDay = sys.fs.db.getEntryNum("rep_day", 0); 
@@ -1572,6 +1633,10 @@ function updateMonth {
     mMon  = sys.time.getMonth();
     mDay  = sys.time.getDay();
     monthReload();
+  }
+
+  if (sys.gui.getEventC(bConf) == EV_RELEASED) {
+    confOpen();
   }
   
   if (sys.gui.getEventC(bMonFwd) == EV_RELEASED) {
@@ -1667,11 +1732,24 @@ function getNextRepeat {
 function wakeup {
   if (sys.alarm.getFlag()) {
     local param = sys.alarm.getPar();
-    sys.hw.wakeLcd();
+
     sys.alarm.clrFlag();
 
     # set the lastNotif thingy ()
     sys.fs.db.selectTable("occs");
+
+    if (param == 0) {
+      # tasks alarm
+      tasksGetValid();
+
+      if (sys.hw.getLcdState() == 0) {
+        sys.os.suspend();
+      }
+
+      return;
+    }
+
+    sys.hw.wakeLcd();
     
     if(not sys.fs.db.selectRowId(param)) {
       sys.os.error("Borked db!");
@@ -1781,6 +1859,7 @@ function update {
   if (sys.os.gui.getMainScr() == sView)  viewUpdate();
   if (sys.os.gui.getMainScr() == sEdit)  editUpdate();
   if (sys.os.gui.getMainScr() == sTEdit) taskUpdate();
+  if (sys.os.gui.getMainScr() == sConf)  confUpdate();
   updateOv();
   ttoUpdate();
   sys.os.gui.btnCtrl(sys.os.gui.getMainScr(), 0);

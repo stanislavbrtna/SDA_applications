@@ -33,6 +33,8 @@ function taskEdInit {
   sys.gui.setVisible(bTECancel, 0);
   sys.gui.setTxtAlign(bTECancel, ALIGN_CENTER);
   
+  oTto = 0;
+  menuDelete = 0;
 }
 
 function taskUpdate {
@@ -261,7 +263,7 @@ function taHandleDone() {
   }
 }
 
-function loadTaEdit {
+function loadTaEdit(occ, startTime) {
   
   sys.fs.db.selectTable("occs");
   if(not sys.fs.db.selectRowId(arg0)) {
@@ -270,7 +272,12 @@ function loadTaEdit {
   
   sys.os.gui.setMainScr(sTEdit);
   
-  taStDone = sys.fs.db.getEntry("meta");
+  taStDone = taskGet(occ, startTime);
+
+  sys.fs.db.selectTable("occs");
+  sys.fs.db.selectRowId(arg0);
+
+  taStOccTim = startTime;
   
   taHandleDone();
   
@@ -329,8 +336,10 @@ function newTask {
   sys.os.gui.setMainScr(sTEdit);
   
   taStDone = 0;
+  taStOccTim = 0;
   
   EdStAllDay = 1;
+  sys.gui.setVisible(bTEvTime1, not EdStAllDay);
   
   eventStart = sys.time.setTs(mYear, mMon, mDay, 9, 0, 0);
   eventEnd = sys.time.setTs(mYear, mMon, mDay, 9, 0, 0);
@@ -414,7 +423,9 @@ function saveTask {
     sys.fs.db.setEntryNum("notif_time", evNotifTime);
   }
   
-  sys.fs.db.setEntry("meta", taStDone);
+  if(taStOccTim == 0) {
+    sys.fs.db.setEntry("meta", taStDone);
+  }
   
   print("notif time:" + evNotifTime);
   
@@ -536,33 +547,91 @@ function saveTask {
     sys.alarm.destroy(sys.fs.db.getEntryNum("notif_alarm", 0));
     print("alarm removed");
   }
-  
+
+  if(taStOccTim) {
+    taskSet(currentOcc, taStDone, taStOccTim);
+  }
+
   sys.fs.db.sync();
   
   print("Task save ok. occ: " + currentOcc + " task: " + currentTask);
 }
 
-function taskFlip(occId) {
+function findTaskShd(occId, startTime) {
   sys.fs.db.selectTable("occs");
+  if (sys.fs.db.selectRow(0)) {
+    while(1) {
+      if(not sys.fs.db.selectRowNum("type", 2)) {
+        break;
+      }
+      #print("findTaskShd: found candidate: " + sys.fs.db.getEntry("parent") + " time: " + startTime);
+      if(sys.fs.db.getEntry("parent") == occId and sys.fs.db.getEntry("start") == startTime) {
+        #print("found shadow occurence for occ: " + occId + " id: " + sys.fs.db.getEntry("id"));
+        return sys.fs.db.getEntry("id");
+      }
+
+      if(not sys.fs.db.nextRow()) {
+        break;
+      }
+    }
+  }
+  #print("findTaskShd: no shadow!");
   sys.fs.db.selectRowId(occId);
-  local i = sys.fs.db.getEntry("meta");
-  
-  i = not i;
-  
-  sys.fs.db.setEntry("meta", i);
-  return i;
+  return occId;
 }
 
-function taskSet(occId, state) {
+function taskFlip(occId, startTime) {
+  local i = taskGet(occId, startTime);
+  return taskSet(occId, not i, startTime);;
+}
+
+function taskSet(occId, state, startTime) {
   sys.fs.db.selectTable("occs");
   sys.fs.db.selectRowId(occId);
+
+  if (sys.fs.db.getEntry("rep_enabled") == 1) {
+    local shadow = findTaskShd(occId, startTime);
+
+    if(shadow == occId) {
+      print("creating new shadow occ");
+      sys.fs.db.newRow();
+      sys.fs.db.setEntry("parent", occId);
+      sys.fs.db.setEntry("start",  startTime);
+      sys.fs.db.setEntry("type", 2);
+      sys.fs.db.setEntry("valid", 1);
+      sys.fs.db.setEntry("meta", state);
+      return state;
+    }
+
+    sys.fs.db.selectRowId(shadow);
+  }
+
   sys.fs.db.setEntry("meta", state);
-  return i;
+  return state;
 }
 
-function ttoLoad {
+function taskGet(occId, startTime) {
+  sys.fs.db.selectTable("occs");
+  sys.fs.db.selectRowId(occId);
+
+  if (sys.fs.db.getEntry("rep_enabled") == 1) {
+    local shadow = findTaskShd(occId, startTime);
+
+    if(shadow == occId) {
+      return 0;
+    }
+
+    sys.fs.db.selectRowId(shadow);
+  }
+
+  return sys.fs.db.getEntry("meta");
+}
+
+function ttoLoad(susp) {
   sTto = sys.gui.addScreen();
   scrSpacer(sTto);
+
+  ttoSusp = susp;
 
   sys.gui.addImage(0, 0, 1, 1, "check.sic", sTto);
   sys.gui.addText(1, 0, 10, 1, "Tasks for today", sTto);
@@ -669,7 +738,17 @@ function ttoLoad {
     }
   }
 
+  if(i > 7)
+    sys.gui.setScrollLim(sItto, 0, 0, 0, (i - 6)*32);
   iTtoLen = i;
+
+  if(i > 0) {
+    set_icon();
+  }
+
+  if(not ttoSusp) {
+    sys.gui.setVisible(bTtoOpen, 0);
+  }
 }
 
 function ttoUpdate {
@@ -686,7 +765,24 @@ function ttoUpdate {
 
   if (sys.gui.getEventC(bTtoClose) == EV_RELEASED) {
     sys.o.destroy();
-    sys.os.suspend();
+
+    if(ttoSusp) {
+      sys.os.suspend();
+    }
+    
+    local valid = 0;
+
+    for(local i = 0; i < iTtoLen; i++;) {
+      if(taskGet(sys.gui.getValue(bTtoTasks[i])) == 0) {
+        valid = 1;
+        break;
+      }
+    }
+
+    if(valid == 0) {
+      clr_icon();
+    }
+
     return;
   }
 
@@ -694,7 +790,6 @@ function ttoUpdate {
     #print("bTtoTasks[i]=" + bTtoTasks[i] + " i: " + i);
     if (sys.gui.getEventC(bTtoTasks[i]) == EV_RELEASED) {
       local f = taskFlip(sys.gui.getValue(bTtoTasks[i]));
-      
       if(f) {
         sys.gui.setIcon(bTtoTasks[i], "check.sic");
       } else {
@@ -702,4 +797,91 @@ function ttoUpdate {
       }
     }
   }
+}
+
+
+function set_icon {
+  if(icon_id != 0) {
+    return;
+  }
+  
+  sys.fs.chDir(1);
+  icon_id = sys.os.gui.setNotif("Productivity/calendar2/img/check_32_ico.sic", &ico_cb);
+  sys.fs.chDir(0);
+}
+
+function ico_cb {
+  sys.os.arise();
+  ttoLoad(1);
+}
+
+
+function clr_icon { 
+  if(icon_id != 0) {
+    sys.os.gui.freeNotif(icon_id);
+  }
+  icon_id = 0;
+}
+
+function tasksGetValid {
+  sys.fs.db.selectTable("occs");
+
+  local i = 0;
+
+  local dayStart = 0;
+  local dayEnd = sys.time.setTs(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay(), 23, 59, 59);
+
+  if (sys.fs.db.selectRow(0)) {
+    while(1) {
+      local timeStart = sys.fs.db.getEntryNum("start", 0);
+      local timeEnd = sys.fs.db.getEntryNum("end", 0);
+      local allDay = sys.fs.db.getEntryNum("all_day", 0);
+      
+      local repeats = 0;
+      local rWkDay;
+      local rDay;
+      local rMon;
+      local rYear;
+      local rEnd;
+      
+      if (sys.fs.db.getEntryNum("rep_enabled", 0)) {
+        rEnd = sys.fs.db.getEntryNum("rep_end", 0);
+        rWkDay = sys.fs.db.getEntryNum("rep_wkday", 0);
+        rDay = sys.fs.db.getEntryNum("rep_day", 0); 
+        rMon = sys.fs.db.getEntryNum("rep_mon", 0);
+        rYear = sys.fs.db.getEntryNum("rep_year", 0);
+        repeats = 1;
+      }
+
+      if (
+        sys.fs.db.getEntryNum("valid", 0) == 1 and
+        (
+          (timeStart >= dayStart and timeEnd < dayEnd) or 
+          (timeStart >= dayStart and timeStart < dayEnd) or
+          (timeStart <= dayStart and timeEnd > dayEnd) or
+          (timeEnd >= dayStart and timeEnd < dayEnd) or
+          (repeats and solveRepeats())
+        )
+      ) {
+      
+        # Occurence Id
+        local occId = sys.fs.db.getEntry("id");
+        local evId = sys.fs.db.getEntry("parent");
+
+        if(sys.fs.db.getEntry("type") == 1 and sys.fs.db.getEntry("meta") == 0) {
+          # unfinished task found ->
+          set_icon();
+          return 1;
+        }
+        
+      }
+      
+      if(not sys.fs.db.nextRow()) {
+        break;
+      }
+    }
+  }
+
+  clr_icon();
+  return 0;
 }
