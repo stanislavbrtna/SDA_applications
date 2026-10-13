@@ -733,6 +733,10 @@ function deleteEvent {
   local deleted = 0;
   
   while(sys.fs.db.selectRowNum("parent", currentEvent)) {
+    if(sys.fs.db.getEntry("type") != 0) {
+      if(not sys.fs.db.nextRow()) break;
+      continue;
+    }
     sys.fs.db.setEntry("valid", 0);
     if(not sys.fs.db.nextRow()) break;
     deleted++;
@@ -1142,37 +1146,30 @@ function solveRepeats {
   {} else {
     return 0;
   }
-  
-  #print("wkday:" + sys.time.getTsWkDay(dayStart) + " " + sys.time.getTsWkDay(timeStart) + " Repeat: " + rWkDay);
-  
-  # To handle multiday repeats
-  for(local timeSt = timeStart; timeSt <= timeEnd; timeSt += 24*60*60;) {
-    #print("in loop " + timeSt);
-    if (rDay) {
-      return dayStart;
-    }
-    
-    if ((sys.time.getTsWkDay(dayStart) == sys.time.getTsWkDay(timeSt) and rWkDay)) {
-      return dayStart;
-    }
-    
-    if (
-      sys.time.getTsDay(dayStart) == sys.time.getTsDay(timeSt) and
-      rMon
-    ) {
-      return dayStart;
-    }
-    
-    if (
-      sys.time.getTsDay(dayStart) == sys.time.getTsDay(timeSt) and
-      sys.time.getTsMonth(dayStart) == sys.time.getTsMonth(timeSt) and
-      rYear
-    ) {
-      return dayStart;
-    }
+
+  if (rDay) {
+    return dayStart;
   }
   
-  #print("no repeat found");
+  if ((sys.time.getTsWkDay(dayStart) == sys.time.getTsWkDay(timeStart) and rWkDay)) {
+    return dayStart;
+  }
+  
+  if (
+    sys.time.getTsDay(dayStart) == sys.time.getTsDay(timeStart) and
+    rMon
+  ) {
+    return dayStart;
+  }
+  
+  if (
+    sys.time.getTsDay(dayStart) == sys.time.getTsDay(timeStart) and
+    sys.time.getTsMonth(dayStart) == sys.time.getTsMonth(timeStart) and
+    rYear
+  ) {
+    return dayStart;
+  }
+ 
   return 0;
 }
 
