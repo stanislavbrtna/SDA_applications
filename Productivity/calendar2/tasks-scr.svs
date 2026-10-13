@@ -140,12 +140,12 @@ function taskUpdate {
       ddm_add_btn(notifTimesN[4]);
     }
     
-    if (i == 5) {
+    if (i == 4) {
       currentOcc = -1;
       ddm_exit();
     }
     
-    if (i == 6) {
+    if (i == 5) {
       ddm_exit();
       menuDelete = ddm_create_sub(i);
       ddm_add_btn("This Occurence");
@@ -211,7 +211,7 @@ function taskUpdate {
     if (delOcc) {
       deleteOcc();
     } else {
-      deleteEvent();
+      deleteTask();
     }
     
     dayReload();
@@ -261,6 +261,42 @@ function taHandleDone() {
   } else {
     sys.gui.setIcon(bTaCheck, "check_e.sic");
   }
+}
+
+function deleteTask {
+  sys.fs.db.selectTable("tasks");
+  if (currentTask == (-1)) {
+    sys.os.error("Invalid task id (-1).");
+    return;
+  } else {
+    if (not sys.fs.db.selectRowId(currentTask)) {
+      sys.os.error("DB: Invalid task.");
+      return;
+    }
+  }
+  
+  sys.fs.db.setEntryNum("valid", 0);
+  sys.fs.db.sync();
+  
+  sys.fs.db.selectTable("occs");
+  sys.fs.db.selectRow(0);
+  
+  local deleted = 0;
+  
+  while(sys.fs.db.selectRowNum("parent", currentTask)) {
+    if(sys.fs.db.getEntry("type") != 1) {
+      if(not sys.fs.db.nextRow()) break;
+      continue;
+    }
+
+    sys.fs.db.setEntry("valid", 0);
+    if(not sys.fs.db.nextRow()) break;
+    deleted++;
+  }
+  
+  print(deleted + " occs deleted.");
+  
+  # TODO: Remove alarms
 }
 
 function loadTaEdit(occ, startTime) {
@@ -624,7 +660,60 @@ function taskGet(occId, startTime) {
     sys.fs.db.selectRowId(shadow);
   }
 
-  return sys.fs.db.getEntry("meta");
+  local res = sys.fs.db.getEntryNum("meta", 0);
+
+  sys.fs.db.selectRowId(occId);
+
+  return res;
+}
+
+function ttoListHlp {
+   if (
+    sys.fs.db.getEntryNum("valid", 0) == 1 and
+    (
+      (timeStart >= dayStart and timeEnd < dayEnd) or 
+      (timeStart >= dayStart and timeStart < dayEnd) or
+      (timeStart <= dayStart and timeEnd > dayEnd) or
+      (timeEnd >= dayStart and timeEnd < dayEnd) or
+      (repeats and solveRepeats())
+    )
+  ) {
+    # Occurence Id
+    local occId = sys.fs.db.getEntry("id");
+    local evId = sys.fs.db.getEntry("parent");
+    print("load occ type: " + sys.fs.db.getEntry("type"));
+    print("Found task: " + occId + " timeStart " + timeStart + " value: " + taskGet(occId, dayStart));
+    if(sys.fs.db.getEntry("type") == 1 and taskGet(occId, dayStart) == 0) {
+      # Type: Task
+      sys.fs.db.selectTable("tasks");
+      sys.fs.db.selectRowId(evId);
+      bTtoStDates[i] = dayStart;
+      bTtoTasks[i] = sys.gui.addButton(
+        0, 0 + i, 1, 1,
+        "", 
+        sItto
+      );
+
+      sys.gui.setValue(bTtoTasks[i], occId);
+
+      sys.gui.addText(
+        1, 0 + i, 7, 1,
+        sys.fs.db.getEntry("name"), 
+        sItto
+      );      
+      
+      sys.fs.db.selectTable("occs");
+      sys.fs.db.selectRowId(occId);
+
+      if(sys.fs.db.getEntry("meta")) {
+        sys.gui.setIcon(bTtoTasks[i], "check.sic");
+      } else {
+        sys.gui.setIcon(bTtoTasks[i], "check_e.sic");
+      }
+      sys.gui.setXOffset(bTtoTasks[i], 0);
+      i++;
+    }
+  }
 }
 
 function ttoLoad(susp) {
@@ -648,6 +737,7 @@ function ttoLoad(susp) {
   scrSpacer(sItto);
 
   array bTtoTasks[25];
+  array bTtoStDates[25];
 
   sys.fs.db.selectTable("occs");
 
@@ -655,11 +745,18 @@ function ttoLoad(susp) {
 
   iTtoLen = 0;
 
-  local dayStart = 0;
-  local dayEnd = sys.time.setTs(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay(), 23, 59, 59);
+  
+
+  local daySecs = 24*60*60;
+  local taskStart = sys.time.setTs(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay(), 0, 0, 0) - 35*24*60*60;
 
   if (sys.fs.db.selectRow(0)) {
     while(1) {
+      if(sys.fs.db.getEntry("type") == 2 or sys.fs.db.getEntry("type") == 0) {
+        if (not sys.fs.db.nextRow()) break;
+        continue;
+      }
+
       local timeStart = sys.fs.db.getEntryNum("start", 0);
       local timeEnd = sys.fs.db.getEntryNum("end", 0);
       local allDay = sys.fs.db.getEntryNum("all_day", 0);
@@ -681,55 +778,17 @@ function ttoLoad(susp) {
         repeats = 1;
       }
       
-      print("repeats: " + repeats + " solver: " + solveRepeats());
-
-      if (
-        sys.fs.db.getEntryNum("valid", 0) == 1 and
-        (
-          (timeStart >= dayStart and timeEnd < dayEnd) or 
-          (timeStart >= dayStart and timeStart < dayEnd) or
-          (timeStart <= dayStart and timeEnd > dayEnd) or
-          (timeEnd >= dayStart and timeEnd < dayEnd) or
-          (repeats and solveRepeats())
-        )
-      ) {
-      
-        # Occurence Id
-        local occId = sys.fs.db.getEntry("id");
-        local evId = sys.fs.db.getEntry("parent");
-        print("load occ type: " + sys.fs.db.getEntry("type"));
-
-        if(sys.fs.db.getEntry("type") == 1 and sys.fs.db.getEntry("meta") == 0) {
-          # Type: Task
-          sys.fs.db.selectTable("tasks");
-          sys.fs.db.selectRowId(evId);
-
-          bTtoTasks[i] = sys.gui.addButton(
-            0, 0 + i, 1, 1,
-            "", 
-            sItto
-          );
-
-          sys.gui.setValue(bTtoTasks[i], occId);
-
-          sys.gui.addText(
-            1, 0 + i, 7, 1,
-            sys.fs.db.getEntry("name"), 
-            sItto
-          );      
-          
-          sys.fs.db.selectTable("occs");
-          sys.fs.db.selectRowId(occId);
-
-          if(sys.fs.db.getEntry("meta")) {
-            sys.gui.setIcon(bTtoTasks[i], "check.sic");
-          } else {
-            sys.gui.setIcon(bTtoTasks[i], "check_e.sic");
-          }
-          sys.gui.setXOffset(bTtoTasks[i], 0);
-          i++;
+      #print("repeats: " + repeats + " solver: " + solveRepeats());
+      if(repeats) {
+        for(local cday = 1; cday <= 35; cday++;) {
+          local dayStart = taskStart + daySecs*cday;
+          local dayEnd = taskStart + daySecs*(cday + 1);
+          ttoListHlp();
         }
-        
+      } else {
+        local dayStart = 0;
+        local dayEnd = sys.time.setTs(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay(), 23, 59, 59);
+        ttoListHlp();
       }
       
       if(not sys.fs.db.nextRow()) {
@@ -773,7 +832,7 @@ function ttoUpdate {
     local valid = 0;
 
     for(local i = 0; i < iTtoLen; i++;) {
-      if(taskGet(sys.gui.getValue(bTtoTasks[i])) == 0) {
+      if(taskGet(sys.gui.getValue(bTtoTasks[i]), bTtoStDates[i]) == 0) {
         valid = 1;
         break;
       }
@@ -789,7 +848,7 @@ function ttoUpdate {
   for(local i = 0; i < iTtoLen; i++;) {
     #print("bTtoTasks[i]=" + bTtoTasks[i] + " i: " + i);
     if (sys.gui.getEventC(bTtoTasks[i]) == EV_RELEASED) {
-      local f = taskFlip(sys.gui.getValue(bTtoTasks[i]));
+      local f = taskFlip(sys.gui.getValue(bTtoTasks[i]), bTtoStDates[i]);
       if(f) {
         sys.gui.setIcon(bTtoTasks[i], "check.sic");
       } else {
@@ -833,6 +892,12 @@ function tasksGetValid {
 
   if (sys.fs.db.selectRow(0)) {
     while(1) {
+
+      if(sys.fs.db.getEntry("type") == 2) {
+        if (not sys.fs.db.nextRow()) break;
+        continue;
+      }
+
       local timeStart = sys.fs.db.getEntryNum("start", 0);
       local timeEnd = sys.fs.db.getEntryNum("end", 0);
       local allDay = sys.fs.db.getEntryNum("all_day", 0);
@@ -868,7 +933,7 @@ function tasksGetValid {
         local occId = sys.fs.db.getEntry("id");
         local evId = sys.fs.db.getEntry("parent");
 
-        if(sys.fs.db.getEntry("type") == 1 and sys.fs.db.getEntry("meta") == 0) {
+        if(sys.fs.db.getEntry("type") == 1 and taskGet(occId, timeStart) == 0) {
           # unfinished task found ->
           set_icon();
           return 1;

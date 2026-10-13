@@ -56,7 +56,7 @@ function getConf(name, default) {
   sys.fs.db.selectTable("conf");
   sys.fs.db.selectRow(0);
   if (sys.fs.db.selectRowStr("name", name, 0, 0)) {
-    return sys.fs.db.getEntry("val");
+    return sys.fs.db.getEntryStr("val", default);
   }
 
   return default;
