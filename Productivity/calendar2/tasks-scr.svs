@@ -723,8 +723,9 @@ function ttoLoad(susp) {
   ttoSusp = susp;
 
   sys.gui.addImage(0, 0, 1, 1, "check.sic", sTto);
-  sys.gui.addText(1, 0, 10, 1, "Tasks for today", sTto);
+  sys.gui.addText(1, 0, 6, 1, "Tasks for today", sTto);
 
+  bTtoNew = sys.gui.addButton(7, 0, 1, 1, "+", sTto);
 
   bTtoOpen = sys.gui.addButton(0, 8, 5, 1, "Open Calendar", sTto);
   bTtoClose = sys.gui.addButton(5, 8, 3, 1, "Close", sTto);
@@ -744,8 +745,6 @@ function ttoLoad(susp) {
   local i = 0;
 
   iTtoLen = 0;
-
-  
 
   local daySecs = 24*60*60;
   local taskStart = sys.time.setTs(sys.time.getYear(), sys.time.getMonth(), sys.time.getDay(), 0, 0, 0) - 35*24*60*60;
@@ -819,6 +818,16 @@ function ttoUpdate {
   if (sys.gui.getEventC(bTtoOpen) == EV_RELEASED) {
     sys.o.destroy();
     sys.os.gui.setMainScr(scr);
+    return;
+  }
+
+  if (sys.gui.getEventC(bTtoNew) == EV_RELEASED) {
+    # new task will be today
+    mYear = sys.time.getYear();
+    mMon  = sys.time.getMonth();
+    mDay  = sys.time.getDay();
+    sys.o.destroy();
+    newTask();
     return;
   }
 

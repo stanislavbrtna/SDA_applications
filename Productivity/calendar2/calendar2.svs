@@ -1668,7 +1668,29 @@ function updateMonth {
   }
   
   if (sys.gui.getEventC(bMonNew) == EV_RELEASED) {
-    newEvent();
+    menuDay = ddm_create(bMonNew);
+    ddm_width = 4;
+    ddm_add_btn("Task");
+    ddm_add_btn("Event");
+
+    sys.gui.setIcon(ddm_get_id(2), "task.sic");
+    sys.gui.setYOffset(ddm_get_id(2), 3);
+    sys.gui.setIcon(ddm_get_id(1), "check.sic");
+    sys.gui.setXOffset(ddm_get_id(1), 8);
+  }
+
+  local i = ddm_handle(menuDay);
+  
+  if(i > 0) {
+    if (i == 1) {
+      newTask();
+    }
+    
+    if (i == 2) {
+      newEvent();
+    }
+    
+    ddm_exit();
   }
   
   if (sys.gui.getEventC(bAgenda) == EV_RELEASED) {
