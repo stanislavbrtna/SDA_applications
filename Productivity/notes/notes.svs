@@ -71,12 +71,13 @@ function init {
   
   noteString = "";
   noteArchived = 0;
-  
+  oUnlock = 0;
   textActO = 0;
   
   backBtn = 0;
   
   sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()));
+  sys.cr.cacheEncr(1);
 }
 
 
