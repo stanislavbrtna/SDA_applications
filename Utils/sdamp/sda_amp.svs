@@ -48,8 +48,10 @@ function init {
   
   sys.gui.setXOffset(sys.gui.addImage(1, 0, 10, 3, "logo.sic", scr), 8);
   
-  tName = sys.gui.addText(1, 2, 8, 1, "", scr);
-  sys.gui.setSelect(tName, 1);
+  sName = sys.gui.addScreen(1, 2, 8, 1, scr);
+
+  tName = sys.gui.addText(0, 0, 17, 1, "", sName);
+  #sys.gui.setSelect(tName, 1);
   
   tBitRate = sys.gui.addText(1, 3, 4, 1, "", scr);
   tSmplRate = sys.gui.addText(6, 3, 3, 1, "", scr);
@@ -904,6 +906,16 @@ function playFile { # path, duration
   sys.gui.setParam(slider, duration);
   sys.gui.setValue(slider, 0);
   sys.gui.setStr(tName, get_fname(arg0));
+
+  local slim = sys.gui.getTxtWidth(tName, 0) - 9*28;
+
+  if (slim < 0) {
+    slim = 0;
+  }
+
+  sys.gui.setXscroll(sName, 0);
+  sys.gui.setScrollLim(sName, 0, slim, 0, 0);
+
   sys.gui.setStr(tDur, "0:00/" + getMin(duration));
   sys.gui.setStr(tSmplRate, float(sys.pcm.getSmplRate(arg0))/1000.0  + "kHz");
   sys.gui.setVisible(tSmplRate, 1);
@@ -1511,4 +1523,38 @@ function update {
 
 function exit {
   sys.pcm.stop(mediaId);
+}
+
+
+function suspend {
+  set_icon();
+}
+
+function wakeup {
+  clr_icon();
+}
+
+function set_icon {
+  if(icon_id != 0 or playFlg == 0) {
+    return;
+  }
+  
+  sys.fs.chDir(1);
+  icon_id = sys.os.gui.setNotif("Utils/sdamp/icons/tray.sic", &ico_cb);
+  sys.fs.chDir(0);
+}
+
+function ico_cb {
+  #TODO: perhaps
+  sys.os.arise();
+  wakeup();
+  sys.os.gui.setMainScr(scr);
+}
+
+
+function clr_icon { 
+  if(icon_id != 0) {
+    sys.os.gui.freeNotif(icon_id);
+  }
+  icon_id = 0;
 }
