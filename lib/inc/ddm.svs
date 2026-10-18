@@ -11,12 +11,12 @@ function ddm_init {
 }
 
  # creates new dropdown
-function ddm_create #* id of the calling button, return: id*# {
+function ddm_create(btn_id) #* return: id*# {
   array ddm_options[10];
   ddm_btn_cnt = 0;
-  ddm_width   = sys.gui.getX2(arg0);# - sys.gui.getX1(arg0);
-  ddm_x1 = sys.gui.getX1(arg0) * sys.gui.getXcell(sys.os.gui.getMainScr()) + 12 + sys.gui.getXscroll(sys.os.gui.getMainScr());
-  ddm_y1 = 28 +  (sys.gui.getY1(arg0) + 1) * sys.gui.getYcell(sys.os.gui.getMainScr()) - sys.gui.getYscroll(sys.os.gui.getMainScr());
+  ddm_width   = sys.gui.getX2(btn_id);# - sys.gui.getX1(arg0);
+  ddm_x1 = sys.gui.getX1(btn_id) * sys.gui.getXcell(sys.os.gui.getMainScr()) + 12 + sys.gui.getXscroll(sys.os.gui.getMainScr());
+  ddm_y1 = 28 +  (sys.gui.getY1(btn_id) + 1) * sys.gui.getYcell(sys.os.gui.getMainScr()) - sys.gui.getYscroll(sys.os.gui.getMainScr());
 
   ddm_screen = sys.gui.addScreen();
   ddm_id = sys.o.setScr(ddm_screen);
@@ -41,18 +41,18 @@ function ddm_create_sub #*  return: id*# {
 }
 
 
-function ddm_add_btn #* str name, [optional str] icon, return: id *# {
+function ddm_add_btn(name, icon) #* return: id *# {
   if(not (ddm_btn_cnt < len(ddm_options))) {
     sys.error("DDM: Only " + len(ddm_options) + " buttons are supported!");
     return;
   }
   
   ddm_options[ddm_btn_cnt]
-    = sys.gui.addButton(0, ddm_btn_cnt, ddm_width, 1, arg0, ddm_screen);
+    = sys.gui.addButton(0, ddm_btn_cnt, ddm_width, 1, name, ddm_screen);
   sys.gui.setRounded(ddm_options[ddm_btn_cnt], 0);
   
-  if(typeof(arg1) == TYPE_STR) {
-    sys.gui.setIcon(ddm_options[ddm_btn_cnt], arg1);
+  if(typeof(icon) == TYPE_STR) {
+    sys.gui.setIcon(ddm_options[ddm_btn_cnt], icon);
   }
   ddm_btn_cnt++;
  
@@ -75,18 +75,18 @@ function ddm_add_btn #* str name, [optional str] icon, return: id *# {
   return ddm_btn_cnt;
 }
 
-function ddm_gray #*ddm id, val*# {
-  sys.gui.setGrayout(ddm_options[arg0 - 1], arg1);
+function ddm_gray(id) {
+  sys.gui.setGrayout(ddm_options[id - 1], arg1);
 }
 
-function ddm_get_id #*ddm id*# {
-  return ddm_options[arg0 - 1];
+function ddm_get_id(id) {
+  return ddm_options[id - 1];
 }
 
 
-function ddm_handle #* ddm id *# {
+function ddm_handle(id) {
 
-  if (sys.o.getId() != arg0) {
+  if (sys.o.getId() != id) {
     return -1;
   }
 
