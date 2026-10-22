@@ -8,6 +8,7 @@ function init {
   scr = sys.gui.addScreen();
   sys.os.gui.setMainScr(scr);
   sys.gui.addText(1, 0, 8, 1, "SDA Commander 2.1.3", scr);
+  sys.os.setName("Commander");
   file_scr = sys.gui.addScreen();
   scrollbar = sys.gui.addSliderV(9, 2, 1, 9, 100, 0, scr);
   sys.gui.setSliderSize(scrollbar, 80);

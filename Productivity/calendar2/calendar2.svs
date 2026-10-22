@@ -30,6 +30,7 @@ function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.os.setSingular();
+  sys.os.setName("Calendar");
   sys.os.gui.setMainScr(scr);
   scrSpacer(scr);
   sys.gui.setYscroll(scr, -4);
