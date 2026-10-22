@@ -2,7 +2,7 @@
 function ftime(t) {
   local out = "";
   if(t/3600 > 24) {
-    out += (t/60)/60 + " days ";
+    out += (t/(3600*24)) + " days ";
     out += (t%(3600*24))/3600 + " hours";
   } else {
     out += t/3600 + " hours ";
@@ -23,7 +23,7 @@ function upd_stats(force) {
   
   local duration = 0;
   
-  if(force) {
+  if (force) {
     for(local i = 0; i < 500; i++;) {
       sys.fs.db.selectTable("songs");
       
@@ -50,7 +50,7 @@ function upd_stats(force) {
     }
   }
   
-  
+  print("Total duration: " + duration + "s");
   sys.gui.setStr(tDuration, ftime(duration) + " total");
 }
 

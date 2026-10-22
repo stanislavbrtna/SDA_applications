@@ -748,7 +748,7 @@ function playNext {
   if (checkJack()) {
     return;
   }
-  
+
   sys.pcm.stop(mediaId);
   
   if(not sys.gui.getGhost(bLoop)) {
@@ -1320,7 +1320,7 @@ function updLib {
     }
     
     if(currentSong == 0) {
-      ddm_gray(3, 1);
+      ddm_gray(2, 1);
     }
   }
   
