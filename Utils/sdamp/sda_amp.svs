@@ -745,6 +745,10 @@ function getRndFrFldr {
 }
 
 function playNext {
+  if (checkJack()) {
+    return;
+  }
+  
   sys.pcm.stop(mediaId);
   
   if(not sys.gui.getGhost(bLoop)) {
@@ -1323,10 +1327,6 @@ function updLib {
   i = ddm_handle(mFolder);
   if (i > 0) {
     if (i == 1) {
-      #spinnerInit();
-      #dbCheck();
-      #ldFolders();
-      #sys.os.setRedraw();
       pausePlayback();
       sys.os.gui.setMainScr(scanScr);
     }
@@ -1478,11 +1478,7 @@ function update {
   }
   
   # handle pause on jack remove
-  if(sys.pcm.getDevice() == 1 and oldDevice == 2) {
-    pausePlayback();
-  }
-  
-  oldDevice = sys.pcm.getDevice();
+  checkJack();
   
   # arg2: [num]back_btn_id - when 0, app is suspended upon back button press
   if(sys.hw.getLcdState()) {
@@ -1521,6 +1517,18 @@ function update {
 }
 
 
+function checkJack {
+  local r = 0;
+  if(sys.pcm.getDevice() == 1 and oldDevice == 2) {
+    pausePlayback();
+    r = 1;
+  }
+  
+  oldDevice = sys.pcm.getDevice();
+  return r;
+}
+
+
 function exit {
   sys.pcm.stop(mediaId);
 }
@@ -1535,7 +1543,7 @@ function wakeup {
 }
 
 function set_icon {
-  if(icon_id != 0 or playFlg == 0) {
+  if(icon_id != 0 or playFlg == 0 or pauseFlg == 1) {
     return;
   }
   
