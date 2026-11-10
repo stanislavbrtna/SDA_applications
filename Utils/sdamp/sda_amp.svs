@@ -1556,7 +1556,7 @@ function ico_cb {
   #TODO: perhaps
   sys.os.arise();
   wakeup();
-  sys.os.gui.setMainScr(scr);
+  # Switch to main scr borks search
 }
 
 
