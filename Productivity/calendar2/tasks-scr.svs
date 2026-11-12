@@ -210,6 +210,7 @@ function taskUpdate {
   if(com_handle(c_del)) {
     print("deleting occ " + delOcc);
     if (delOcc) {
+      removeAlarm(currentTask, 1, currentOcc); 
       deleteOcc();
     } else {
       deleteTask();
@@ -275,6 +276,8 @@ function deleteTask {
       return;
     }
   }
+
+  removeAlarm(currentTask, 1, 0);
   
   sys.fs.db.setEntryNum("valid", 0);
   sys.fs.db.sync();
@@ -296,8 +299,6 @@ function deleteTask {
   }
   
   print(deleted + " occs deleted.");
-  
-  # TODO: Remove alarms
 }
 
 function loadTaEdit(occ, startTime) {
@@ -959,3 +960,45 @@ function tasksGetValid {
   clr_icon();
   return 0;
 }
+
+function removeAlarm(id, type, occId) {
+  if (type == 2) {
+    return;
+  }
+
+  local alId = 0;
+  
+  if (type == 0) {
+    sys.fs.db.selectTable("events");
+    sys.fs.db.selectRowId(id);
+  }
+
+  if (type == 1) {
+    sys.fs.db.selectTable("tasks");
+    sys.fs.db.selectRowId(id);
+  }
+
+  if(sys.fs.db.getEntryNum("notif_alarm", 0) == 0) {
+    print("removeAlarm: alarm not found");
+    return;
+  }
+
+  if (
+    occId and
+    sys.alarm.getValid(sys.fs.db.getEntryNum("notif_alarm", 0)) and
+    sys.alarm.getParam(sys.fs.db.getEntryNum("notif_alarm", 0)) != occId
+  ) {
+    print(
+      "Alarm id do not match the entity occurence id." +
+      "\nalarmId: " + sys.fs.db.getEntryNum("notif_alarm", 0) + 
+      "\nparam: " + sys.alarm.getParam(sys.fs.db.getEntryNum("notif_alarm", 0)) +
+      "\nid: " + id
+    );
+    return;
+  }
+
+  # Remove old alarm
+  print("removing alarm id: " + sys.fs.db.getEntry("notif_alarm"));
+  sys.alarm.destroy(sys.fs.db.getEntry("notif_alarm"));
+}
+

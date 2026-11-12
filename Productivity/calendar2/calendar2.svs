@@ -7,7 +7,7 @@
  *   - Repeating event notifications      - DONE
  *   - Agenda screen                      - Dropped
  *   - Event edit text field handling     - TODO
- *   - Remove alarms after deleting event - TODO
+ *   - Remove alarms after deleting event - DONE
  *
  * Tasks TODO:
  * - fix new event...
@@ -548,6 +548,7 @@ function editUpdate {
   if(com_handle(c_del)) {
     print("deleting occ " + delOcc);
     if (delOcc) {
+      removeAlarm(currentEvent, 0, currentOcc); 
       deleteOcc();
     } else {
       deleteEvent();
@@ -735,6 +736,8 @@ function deleteEvent {
   
   sys.fs.db.setEntryNum("valid", 0);
   sys.fs.db.sync();
+
+  removeAlarm(currentEvent, 0, 0);
   
   sys.fs.db.selectTable("occs");
   sys.fs.db.selectRow(0);
@@ -752,8 +755,6 @@ function deleteEvent {
   }
   
   print(deleted + " occs deleted.");
-  
-  # TODO: Remove alarms
 }
 
 
@@ -911,8 +912,8 @@ function saveEvent {
       if (not notifFirst) {
         # verify alarm validity
         if (
-          sys.alarm.getValid(sys.fs.db.getEntry("notif_alarm")) and
-          sys.alarm.getParam(sys.fs.db.getEntry("notif_alarm")) != currentEvent
+          sys.alarm.getValid(sys.fs.db.getEntryNum("notif_alarm", 0)) and
+          sys.alarm.getParam(sys.fs.db.getEntryNum("notif_alarm", 0)) != currentEvent
         ) {
           sys.os.error("Alarm id do not match the event id.");
           return;

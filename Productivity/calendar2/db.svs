@@ -30,7 +30,7 @@ function db_init {
   # Occurences
   sys.fs.db.newTable("occs", 15);
   sys.fs.db.setColumn(0,  "id", 0);
-  sys.fs.db.setColumn(1,  "type", 0); # TASK/EVENT
+  sys.fs.db.setColumn(1,  "type", 0); # 0 TASK, 1 EVENT, 2 Shadow occurence 
   sys.fs.db.setColumn(2,  "parent", 0); 
   sys.fs.db.setColumn(3,  "start", 0);
   sys.fs.db.setColumn(4,  "end", 0);
