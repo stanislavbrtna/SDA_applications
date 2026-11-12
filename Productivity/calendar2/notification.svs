@@ -11,7 +11,7 @@ function notifOverlay {
   
   sys.gui.addImage(0, 0, 1, 1, "alarm.sic", sNotif);
   sys.gui.setTxtSize(
-    sys.gui.addText(1, 0, 10, 1, "Calendar notification", sNotif),
+    sys.gui.addText(1, 0, 10, 1, tr("Calendar notification", "Upomínka z kalendáře"), sNotif),
     FONT_12
   );
   
@@ -19,12 +19,12 @@ function notifOverlay {
   tNDate = sys.gui.addText(0, 2, 10, 1, "17:30 01.01.2025", sNotif);
   tNStartsIn = sys.gui.addText(0, 3, 10, 1, "Starts in 29 minutes", sNotif);
   
-  bNCmpl = sys.gui.addButton(0, 2, 8, 1, "Mark completed", sNotif);
+  bNCmpl = sys.gui.addButton(0, 2, 8, 1, tr("Mark completed", "Označit za dokončený"), sNotif);
   sys.gui.setIcon(bNCmpl, "check_e.sic");
   sys.gui.setXOffset(bNCmpl, 10);
   
-  bNOpen = sys.gui.addButton(0, 4, 4, 1, "Open Event", sNotif);
-  bNClose = sys.gui.addButton(5, 4, 3, 1, "Close", sNotif);
+  bNOpen = sys.gui.addButton(0, 4, 5, 1, tr("Open Event", "Zobrazit Událost"), sNotif);
+  bNClose = sys.gui.addButton(5, 4, 3, 1, tr("Close", "Zavřít"), sNotif);
   
   local ev = arg0;
   notifOcc = arg0;
@@ -36,7 +36,7 @@ function notifOverlay {
   
   if (sys.fs.db.getEntry("type") == 0) {
     sys.fs.db.selectTable("events");
-    sys.gui.setStr(tNStartsIn, "Starts in " + calcDelta(start) + "");
+    sys.gui.setStr(tNStartsIn, tr("Starts in ", "Začíná za ") + calcDelta(start) + "");
     sys.gui.setVisible(bNCmpl, 0);
     sys.fs.db.selectRowId(parent);
     sys.gui.setStr(tNName, sys.fs.db.getEntryStr("name", ""));
@@ -49,11 +49,11 @@ function notifOverlay {
     }
 
     sys.fs.db.selectTable("tasks");
-    sys.gui.setStr(bNOpen, "Open Task");
-    sys.gui.setStr(tNStartsIn, "Date: " + dateFmt(start, 1));
+    sys.gui.setStr(bNOpen, tr("Open Task", "Zobrazit úkol"));
+    sys.gui.setStr(tNStartsIn, tr("Date: ", "Datum: ") + dateFmt(start, 1));
     sys.gui.setVisible(tNDate, 0);
     sys.fs.db.selectRowId(parent);
-    sys.gui.setStr(tNName, "Task: " + sys.fs.db.getEntryStr("name", ""));
+    sys.gui.setStr(tNName, tr("Task: ", "Úkol: ") + sys.fs.db.getEntryStr("name", ""));
   }
   
   selfOvr = sys.o.setScr(sNotif);

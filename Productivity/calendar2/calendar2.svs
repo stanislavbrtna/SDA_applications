@@ -4,8 +4,8 @@
  * Features:
  *   - Repeating events                   - DONE
  *   - Event notifications                - DONE
- *   - Repeating event notifications      - TODO
- *   - Agenda screen                      - TODO
+ *   - Repeating event notifications      - DONE
+ *   - Agenda screen                      - Dropped
  *   - Event edit text field handling     - TODO
  *   - Remove alarms after deleting event - TODO
  *
@@ -26,11 +26,19 @@ import "lib/inc/com.svs"
 import "~utils.svs"
 import "~db.svs"
 
+function tr(en, cs) {
+  if (sys.os.getLang() == SVP_LANG_CZ) {
+    return cs;
+  }
+  return en;
+}
+
+
 function init {
   scr = sys.gui.addScreen();
   sys.gui.setRelInit(1);
   sys.os.setSingular();
-  sys.os.setName("Calendar");
+  sys.os.setName(tr("Calendar", "Kalendář"));
   sys.os.gui.setMainScr(scr);
   scrSpacer(scr);
   sys.gui.setYscroll(scr, -4);
@@ -38,7 +46,7 @@ function init {
   sys.os.gui.setRoot(1, getFolder(sys.os.getAppPath()) + "/img" );
    
   # main screen
-  bToday = sys.gui.addButton(0, 0, 3, 1, "Today", scr);
+  bToday = sys.gui.addButton(0, 0, 3, 1, tr("Today", "Dnes"), scr);
   
   bConf = sys.gui.addButton(6, 0, 1, 1, "...", scr);
   sys.gui.setGhost(bConf, 1);
@@ -63,7 +71,7 @@ function init {
   tMonth = sys.gui.addText(0, 11, 5, 1, getMonthName(sys.time.getMonth()), scr);
   tYear  = sys.gui.addText(7, 11, 3, 1, sys.time.getYear() + "", scr);
   
-  bAgenda = sys.gui.addButton(0, 12, 3, 1, "Tasks", scr);
+  bAgenda = sys.gui.addButton(0, 12, 3, 1, tr("Tasks", "Úkoly"), scr);
 
   bMonNew = sys.gui.addButton(7, 12, 2, 1, "+", scr);
   sys.gui.setTxtAlign(bMonNew, ALIGN_CENTER);
@@ -82,9 +90,9 @@ function init {
   }
   
   array notifTimes = [0, 10*60, 30*60, 60*60, 24*60*60];
-  array notifTimesN = ["None", "10 min", "30 min", "1 hour", "1 day"];
+  array notifTimesN = [tr("None", "Žádná"), "10 min", "30 min", tr("1 hour", "1 hodinu"), tr("1 day", "1 den")];
   
-  array repeatsN = ["Daily", "Weekly", "Monthly", "Yearly"];
+  array repeatsN = [tr("Daily", "Denně"), tr("Weekly", "Týdně"), tr("Monthly", "Měsíčně"), tr("Yearly", "Ročně")];
   
   array events[40];
   array occIds[40];
@@ -136,10 +144,9 @@ function confInit {
   sConf = sys.gui.addScreen();
   scrSpacer(sConf);
   sys.gui.setYscroll(sConf, -4);
-  sys.gui.addText(0, 0, 4, 1, "Options", sConf);
-  bDailyTasks = sys.gui.addCheckBox(0, 1, 8, 1, "Show daily tasks", sConf);
-
-  bCnfReload = sys.gui.addButton(0, 3, 5, 1, "Reload alarms", sConf);
+  sys.gui.addText(0, 0, 4, 1, tr("Options", "Nastavení"), sConf);
+  bDailyTasks = sys.gui.addCheckBox(0, 1, 8, 1, tr("Show daily tasks", "Zobrazit denní úlohy"), sConf);
+  bCnfReload = sys.gui.addButton(0, 3, 6, 1, tr("Reload alarms", "Obnovit notifikace"), sConf);
 
   bConfClose = sys.gui.addButton(0, 11, 2, 1, "", sConf);
   sys.os.gui.setIcon(bConfClose, ICON_BACK);
@@ -180,8 +187,9 @@ function editInit {
   sEdit = sys.gui.addScreen();
   scrSpacer(sEdit);
   sys.gui.setYscroll(sEdit, -4);
+  sys.gui.scrTxtScroll(sEdit, 1);
   
-  sys.gui.addText(0, 0, 5, 1, "Event name:", sEdit);
+  sys.gui.addText(0, 0, 5, 1, tr("Event name:", "Název události:"), sEdit);
   bEvMore = sys.gui.addButton(7, 0, 2, 1, "...", sEdit);
   
   tEvName = sys.gui.addText(0, 1, 9, 1, "", sEdit);
@@ -192,9 +200,9 @@ function editInit {
   bEvTime1 = sys.gui.addButton(5, 2, 2, 1, "00:00", sEdit);
   bEvTime2 = sys.gui.addButton(7, 2, 2, 1, "00:00", sEdit);
   
-  tEvAllDay = sys.gui.addText(5, 2, 3, 1, "All day", sEdit);
+  tEvAllDay = sys.gui.addText(5, 2, 3, 1, tr("All day", "Celý den"), sEdit);
   
-  sys.gui.addText(0, 4, 4, 1, "Note:", sEdit);
+  sys.gui.addText(0, 4, 4, 1, tr("Note:", "Poznámky:"), sEdit);
   
   tEvDescr = sys.gui.addText(0, 5, 9, 6, "", sEdit);
   sys.gui.setTxtEd(tEvDescr, 1);
@@ -207,7 +215,7 @@ function editInit {
   sys.os.gui.setIcon(bEClose, ICON_BACK);
   sys.gui.setXOffset(bEClose, 16);
   
-  bECancel = sys.gui.addButton(6, 12, 3, 1, "Cancel", sEdit);
+  bECancel = sys.gui.addButton(6, 12, 3, 1, tr("Cancel", "Zrušit"), sEdit);
   sys.gui.setVisible(bECancel, 0);
   sys.gui.setTxtAlign(bECancel, ALIGN_CENTER);
   
@@ -422,12 +430,12 @@ function editUpdate {
   if (sys.gui.getEventC(bEvMore) == EV_RELEASED) {
     menu1 = ddm_create(bEvMore);
     ddm_width = 6; # width override, otherwise button width is used
-    ddm_add_btn("All day");
-    ddm_add_btn("Multiple days");
-    ddm_add_btn("Repeating");
-    ddm_add_btn("Notify");
-    ddm_add_btn("Add Occurence");
-    if(currentEvent != -1) ddm_add_btn("Delete event");
+    ddm_add_btn(tr("All day", "Celý den"));
+    ddm_add_btn(tr("Multiple days", "Více dnů"));
+    ddm_add_btn(tr("Repeating", "Opakování"));
+    ddm_add_btn(tr("Notify", "Notifikace"));
+    ddm_add_btn(tr("Add Occurence", "Přidat výskyt"));
+    if(currentEvent != -1) ddm_add_btn(tr("Delete event", "Smazat událost"));
   }
   
   i = ddm_handle(menu1);
@@ -455,8 +463,8 @@ function editUpdate {
       setCheck(3, evRepMon);
       ddm_add_btn(repeatsN[3], "check.sic");
       setCheck(4, evRepYear);
-      ddm_add_btn("Set end date");
-      ddm_add_btn("Clear repeats");
+      ddm_add_btn(tr("Set end date", "Přidat konec"));
+      ddm_add_btn(tr("Clear repeats", "Pouze jednou"));
     }
     
     if (i == 4) {
@@ -476,8 +484,8 @@ function editUpdate {
     if (i == 6) {
       ddm_exit();
       menuDelete = ddm_create_sub(i);
-      ddm_add_btn("This Occurence");
-      ddm_add_btn("All Occurences");
+      ddm_add_btn(tr("This Occurence", "Tento výskyt"));
+      ddm_add_btn(tr("All Occurences", "Všechny výskyty"));
       delOcc = 0;
     }
     
@@ -534,7 +542,7 @@ function editUpdate {
       delOcc = 1;
     }
     
-    c_del = com_new("Delete event?", 0);
+    c_del = com_new(tr("Delete event?", "Smazat událost?"), 0);
   }
   
   if(com_handle(c_del)) {
@@ -1039,8 +1047,8 @@ function loadEvent(occId) {
     sys.gui.setXYXY(tVDate2, 5, 0, 4, 1);
     
   } else {
-    sys.gui.setStr(tVDate1, "Begin: ");
-    sys.gui.setStr(tVDate3, "End: ");
+    sys.gui.setStr(tVDate1, tr("Begin: ", "Začátek: "));
+    sys.gui.setStr(tVDate3, tr("End: ", "Konec: "));
     sys.gui.setVisible(tVDate3, 1);
     sys.gui.setVisible(tVDate4, 1);
     
@@ -1117,7 +1125,7 @@ function viewInit {
   sys.os.gui.setIcon(bVClose, ICON_BACK);
   sys.gui.setXOffset(bVClose, 16);
   
-  bVEdit = sys.gui.addButton(7, 12, 2, 1, "Edit", sView);
+  bVEdit = sys.gui.addButton(6, 12, 3, 1, tr("Edit", "Upravit"), sView);
   
   iVNotify = sys.gui.addImage(0, 11, 1, 1, "alarm.sic", sView);
   tVNotify = sys.gui.addText(1, 11, 5, 1, "10 min before", sView);
@@ -1349,7 +1357,7 @@ function dayReload {
     print("prev task oc " + taskOc);
   }
   
-  local allDay = sys.gui.addText(0, y, 12, 1, "All Day:", sDayList);
+  local allDay = sys.gui.addText(0, y, 12, 1, tr("All Day:", "Celý den:"), sDayList);
   sys.gui.setVisible(allDay, 0);
   
   y += allDayOc;
@@ -1481,8 +1489,8 @@ function updateDay {
    if (sys.gui.getEventC(bDayNew) == EV_RELEASED) {
     menuDay = ddm_create(bDayNew);
     ddm_width = 4; # width override, otherwise button width is used
-    ddm_add_btn("Task");
-    ddm_add_btn("Event");
+    ddm_add_btn(tr("Task", "Úkol"));
+    ddm_add_btn(tr("Event", "Událost"));
 
     sys.gui.setIcon(ddm_get_id(2), "task.sic");
     sys.gui.setYOffset(ddm_get_id(2), 3);
@@ -1568,6 +1576,8 @@ function monthReload {
   for(local i = 1; i <= days; i++;) {
     sys.w.cal.mark(i, 0);
   }
+
+  sys.fs.db.selectTable("occs");
   
   if (sys.fs.db.selectRow(0)) {
     while(1) {
@@ -1671,8 +1681,8 @@ function updateMonth {
   if (sys.gui.getEventC(bMonNew) == EV_RELEASED) {
     menuDay = ddm_create(bMonNew);
     ddm_width = 4;
-    ddm_add_btn("Task");
-    ddm_add_btn("Event");
+    ddm_add_btn(tr("Task", "Úkol"));
+    ddm_add_btn(tr("Event", "Událost"));
 
     sys.gui.setIcon(ddm_get_id(2), "task.sic");
     sys.gui.setYOffset(ddm_get_id(2), 3);

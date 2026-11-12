@@ -31,6 +31,21 @@ function scrSpacer {
 }
 
 function getMonthName {
+  if(sys.os.getLang() == SVP_LANG_CZ) {
+    if(arg0 == 1)  return "Leden";
+    if(arg0 == 2)  return "Únor";
+    if(arg0 == 3)  return "Březen";
+    if(arg0 == 4)  return "Duben";
+    if(arg0 == 5)  return "Květen";
+    if(arg0 == 6)  return "Červen";
+    if(arg0 == 7)  return "Červenec";
+    if(arg0 == 8)  return "Srpen";
+    if(arg0 == 9)  return "Září";
+    if(arg0 == 10) return "Říjen";
+    if(arg0 == 11) return "Listopad";
+    if(arg0 == 12) return "Prosinec";
+  }
+
   if(arg0 == 1)  return "January";
   if(arg0 == 2)  return "February";
   if(arg0 == 3)  return "March";
@@ -48,6 +63,16 @@ function getMonthName {
 }
 
 function getDayName {
+  if(sys.os.getLang() == SVP_LANG_CZ) {
+    if (arg0 == 1) return "Pondělí";
+    if (arg0 == 2) return "Úterý";
+    if (arg0 == 3) return "Středa";
+    if (arg0 == 4) return "Čtvrtek";
+    if (arg0 == 5) return "Pátek";
+    if (arg0 == 6) return "Sobota";
+    if (arg0 == 7) return "Neděle";
+  }
+
   if (arg0 == 1) return "Monday";
   if (arg0 == 2) return "Tuesday";
   if (arg0 == 3) return "Wednesday";
@@ -55,4 +80,6 @@ function getDayName {
   if (arg0 == 5) return "Friday";
   if (arg0 == 6) return "Saturday";
   if (arg0 == 7) return "Sunday";
+
+  return "";
 }

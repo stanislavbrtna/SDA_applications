@@ -2,8 +2,9 @@ function taskEdInit {
   sTEdit = sys.gui.addScreen();
   scrSpacer(sTEdit);
   sys.gui.setYscroll(sTEdit, -4);
+  sys.gui.scrTxtScroll(sTEdit, 1);
   
-  sys.gui.addText(0, 0, 5, 1, "Task name:", sTEdit);
+  sys.gui.addText(0, 0, 5, 1, tr("Task name:", "Název úkolu:"), sTEdit);
   bTaMore = sys.gui.addButton(7, 0, 2, 1, "...", sTEdit);
   
   tTaName = sys.gui.addText(0, 1, 9, 1, "", sTEdit);
@@ -16,7 +17,7 @@ function taskEdInit {
   sys.gui.setIcon(bTaCheck, "check_e.sic");
   sys.gui.setXOffset(bTaCheck, 0);
   
-  sys.gui.addText(0, 3, 4, 1, "Note:", sTEdit);
+  sys.gui.addText(0, 3, 4, 1, tr("Note:", "Poznámky:"), sTEdit);
   
   tTaDescr = sys.gui.addText(0, 4, 9, 7, "", sTEdit);
   sys.gui.setTxtEd(tTaDescr, 1);
@@ -29,7 +30,7 @@ function taskEdInit {
   sys.os.gui.setIcon(bTEClose, ICON_BACK);
   sys.gui.setXOffset(bTEClose, 16);
   
-  bTECancel = sys.gui.addButton(6, 12, 3, 1, "Cancel", sTEdit);
+  bTECancel = sys.gui.addButton(6, 12, 3, 1, tr("Cancel", "Zrušit"), sTEdit);
   sys.gui.setVisible(bTECancel, 0);
   sys.gui.setTxtAlign(bTECancel, ALIGN_CENTER);
   
@@ -99,11 +100,11 @@ function taskUpdate {
   if (sys.gui.getEventC(bTaMore) == EV_RELEASED) {
     menu1 = ddm_create(bTaMore);
     ddm_width = 6; # width override, otherwise button width is used
-    ddm_add_btn("Set Time");
-    ddm_add_btn("Repeating");
-    ddm_add_btn("Notify");
-    ddm_add_btn("Add Occurence");
-    if(currentTask != -1) ddm_add_btn("Delete Task");
+    ddm_add_btn(tr("Set Time", "Nastavit čas"));
+    ddm_add_btn(tr("Repeating", "Opakování"));
+    ddm_add_btn(tr("Notify", "Notifikace"));
+    ddm_add_btn(tr("Add Occurence", "Přidat výskyt"));
+    if(currentTask != -1) ddm_add_btn(tr("Delete Task", "Smazat úkol"));
   }
   
   i = ddm_handle(menu1);
@@ -126,8 +127,8 @@ function taskUpdate {
       setCheck(3, evRepMon);
       ddm_add_btn(repeatsN[3], "check.sic");
       setCheck(4, evRepYear);
-      ddm_add_btn("Set end date");
-      ddm_add_btn("Clear repeats");
+      ddm_add_btn(tr("Set end date", "Datum konce"));
+      ddm_add_btn(tr("Clear repeats", "Jednou"));
     }
     
     if (i == 3) {
@@ -148,8 +149,8 @@ function taskUpdate {
     if (i == 5) {
       ddm_exit();
       menuDelete = ddm_create_sub(i);
-      ddm_add_btn("This Occurence");
-      ddm_add_btn("All Occurences");
+      ddm_add_btn(tr("This Occurence", "Tento výskyt"));
+      ddm_add_btn(tr("All Occurences", "Všechny výskyty"));
       delOcc = 0;
     }
     
@@ -203,7 +204,7 @@ function taskUpdate {
       delOcc = 1;
     }
     
-    c_del = com_new("Delete event?", 0);
+    c_del = com_new(tr("Delete event?", "Smazat úkol?"), 0);
   }
   
   if(com_handle(c_del)) {
@@ -723,12 +724,12 @@ function ttoLoad(susp) {
   ttoSusp = susp;
 
   sys.gui.addImage(0, 0, 1, 1, "check.sic", sTto);
-  sys.gui.addText(1, 0, 6, 1, "Tasks for today", sTto);
+  sys.gui.addText(1, 0, 6, 1, tr("Tasks for today", "Dnešní úkoly"), sTto);
 
   bTtoNew = sys.gui.addButton(7, 0, 1, 1, "+", sTto);
 
-  bTtoOpen = sys.gui.addButton(0, 8, 5, 1, "Open Calendar", sTto);
-  bTtoClose = sys.gui.addButton(5, 8, 3, 1, "Close", sTto);
+  bTtoOpen = sys.gui.addButton(0, 8, 5, 1, tr("Open Calendar", "Otevřít kalendář"), sTto);
+  bTtoClose = sys.gui.addButton(5, 8, 3, 1, tr("Close", "Zavřít"), sTto);
   oTto = sys.o.setScr(sTto);
   local border = 16;
   
